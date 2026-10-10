@@ -31,12 +31,12 @@
 
 ## 5. PostgreSQL driver
 
-- [ ] 5.1 Implement connect/test with server version and timing (spec: driver-framework › Test a connection, PostgreSQL driver)
-- [ ] 5.2 Implement the session: execute with streaming portal, fetch_more, cancel via cancel token, error position/hint mapping
-- [ ] 5.3 Implement type decoding for all value-model kinds incl. arrays, json/jsonb, uuid, interval, numeric
-- [ ] 5.4 Implement introspection queries (databases, schemas, tables with reltuples estimate, views, matviews, functions, sequences, types, columns, PK, FKs, indexes) and the completion snapshot (spec: driver-framework › Lazy schema introspection)
-- [ ] 5.5 Report source table/column per result column (via `attrelid`/`attnum` from the row description)
-- [ ] 5.6 Test: conformance suite against PostgreSQL 16 in docker-compose
+- [x] 5.1 Implement connect/test with server version and timing (spec: driver-framework › Test a connection, PostgreSQL driver)
+- [x] 5.2 Implement the session: execute with streaming portal, fetch_more, cancel via cancel token, error position/hint mapping
+- [x] 5.3 Implement type decoding for all value-model kinds incl. arrays, json/jsonb, uuid, interval, numeric
+- [x] 5.4 Implement introspection queries (databases, schemas, tables with reltuples estimate, views, matviews, functions, sequences, types, columns, PK, FKs, indexes) and the completion snapshot (spec: driver-framework › Lazy schema introspection)
+- [x] 5.5 Report source table/column per result column (via `attrelid`/`attnum` from the row description)
+- [x] 5.6 Test: conformance suite against PostgreSQL 16 in docker-compose
 
 ## 6. MySQL and MariaDB driver
 

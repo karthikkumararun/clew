@@ -168,6 +168,23 @@ impl Value {
         }
     }
 
+    /// Text without truncation (used when the full value is fetched on demand).
+    pub fn text_full(s: impl Into<String>) -> Self {
+        Value::Text {
+            value: s.into(),
+            truncated: false,
+        }
+    }
+
+    /// Bytes without truncation.
+    pub fn bytes_full(b: &[u8]) -> Self {
+        Value::Bytes {
+            value: hex(b),
+            len: b.len() as u64,
+            truncated: false,
+        }
+    }
+
     /// Bytes as lowercase hex, with the same truncation rule. `len` is always the full length.
     pub fn bytes(b: &[u8]) -> Self {
         let truncated = b.len() > TRUNCATE_THRESHOLD;

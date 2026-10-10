@@ -67,6 +67,13 @@ One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequen
 - With a tunnel the driver connects to `127.0.0.1:<port>`, so `verify-full` cannot match the real host name; use `verify-ca` for tunnelled TLS connections.
 - A key with a missing passphrase fails with `auth_failed`; asking for it through a prompt is left to `add-connection-management`, which owns the keychain.
 
+### PostgreSQL driver notes (implementation)
+- sqlx stays (the open question): paging works by letting a task own the connection and feed a bounded channel while the session holds the receiver (`drivers/postgres/session.rs`). Abandoning an open result cancels the backend query so the rest is not drained.
+- Cancel opens a short-lived second connection and calls `pg_cancel_backend(pid)`; a `running` flag stops a late cancel from hitting the next statement.
+- Statements are prepared first so column metadata (including the source table and column from the row description's `attrelid`/`attnum`) arrives before any row. The statement cache is disabled so DDL never leaves stale plans.
+- sqlx always asks for binary results, so `drivers/postgres/decode.rs` decodes the wire format itself (numeric, intervals, arrays, jsonb, inet, ...). Types without a decoder arrive as `other` with a `\x` hex form (PostGIS is its server-style upper-case hex); this is the cost of not being able to request text per column.
+- Threshold for truncation follows the spec (values over 1 MB keep their first 64 KB), not the design's earlier 64 KB figure.
+
 ### Errors
 `DriverError { code: ErrorCode, message, detail: Option<String>, position: Option<u32>, hint: Option<String> }` where `ErrorCode` covers `auth_failed | timeout | connection_lost | query_failed | cancelled | tls_failed | host_key_mismatch | file_not_found | database_locked | access_denied | driver_unavailable | unsupported`.
 
