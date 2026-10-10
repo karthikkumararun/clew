@@ -20,3 +20,11 @@ The driver framework exposes `introspect_children(connection_id, path)`. This ch
 
 - [Huge schemas (10k+ tables)] → virtualization plus a cap of 5,000 children rendered per group with a "Show all / filter" hint.
 - [Estimates are stale] → label them as estimates in the tooltip ("≈12,480 rows · from statistics").
+
+### Decisions made during implementation
+- **DDL command:** `introspect_ddl` already existed from `add-driver-framework` (SQLite and MySQL implemented), so Generate DDL uses it and PostgreSQL gained its implementation (`drivers/postgres/ddl.rs`) instead of a new `explorer_ddl` command. A SQLite table's DDL now also lists its indexes and triggers.
+- **Count rows:** new `Driver::count_rows` (PostgreSQL, MySQL/MariaDB, SQLite) behind the `explorer_count_rows` command; the exact count is kept in the explorer store and shown in place of the estimate.
+- **Contracts with later changes:** the explorer runs `console.new` (`{ connectionId, database?, schema?, sql? }`), `table.open` (`{ connectionId, path }`) and `table.filterByColumn` (`{ connectionId, path, column }`) through the command registry. Until those exist the menu says the action isn't available yet; Generate DDL falls back to copying the statement. A table editor tab (`kind: "table"`) must carry `{ connectionId, path }` in its state so the explorer can reveal it.
+- **Connection list:** the explorer replaces `ConnectionList` (group headers, connection rows and drag-to-move are rows of the same virtualized tree); connection actions moved into the row context menu and the `connection.*` commands.
+- **Empty state text:** "No connections yet." keeps its full stop so it doesn't collide with the Welcome screen's identical heading in text queries.
+- **Estimates and counts:** both use the drivers' `12.4k` format; a tooltip says whether the figure is an estimate ("from statistics") or exact.

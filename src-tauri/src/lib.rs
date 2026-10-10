@@ -143,6 +143,7 @@ pub fn run() {
             commands::sessions::introspect_children,
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
+            commands::sessions::explorer_count_rows,
             commands::sessions::host_key_answer,
             commands::connections::connections_list,
             commands::connections::connections_save,

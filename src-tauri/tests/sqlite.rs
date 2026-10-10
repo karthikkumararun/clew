@@ -609,3 +609,55 @@ async fn an_empty_database_introspects_cleanly() {
     let groups = children(&c, &dbs[0].path).await;
     assert!(groups.iter().all(|g| !g.has_children));
 }
+
+#[tokio::test]
+async fn ddl_of_a_table_includes_its_indexes_and_matches_the_golden_output() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE users (id INTEGER PRIMARY KEY)").await;
+    c.must(
+        "CREATE TABLE orders (\n    id INTEGER PRIMARY KEY,\n    user_id INTEGER NOT NULL REFERENCES users (id),\n    total NUMERIC DEFAULT 0 CHECK (total >= 0)\n)",
+    )
+    .await;
+    c.must("CREATE INDEX orders_user_id_idx ON orders (user_id)")
+        .await;
+    c.must("CREATE TRIGGER orders_audit AFTER INSERT ON orders BEGIN SELECT 1; END")
+        .await;
+    let path = NodePath::root()
+        .child(NodeKind::Database, "main")
+        .child(NodeKind::Table, "orders");
+    let ddl = c.mgr.ddl("conf", &path).await.expect("ddl");
+    let golden = include_str!("fixtures/sqlite_ddl_orders.golden.sql").trim_end();
+    assert_eq!(ddl, golden);
+}
+
+#[tokio::test]
+async fn count_rows_is_exact_for_tables_and_views() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE \"we\"\"ird\" (id INTEGER)").await;
+    c.must("INSERT INTO \"we\"\"ird\" VALUES (1), (2), (3)")
+        .await;
+    c.must("CREATE VIEW v AS SELECT id FROM \"we\"\"ird\" WHERE id > 1")
+        .await;
+    let db = NodePath::root().child(NodeKind::Database, "main");
+    assert_eq!(
+        c.mgr
+            .count_rows("conf", &db.child(NodeKind::Table, "we\"ird"))
+            .await
+            .unwrap(),
+        3
+    );
+    assert_eq!(
+        c.mgr
+            .count_rows("conf", &db.child(NodeKind::View, "v"))
+            .await
+            .unwrap(),
+        2
+    );
+    assert!(c
+        .mgr
+        .count_rows("conf", &db.child(NodeKind::Table, "nope"))
+        .await
+        .is_err());
+}

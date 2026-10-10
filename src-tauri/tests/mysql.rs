@@ -417,6 +417,19 @@ both! {
         c.must("DROP DATABASE conf_ddl").await;
     };
 
+    count_rows_is_exact => |f| async move {
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_count").await;
+        c.must("CREATE DATABASE conf_count").await;
+        c.must("CREATE TABLE conf_count.`we``ird` (id INT)").await;
+        c.must("INSERT INTO conf_count.`we``ird` VALUES (1), (2), (3)").await;
+        c.must("CREATE VIEW conf_count.v AS SELECT id FROM conf_count.`we``ird` WHERE id > 1").await;
+        let db = NodePath::root().child(NodeKind::Database, "conf_count");
+        assert_eq!(c.mgr.count_rows("conf", &db.child(NodeKind::Table, "we`ird")).await.unwrap(), 3);
+        assert_eq!(c.mgr.count_rows("conf", &db.child(NodeKind::View, "v")).await.unwrap(), 2);
+        c.must("DROP DATABASE conf_count").await;
+    };
+
     completion_snapshot => |f| async move {
         let c = connect(&root(f)).await;
         c.must("DROP DATABASE IF EXISTS conf_snap").await;

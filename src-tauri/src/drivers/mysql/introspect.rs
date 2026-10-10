@@ -329,6 +329,27 @@ pub async fn ddl(meta: &MyMeta, path: &NodePath) -> DriverResult<String> {
         .unwrap_or_default())
 }
 
+/// Exact row count of a table or view.
+pub async fn count_rows(meta: &MyMeta, path: &NodePath) -> DriverResult<i64> {
+    let seg = path
+        .0
+        .last()
+        .ok_or_else(|| DriverError::internal("The path does not name an object"))?;
+    let db = path
+        .find(NodeKind::Database)
+        .ok_or_else(|| DriverError::internal("The object is not inside a database"))?;
+    let q = |s: &str| format!("`{}`", s.replace('`', "``"));
+    // Both identifiers are quoted above, with embedded backticks doubled.
+    sqlx::query_scalar(AssertSqlSafe(format!(
+        "SELECT count(*) FROM {}.{}",
+        q(db),
+        q(&seg.name)
+    )))
+    .fetch_one(&meta.pool)
+    .await
+    .map_err(|e| meta.err(e))
+}
+
 #[allow(clippy::type_complexity)]
 pub async fn snapshot(meta: &MyMeta, db: &str) -> DriverResult<SchemaSnapshot> {
     let filter = if db.is_empty() {

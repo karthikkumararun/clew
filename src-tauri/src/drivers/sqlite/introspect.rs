@@ -316,7 +316,8 @@ async fn table_children(
     Ok(nodes)
 }
 
-/// The stored `CREATE` statement of a table, view, index or trigger.
+/// The stored `CREATE` statement of a table, view, index or trigger. A table also gets the
+/// `CREATE INDEX` statements of its explicitly created indexes.
 pub async fn ddl(meta: &SqliteMeta, path: &NodePath) -> DriverResult<String> {
     let seg = path
         .0
@@ -340,7 +341,43 @@ pub async fn ddl(meta: &SqliteMeta, path: &NodePath) -> DriverResult<String> {
     .await
     .map_err(|e| meta.err(e))?
     .flatten();
-    sql.ok_or_else(|| DriverError::new(ErrorCode::QueryFailed, "The object no longer exists"))
+    let mut out =
+        sql.ok_or_else(|| DriverError::new(ErrorCode::QueryFailed, "The object no longer exists"))?;
+    if kind == "table" {
+        // Automatic indexes (PRIMARY KEY / UNIQUE) have no stored SQL and are part of the table.
+        let extra: Vec<String> = sqlx::query_scalar(AssertSqlSafe(format!(
+            "SELECT sql FROM {}.sqlite_master WHERE type IN ('index', 'trigger') \
+             AND tbl_name = ? AND sql IS NOT NULL ORDER BY type, name",
+            q(db)
+        )))
+        .bind(&seg.name)
+        .fetch_all(&meta.pool)
+        .await
+        .map_err(|e| meta.err(e))?;
+        for stmt in extra {
+            out.push_str(";\n\n");
+            out.push_str(&stmt);
+        }
+    }
+    Ok(out)
+}
+
+/// Exact row count of a table or view.
+pub async fn count_rows(meta: &SqliteMeta, path: &NodePath) -> DriverResult<i64> {
+    let seg = path
+        .0
+        .last()
+        .ok_or_else(|| DriverError::internal("The path does not name an object"))?;
+    let db = path.find(NodeKind::Database).unwrap_or("main");
+    // `q` quotes both identifiers, doubling embedded quotes.
+    sqlx::query_scalar(AssertSqlSafe(format!(
+        "SELECT count(*) FROM {}.{}",
+        q(db),
+        q(&seg.name)
+    )))
+    .fetch_one(&meta.pool)
+    .await
+    .map_err(|e| meta.err(e))
 }
 
 pub async fn snapshot(meta: &SqliteMeta, db: &str) -> DriverResult<SchemaSnapshot> {

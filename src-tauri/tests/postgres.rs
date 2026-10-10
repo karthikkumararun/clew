@@ -813,3 +813,70 @@ async fn a_tunnelled_session_works_and_reports_the_transport() {
         .expect("introspect through the tunnel");
     assert!(!nodes.is_empty());
 }
+
+// ---- explorer: DDL and row counts --------------------------------------------------------------
+
+/// Run a fixture script statement by statement (comment lines dropped).
+async fn run_fixture(c: &Connected, script: &str) {
+    let text: String = script
+        .lines()
+        .filter(|l| !l.trim_start().starts_with("--"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    for stmt in text.split(";\n").map(str::trim).filter(|s| !s.is_empty()) {
+        c.must(stmt).await;
+    }
+}
+
+#[tokio::test]
+async fn ddl_of_a_table_matches_the_golden_output() {
+    let c = connect(&suite().cfg).await;
+    // The metadata pool uses the default search path, so the fixture lives in `public`.
+    for drop in [
+        "DROP VIEW IF EXISTS big_orders",
+        "DROP TABLE IF EXISTS orders",
+        "DROP TABLE IF EXISTS users",
+        "DROP TYPE IF EXISTS order_status",
+    ] {
+        c.must(drop).await;
+    }
+    run_fixture(&c, include_str!("fixtures/pg_ddl_orders.sql")).await;
+
+    let table = |name: &str| {
+        NodePath::root()
+            .child(NodeKind::Database, "clew")
+            .child(NodeKind::Schema, "public")
+            .child(NodeKind::Group, "tables")
+            .child(NodeKind::Table, name)
+    };
+    let ddl = c.mgr.ddl("conf", &table("orders")).await.expect("ddl");
+    assert_eq!(
+        ddl,
+        include_str!("fixtures/pg_ddl_orders.golden.sql").trim_end()
+    );
+
+    // Row counts are exact.
+    c.must("INSERT INTO users VALUES (1), (2), (3)").await;
+    assert_eq!(c.mgr.count_rows("conf", &table("users")).await.unwrap(), 3);
+
+    // A view renders as CREATE OR REPLACE VIEW.
+    c.must("CREATE VIEW big_orders AS SELECT id FROM orders WHERE total > 100")
+        .await;
+    let view = NodePath::root()
+        .child(NodeKind::Database, "clew")
+        .child(NodeKind::Schema, "public")
+        .child(NodeKind::Group, "views")
+        .child(NodeKind::View, "big_orders");
+    let vddl = c.mgr.ddl("conf", &view).await.unwrap();
+    assert!(vddl.starts_with("CREATE OR REPLACE VIEW \"public\".\"big_orders\" AS\n"));
+    assert!(vddl.ends_with(';'));
+
+    for drop in [
+        "DROP VIEW big_orders",
+        "DROP TABLE orders",
+        "DROP TABLE users",
+        "DROP TYPE order_status",
+    ] {
+        c.must(drop).await;
+    }
+}

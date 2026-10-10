@@ -665,6 +665,12 @@ impl SessionManager {
         c.driver.ddl(&c.pool, path).await
     }
 
+    /// Exact row count of a table or view, through the metadata pool.
+    pub async fn count_rows(&self, connection_id: &str, path: &NodePath) -> DriverResult<i64> {
+        let c = self.connection(connection_id)?;
+        c.driver.count_rows(&c.pool, path).await
+    }
+
     pub async fn completion_snapshot(
         &self,
         connection_id: &str,
