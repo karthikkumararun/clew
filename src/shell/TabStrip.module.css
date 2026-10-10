@@ -1,0 +1,113 @@
+.strip {
+  height: var(--h-tabstrip);
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--bg-app);
+  color: var(--text);
+}
+
+/* 2px top stripe in the connection's environment colour (dimmed on inactive tabs). */
+.tab::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--stripe, transparent);
+  opacity: 0.45;
+}
+
+.tab[aria-selected="true"]::before {
+  opacity: 1;
+}
+
+/* Active tab underline: the gold thread. */
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.tab[data-dragging="true"] {
+  opacity: 0.6;
+}
+
+.tab[data-drop="before"] {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.tab[data-drop="after"] {
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.subtitle {
+  color: var(--text-dim);
+}
+
+.dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.add {
+  align-self: center;
+  margin-left: 4px;
+}

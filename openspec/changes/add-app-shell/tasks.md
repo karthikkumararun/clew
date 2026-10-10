@@ -33,11 +33,11 @@
 
 ## 5. Editor tabs
 
-- [ ] 5.1 Implement `workspaceStore` (Zustand): tabs, activeTabId, open/focus-by-key, close, reorder (spec: app-shell › Editor tabs)
-- [ ] 5.2 Implement the tab-kind registry and `EditorArea` that renders the active tab's kind
-- [ ] 5.3 Build `TabStrip`: icon, title, subtitle, dirty dot, close button, env stripe, drag-reorder, horizontal overflow scroll, Mod+W, Mod+Shift+[ / ]
-- [ ] 5.4 Unsaved-changes confirmation (Save / Discard / Cancel) on close
-- [ ] 5.5 Test: dedupe by key, close activates left neighbour, dirty prompt, reorder
+- [x] 5.1 Implement `workspaceStore` (Zustand): tabs, activeTabId, open/focus-by-key, close, reorder (spec: app-shell › Editor tabs)
+- [x] 5.2 Implement the tab-kind registry and `EditorArea` that renders the active tab's kind
+- [x] 5.3 Build `TabStrip`: icon, title, subtitle, dirty dot, close button, env stripe, drag-reorder, horizontal overflow scroll, Mod+W, Mod+Shift+[ / ]
+- [x] 5.4 Unsaved-changes confirmation (Save / Discard / Cancel) on close
+- [x] 5.5 Test: dedupe by key, close activates left neighbour, dirty prompt, reorder
 
 ## 6. Welcome screen
 

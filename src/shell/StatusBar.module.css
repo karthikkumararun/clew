@@ -22,3 +22,7 @@
   align-items: center;
   gap: 6px;
 }
+
+.item:empty {
+  display: none;
+}
