@@ -23,6 +23,7 @@ use super::decode::{decode_by_class, kind_for_declared};
 use super::error::{is_connection_error, map_error};
 use crate::drivers::introspect::NodeKind;
 use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
+use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
     ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
@@ -375,6 +376,37 @@ impl Session for SqliteSession {
             .await
     }
 
+    async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        self.begin_statement();
+        let mut query = sqlx::query(AssertSqlSafe(sql.to_string())).persistent(false);
+        for p in params {
+            query = match p {
+                Value::Null => query.bind(None::<String>),
+                Value::Int { value } => query.bind(*value),
+                Value::Bool { value } => query.bind(*value),
+                Value::Float { value } => query.bind(*value),
+                Value::Bytes { value, .. } => query.bind(unhex(value)),
+                other => query.bind(other.sql_text()),
+            };
+        }
+        let result = query.execute(&mut *conn).await;
+        self.end_statement();
+        match result {
+            Ok(done) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(done.rows_affected())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.path, Some(sql)))
+            }
+        }
+    }
+
     async fn fetch_more(
         &mut self,
         result_id: ResultId,
@@ -489,12 +521,6 @@ async fn fetch_full(
     let class = raw.type_info().name().to_string();
     let declared = row.column(0).type_info().name().to_string();
     Ok(decode_cell(&row, 0, &class, &declared, false))
-}
-
-fn unhex(s: &str) -> Vec<u8> {
-    (0..s.len() / 2)
-        .filter_map(|i| u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).ok())
-        .collect()
 }
 
 #[cfg(test)]

@@ -300,6 +300,13 @@ fn format_time(t: NaiveTime) -> String {
     }
 }
 
+/// Bytes from a hex string (invalid pairs are skipped).
+pub fn unhex(s: &str) -> Vec<u8> {
+    (0..s.len() / 2)
+        .filter_map(|i| u8::from_str_radix(&s[i * 2..i * 2 + 2], 16).ok())
+        .collect()
+}
+
 fn hex(bytes: &[u8]) -> String {
     const DIGITS: &[u8; 16] = b"0123456789abcdef";
     let mut out = String::with_capacity(bytes.len() * 2);

@@ -695,6 +695,161 @@ async fn manual_mode_commit_keeps_the_transaction_open_until_commit() {
     assert_eq!(count(c.session.clone()).await, 2);
 }
 
+// ---- table editor changes ---------------------------------------------------------------------
+
+fn change_request(edit_old: &str) -> clew_lib::changes::ChangeRequest {
+    let path = NodePath::root()
+        .child(NodeKind::Database, "main")
+        .child(NodeKind::Table, "t");
+    let mut req: clew_lib::changes::ChangeRequest = serde_json::from_value(serde_json::json!({
+        "path": path,
+        "columns": [
+            {"name": "id", "type_name": "INTEGER"},
+            {"name": "name", "type_name": "TEXT"},
+        ],
+        "keyColumns": ["id"],
+        "edits": [{
+            "key": [{"kind": "int", "value": 1}],
+            "changes": [{
+                "column": "name",
+                "old": {"kind": "text", "value": edit_old, "truncated": false},
+                "new": {"kind": "value", "value": {"kind": "text", "value": "it's new", "truncated": false}},
+            }],
+        }],
+        "inserts": [{"values": [
+            {"column": "id", "value": {"kind": "value", "value": {"kind": "int", "value": 3}}},
+            {"column": "name", "value": {"kind": "value", "value": {"kind": "null"}}},
+        ]}],
+        "deletes": [{"key": [{"kind": "int", "value": 2}]}],
+    }))
+    .unwrap();
+    req.key_columns = vec!["id".into()];
+    req
+}
+
+#[tokio::test]
+async fn staged_changes_apply_in_one_transaction() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    assert_eq!(out.applied, 3);
+    assert!(out.failure.is_none());
+
+    let rows = run(&c.mgr, &c.session, "SELECT id, name FROM t ORDER BY id")
+        .await
+        .rows();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(
+        rows[0][1],
+        Value::Text {
+            value: "it's new".into(),
+            truncated: false
+        }
+    );
+    assert_eq!(rows[1][0], Value::Int { value: 3 });
+    assert_eq!(rows[1][1], Value::Null);
+}
+
+#[tokio::test]
+async fn a_changed_row_rolls_the_whole_batch_back() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'changed by someone'), (2, 'keep')")
+        .await;
+
+    // The edit expects 'old', so its optimistic check matches nothing.
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    let failure = out.failure.expect("conflict reported");
+    assert!(failure.conflict);
+    assert_eq!(failure.target.index, 0);
+    assert_eq!(out.applied, 0);
+
+    let n = run(&c.mgr, &c.session, "SELECT count(*) FROM t")
+        .await
+        .scalar_int();
+    assert_eq!(n, 2, "the delete and insert were rolled back too");
+    let name = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        name[0][0],
+        Value::Text {
+            value: "changed by someone".into(),
+            truncated: false
+        }
+    );
+}
+
+#[tokio::test]
+async fn a_database_error_rolls_back_and_names_the_statement() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone'), (3, 'dup')")
+        .await;
+
+    // Inserting id 3 violates the primary key.
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    let failure = out.failure.expect("insert fails");
+    assert!(!failure.conflict);
+    assert_eq!(failure.target.index, 0);
+    assert!(failure.message.to_lowercase().contains("unique"));
+    let name = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        name[0][0],
+        Value::Text {
+            value: "old".into(),
+            truncated: false
+        },
+        "the earlier update was undone"
+    );
+    // The session is usable afterwards.
+    c.must("SELECT 1").await;
+}
+
+#[tokio::test]
+async fn changes_inside_a_user_transaction_use_a_savepoint() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    c.must("BEGIN").await;
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    assert!(out.failure.is_none());
+    assert_eq!(
+        c.mgr.sessions_in_transaction("conf"),
+        vec![c.session.clone()],
+        "still the user's transaction"
+    );
+    c.must("ROLLBACK").await;
+    let n = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        n[0][0],
+        Value::Text {
+            value: "old".into(),
+            truncated: false
+        },
+        "the user can still roll the edits back"
+    );
+}
+
 // ---- query history ----------------------------------------------------------------------------
 
 use clew_lib::history::{self, Outcome};

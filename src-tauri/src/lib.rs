@@ -1,3 +1,4 @@
+pub mod changes;
 pub mod commands;
 pub mod connections;
 pub mod drivers;
@@ -159,6 +160,8 @@ pub fn run() {
             commands::sessions::explorer_count_rows,
             commands::sessions::table_meta,
             commands::sessions::table_query_sql,
+            commands::sessions::changes_preview,
+            commands::sessions::changes_apply,
             commands::sessions::history_list,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,

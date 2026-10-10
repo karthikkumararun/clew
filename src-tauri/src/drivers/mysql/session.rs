@@ -22,6 +22,7 @@ use super::decode::{decode_text, effective_type_name, kind_for_type};
 use super::error::{is_connection_error, map_error};
 use crate::drivers::introspect::NodeKind;
 use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
+use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
     ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
@@ -334,6 +335,37 @@ impl Session for MySession {
         self.stream = Some(OpenStream::new(result_id, rx, task));
         self.page(result_id, req.page_size.max(1), &sink, started)
             .await
+    }
+
+    async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        self.cancel.running.store(true, Ordering::SeqCst);
+        let mut query = sqlx::query(AssertSqlSafe(sql.to_string())).persistent(false);
+        for p in params {
+            query = match p {
+                Value::Null => query.bind(None::<String>),
+                Value::Int { value } => query.bind(*value),
+                Value::Float { value } => query.bind(*value),
+                Value::Bool { value } => query.bind(*value as i64),
+                Value::Bytes { value, .. } => query.bind(unhex(value)),
+                other => query.bind(other.sql_text()),
+            };
+        }
+        let result = query.execute(&mut *conn).await;
+        self.cancel.running.store(false, Ordering::SeqCst);
+        match result {
+            Ok(done) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(done.rows_affected())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target, Some(sql)))
+            }
+        }
     }
 
     async fn fetch_more(

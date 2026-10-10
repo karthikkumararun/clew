@@ -233,3 +233,32 @@ pub async fn history_clear(
 ) -> AppResult<u64> {
     state.store.history_clear(connection_id.as_deref()).await
 }
+
+/// The SQL a set of staged edits would run, values written out, for the pending bar's preview.
+#[tauri::command]
+pub fn changes_preview(
+    state: State<'_, AppState>,
+    connection_id: String,
+    request: crate::changes::ChangeRequest,
+) -> AppResult<Vec<crate::changes::PreviewStatement>> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    let statements = crate::changes::build(&driver, &request)?;
+    Ok(crate::changes::preview(&statements))
+}
+
+/// Apply staged edits on the tab's session in one transaction. Statement failures come back in
+/// the outcome (nothing is changed then); only infrastructure failures are errors.
+#[tauri::command]
+pub async fn changes_apply(
+    state: State<'_, AppState>,
+    connection_id: String,
+    session_id: String,
+    request: crate::changes::ChangeRequest,
+) -> AppResult<crate::changes::ApplyOutcome> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    let statements = crate::changes::build(&driver, &request)?;
+    Ok(state
+        .sessions
+        .apply_changes(&session_id, &statements)
+        .await?)
+}

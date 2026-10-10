@@ -746,6 +746,26 @@ impl SessionManager {
     }
 
     /// The driver id (`postgres`, …) of a connected connection.
+    /// Run staged table edits on the tab's session as one unit (see [`crate::changes::apply`]).
+    pub async fn apply_changes(
+        &self,
+        session_id: &str,
+        statements: &[crate::changes::Statement],
+    ) -> DriverResult<crate::changes::ApplyOutcome> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let in_txn = st.in_transaction;
+        let driver = entry.connection.driver.meta().id.to_string();
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(
+                ErrorCode::ConnectionLost,
+                "The connection was lost. Run the query again to reconnect, then retry.",
+            )
+        })?;
+        crate::changes::apply(session.as_mut(), &driver, in_txn, statements).await
+    }
+
     pub fn driver_id(&self, connection_id: &str) -> DriverResult<String> {
         Ok(self.connection(connection_id)?.driver.meta().id.to_string())
     }

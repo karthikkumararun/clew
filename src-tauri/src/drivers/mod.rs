@@ -485,6 +485,13 @@ pub trait Session: Send {
     /// increase over the session's lifetime so they stay unique across statements.
     async fn execute(&mut self, req: ExecRequest, sink: ResultSink) -> DriverResult<ExecSummary>;
 
+    /// Run one statement with bound parameters (`$n` on PostgreSQL, `?` elsewhere) and return how
+    /// many rows it changed. Used for the table editor's generated INSERT / UPDATE / DELETE, so
+    /// edited values are never spliced into SQL text.
+    async fn execute_params(&mut self, _sql: &str, _params: &[Value]) -> DriverResult<u64> {
+        Err(DriverError::unsupported("editing rows"))
+    }
+
     /// Pull up to `n` more rows of an open result. Returns whether more rows remain.
     async fn fetch_more(
         &mut self,
