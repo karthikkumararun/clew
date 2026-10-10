@@ -29,9 +29,9 @@
 
 ## 5. Errors and explain
 
-- [ ] 5.1 Error display in Output + lint diagnostic squiggle at the server position (spec: sql-console › Errors in the editor)
-- [ ] 5.2 Explain / Explain Analyze with confirmation and rollback for writes (spec: sql-console › Explain plan)
-- [ ] 5.3 Test: error position maps to the right token; explain tree renders a fixture plan
+- [x] 5.1 Error display in Output + lint diagnostic squiggle at the server position (spec: sql-console › Errors in the editor)
+- [x] 5.2 Explain / Explain Analyze with confirmation and rollback for writes (spec: sql-console › Explain plan)
+- [x] 5.3 Test: error position maps to the right token; explain tree renders a fixture plan
 
 ## 6. Transactions
 

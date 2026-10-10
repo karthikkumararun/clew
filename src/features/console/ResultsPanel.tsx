@@ -5,6 +5,7 @@ import { Menu } from "../../components/Menu";
 import type { MenuItem } from "../../components/Menu";
 import { ChevronDown, Download, Filter, Refresh } from "../../components/icons";
 import { useNotices } from "../../stores/noticesStore";
+import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
 import { ResultTable } from "./ResultTable";
 import { formatRows } from "./runtime";
@@ -84,6 +85,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const output = useStore(runtime.store, (s) => s.output);
   const activeKey = useStore(runtime.store, (s) => s.activeResult);
   const lastRun = useStore(runtime.store, (s) => s.lastRun);
+  const explainState = useStore(runtime.store, (s) => s.explain);
   const run = useSyncExternalStore(runtime.results.subscribe, runtime.results.getSnapshot);
   const elapsed = useElapsed(busy ? startedAt : null);
 
@@ -282,9 +284,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           )
         ) : null}
         {tab === "output" ? <OutputLog entries={output} /> : null}
-        {tab === "explain"
-          ? (explain ?? <p className={styles.emptyPane}>Explain a statement to see its plan.</p>)
-          : null}
+        {tab === "explain" ? (explain ?? <ExplainPane explain={explainState} />) : null}
         {tab === "history"
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)
           : null}

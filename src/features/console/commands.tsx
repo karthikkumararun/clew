@@ -8,7 +8,9 @@ import { formatSql } from "./editor/format";
 import { splitDialect } from "./editor/dialects";
 import { splitStatements, statementAt } from "./editor/statements";
 import { getRuntime } from "./runtime";
-import { submitRun } from "./run";
+import { submitExplain, submitRun } from "./run";
+import { isWrite } from "./explain";
+import { askChoice } from "./prompts";
 import { ConsoleToolbar } from "./ConsoleToolbar";
 import { registerSlotItem } from "../../shell/registry/slots";
 import { getView } from "./editor/views";
@@ -65,7 +67,7 @@ export function activeConsole() {
 /** What a run command would execute for the active editor, or why there is nothing to run. */
 export function sqlToRun(
   mode: "current" | "script",
-): { tab: Tab<ConsoleState>; sql: string; script: boolean } | null {
+): { tab: Tab<ConsoleState>; sql: string; script: boolean; offset: number } | null {
   const active = activeConsole();
   if (!active) return null;
   const { tab, view } = active;
@@ -76,19 +78,19 @@ export function sqlToRun(
   const sel = view.state.selection.main;
   if (mode === "script") {
     const sql = view.state.doc.toString();
-    return sql.trim() ? { tab, sql, script: true } : null;
+    return sql.trim() ? { tab, sql, script: true, offset: 0 } : null;
   }
   if (!sel.empty) {
     const sql = view.state.sliceDoc(sel.from, sel.to);
     if (!sql.trim()) return null;
-    return { tab, sql, script: splitStatements(sql, dialect).length > 1 };
+    return { tab, sql, script: splitStatements(sql, dialect).length > 1, offset: sel.from };
   }
   const ranges = splitStatements(view.state.doc.toString(), dialect, {
     blankLines: true,
     skipLeadingComments: true,
   });
   const current = statementAt(ranges, sel.head);
-  return current ? { tab, sql: current.text, script: false } : null;
+  return current ? { tab, sql: current.text, script: false, offset: current.from } : null;
 }
 
 /** Run the selection or current statement (`current`), or the whole script. */
@@ -98,7 +100,46 @@ export async function runActive(mode: "current" | "script"): Promise<void> {
     if (activeConsole()) useNoticesStore.push("Nothing to run at the cursor");
     return;
   }
-  await submitRun(what.tab, { sql: what.sql, script: what.script });
+  await submitRun(what.tab, { sql: what.sql, script: what.script, offset: what.offset });
+}
+
+/**
+ * Explain the selection or current statement. ANALYZE executes it, so a write needs the user's
+ * confirmation (it runs inside a transaction that is rolled back) and is refused outright on a
+ * read-only connection.
+ */
+export async function explainActive(analyze: boolean): Promise<void> {
+  const what = sqlToRun("current");
+  if (!what) {
+    if (activeConsole()) useNoticesStore.push("Nothing to explain at the cursor");
+    return;
+  }
+  if (analyze && isWrite(what.sql)) {
+    const connection = useConnections
+      .getState()
+      .file.connections.find((c) => c.id === what.tab.state.connectionId);
+    if (connection?.safeguards.readOnlyByDefault) {
+      useNoticesStore.push(
+        "Explain Analyze would execute a write, and this connection is read-only",
+      );
+      return;
+    }
+    const answer = await askChoice({
+      title: "Explain Analyze runs the statement",
+      body: (
+        <p>
+          ANALYZE executes the statement to measure it. It runs inside a transaction that is rolled
+          back afterwards, but triggers and sequences may still have side effects.
+        </p>
+      ),
+      choices: [
+        { id: "cancel", label: "Cancel" },
+        { id: "run", label: "Run Explain Analyze", variant: "primary" },
+      ],
+    });
+    if (answer !== "run") return;
+  }
+  await submitExplain(what.tab, { sql: what.sql, offset: what.offset, analyze });
 }
 
 export async function rerunActive(): Promise<void> {
@@ -166,6 +207,27 @@ export function registerConsoleCommands(): () => void {
       title: "Run script",
       category: "Console",
       run: () => runActive("script"),
+    }),
+    registerCommand({
+      id: "console.explain",
+      title: "Explain plan",
+      category: "Console",
+      run: () => explainActive(false),
+    }),
+    registerCommand({
+      id: "console.explainAnalyze",
+      title: "Explain Analyze",
+      category: "Console",
+      run: () => explainActive(true),
+    }),
+    registerShortcut({
+      id: "console.explain",
+      keys: "Mod+Shift+E",
+      scope: "editor",
+      run: (e) => {
+        e.preventDefault();
+        void explainActive(false);
+      },
     }),
     registerCommand({
       id: "console.rerun",

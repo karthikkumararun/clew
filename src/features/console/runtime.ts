@@ -15,13 +15,17 @@ import {
   sessionClose,
   sessionOpen,
 } from "../../lib/ipc/drivers";
-import type { DriverError, OpenedSession } from "../../lib/ipc/drivers";
+import type { ColumnMeta, DriverError, OpenedSession, Value } from "../../lib/ipc/drivers";
 import { QueryRunStore } from "../../lib/ipc/queryRun";
 import { useSettings } from "../../stores/settingsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { changesSchema, invalidateSnapshots, loadSnapshot } from "./completion/snapshots";
 import { splitDialect } from "./editor/dialects";
+import { errorRange } from "./editor/diagnostics";
+import type { ErrorMark } from "./editor/diagnostics";
 import { splitStatements } from "./editor/statements";
+import { ExplainUnsupported, explainStatement, isWrite, parsePlan } from "./explain";
+import type { Plan } from "./explain";
 import type { ConsoleState } from "./state";
 
 /** One line of the Output tab. */
@@ -42,8 +46,22 @@ export type ResultTab = "result" | "output" | "explain" | "history";
 
 export interface RunRequest {
   sql: string;
+  /** Where `sql` starts in the document, to place error underlines. */
+  offset: number;
   /** Split into statements and run each in order. */
   script: boolean;
+}
+
+/** The Explain plan tab's content. */
+export interface ExplainState {
+  status: "running" | "done" | "failed";
+  analyze: boolean;
+  /** The statement that was explained. */
+  sql: string;
+  plan?: Plan;
+  /** When the plan isn't recognised, the rows as the server returned them. */
+  raw?: { columns: ColumnMeta[]; rows: Value[][] };
+  error?: string;
 }
 
 export interface RuntimeState {
@@ -63,6 +81,11 @@ export interface RuntimeState {
   activeResult: string | null;
   /** What was run last, for Re-run. */
   lastRun: RunRequest | null;
+  /** Where the last run's errors are, for the squiggles in the editor. */
+  marks: ErrorMark[];
+  explain: ExplainState | null;
+  /** Statements run in the open manual transaction (0 when none is open). */
+  txPending: number;
 }
 
 const INITIAL: RuntimeState = {
@@ -76,6 +99,9 @@ const INITIAL: RuntimeState = {
   tab: "result",
   activeResult: null,
   lastRun: null,
+  marks: [],
+  explain: null,
+  txPending: 0,
 };
 
 /** Keep the Output log from growing without bound. */
@@ -188,7 +214,13 @@ export class ConsoleRuntime {
   async run(req: RunRequest): Promise<void> {
     if (this.busy) return;
     const runId = ++this.runId;
-    this.store.setState({ busy: true, startedAt: Date.now(), lastRun: req, tab: "result" });
+    this.store.setState({
+      busy: true,
+      startedAt: Date.now(),
+      lastRun: req,
+      tab: "result",
+      marks: [],
+    });
     this.results.begin();
     const started = Date.now();
     try {
@@ -240,12 +272,22 @@ export class ConsoleRuntime {
     let sawRows = false;
     let sawProblem = false;
     let schemaChanged = false;
+    const marks: ErrorMark[] = [];
+    const ranges = req.script ? splitStatements(req.sql, splitDialect(this.driver())) : [];
     for (const r of snap.results) {
       const full = statements[r.statement] ?? req.sql;
       const text = preview(full);
       const ms = r.summary?.elapsed_ms;
       if (r.error) {
         sawProblem = true;
+        if (r.error.position !== undefined) {
+          // Positions count from the start of the statement that failed.
+          const base = req.offset + (req.script ? (ranges[r.statement]?.from ?? 0) : 0);
+          marks.push({
+            ...errorRange(this.docText(), base, full, r.error.position),
+            message: r.error.hint ? `${r.error.message}\nHint: ${r.error.hint}` : r.error.message,
+          });
+        }
         this.log({
           kind: "error",
           statement: text,
@@ -283,6 +325,7 @@ export class ConsoleRuntime {
     }
     for (const notice of snap.notices) this.log({ kind: "info", statement: "", message: notice });
     this.store.setState({
+      marks,
       tab: sawRows && !sawProblem ? "result" : "output",
       activeResult: snap.results.find((r) => r.columns.length > 0)?.key ?? null,
     });
@@ -299,6 +342,138 @@ export class ConsoleRuntime {
     const configured =
       settings && "database" in settings && settings.database ? settings.database : "";
     void loadSnapshot(this.connectionId, this.tabState()?.database ?? configured).catch(() => {});
+  }
+
+  /** Run one statement for its side effect only (BEGIN, ROLLBACK, …). */
+  private async exec(sessionId: string, sql: string): Promise<void> {
+    await queryExecute(
+      sessionId,
+      { sql, page_size: 1, script: false, continue_on_error: false },
+      () => {},
+    );
+  }
+
+  /**
+   * Show the execution plan of a statement. ANALYZE of a write runs inside a transaction (or
+   * savepoint) that is always rolled back.
+   */
+  async explain(req: { sql: string; offset: number; analyze: boolean }): Promise<void> {
+    if (this.busy) return;
+    const driver = this.driver();
+    let statement: string;
+    try {
+      statement = explainStatement(driver, req.sql, req.analyze);
+    } catch (e) {
+      const message = e instanceof ExplainUnsupported ? e.message : String(e);
+      this.store.setState({
+        tab: "explain",
+        explain: { status: "failed", analyze: req.analyze, sql: req.sql, error: message },
+      });
+      return;
+    }
+    const runId = ++this.runId;
+    this.store.setState({
+      busy: true,
+      startedAt: Date.now(),
+      tab: "explain",
+      marks: [],
+      explain: { status: "running", analyze: req.analyze, sql: req.sql },
+    });
+    const wrap = req.analyze && isWrite(req.sql);
+    const inTx = this.store.getState().txPending > 0;
+    const started = Date.now();
+    const own = new QueryRunStore();
+    let sessionId: string | null = null;
+    let began = false;
+    try {
+      sessionId = await this.ensureSession();
+      own.begin();
+      if (wrap) {
+        await this.exec(sessionId, inTx ? "SAVEPOINT clew_explain" : this.beginSql());
+        began = true;
+      }
+      try {
+        await queryExecute(
+          sessionId,
+          { sql: statement, page_size: 5000, script: false, continue_on_error: false },
+          (event) => own.apply(event),
+        );
+        own.finish();
+      } catch (e) {
+        own.finish(e as DriverError);
+      }
+      await Promise.resolve();
+    } catch (e) {
+      const message = (e as { message?: string }).message ?? "Couldn't open a session";
+      this.log({ kind: "error", statement: preview(req.sql), message });
+      this.store.setState({
+        tab: "output",
+        explain: { status: "failed", analyze: req.analyze, sql: req.sql, error: message },
+      });
+      return;
+    } finally {
+      if (sessionId && began) {
+        try {
+          await this.exec(sessionId, inTx ? "ROLLBACK TO SAVEPOINT clew_explain" : "ROLLBACK");
+        } catch {
+          /* the session is gone, and so is the transaction */
+        }
+      }
+      if (this.runId === runId) this.store.setState({ busy: false, startedAt: null });
+    }
+    const result = own.getSnapshot().results[0];
+    if (result?.error || !result) {
+      const error = (result?.error ?? own.getSnapshot().error) as Partial<DriverError> | undefined;
+      const message = error?.message ?? "The server returned no plan";
+      this.log({
+        kind: "error",
+        statement: preview(statement),
+        message,
+        hint: error?.hint,
+      });
+      const marks: ErrorMark[] = [];
+      if (error?.position !== undefined) {
+        // The server counts from the start of the EXPLAIN statement; shift back to the user's SQL.
+        const prefix = statement.length - req.sql.length;
+        const mark = errorRange(this.docText(), req.offset - prefix, statement, error.position);
+        marks.push({ ...mark, from: Math.max(mark.from, req.offset), message });
+      }
+      this.store.setState({
+        tab: "output",
+        marks,
+        explain: { status: "failed", analyze: req.analyze, sql: req.sql, error: message },
+      });
+      return;
+    }
+    const plan = parsePlan(driver, result.rows, req.analyze);
+    this.log({
+      kind: "ok",
+      statement: preview(statement),
+      message: `Plan ready · ${Date.now() - started} ms`,
+    });
+    this.store.setState({
+      tab: "explain",
+      explain: {
+        status: "done",
+        analyze: req.analyze,
+        sql: req.sql,
+        plan: plan ?? undefined,
+        raw: plan ? undefined : { columns: result.columns, rows: result.rows },
+      },
+    });
+  }
+
+  /** The statement that opens a transaction on this connection's database. */
+  private beginSql(): string {
+    switch (this.driver()) {
+      case "mysql":
+      case "mariadb":
+        return "START TRANSACTION";
+      case "sqlserver":
+        return "BEGIN TRANSACTION";
+      default:
+        return "BEGIN";
+    }
   }
 
   /** Ask the server to cancel the running statement. */
@@ -341,6 +516,11 @@ export class ConsoleRuntime {
       this.fetchingNow = false;
       this.results.setFetching(false);
     }
+  }
+
+  /** The editor's current text (the tab state mirrors it). */
+  private docText(): string {
+    return this.tabState()?.text ?? "";
   }
 
   private tabState(): ConsoleState | undefined {

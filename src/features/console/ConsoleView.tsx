@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { clamp } from "../../lib/clamp";
 import { useConnections } from "../../connections/connectionsStore";
@@ -7,7 +7,10 @@ import { useSettings } from "../../stores/settingsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { rerunActive } from "./commands";
 import { useExtensionTarget } from "./completionTarget";
+import { useStore } from "zustand";
+import { diagnosticsExtension, showErrorMarks } from "./editor/diagnostics";
 import { Editor } from "./editor/Editor";
+import { getView } from "./editor/views";
 import { ResultsPanel } from "./ResultsPanel";
 import { getRuntime } from "./runtime";
 import { submitRun } from "./run";
@@ -31,6 +34,16 @@ export function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
     () => getRuntime(tab.id, tab.state.connectionId),
     [tab.id, tab.state.connectionId],
   );
+  const extensions = useMemo(
+    () => [completion.extension, diagnosticsExtension],
+    [completion.extension],
+  );
+  const marks = useStore(runtime.store, (s) => s.marks);
+  // Underline where the last run failed; clear the underlines when a new run starts.
+  useEffect(() => {
+    const view = getView(tab.id);
+    if (view) showErrorMarks(view, marks);
+  }, [tab.id, marks]);
   const container = useRef<HTMLDivElement>(null);
   const drag = useRef<{ startY: number; startHeight: number } | null>(null);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
@@ -97,9 +110,14 @@ export function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
             useWorkspace.getState().updateTabState<Partial<ConsoleState>>(tab.id, { text })
           }
           onCursor={(line, col) => useConsoleUi.getState().setCursor(tab.id, line, col)}
-          extensions={completion.extension}
-          onReady={completion.onReady}
-          onRunStatement={(r) => void submitRun(tab, { sql: r.text, script: false })}
+          extensions={extensions}
+          onReady={(view) => {
+            completion.onReady(view);
+            showErrorMarks(view, runtime.store.getState().marks);
+          }}
+          onRunStatement={(r) =>
+            void submitRun(tab, { sql: r.text, script: false, offset: r.from })
+          }
         />
       </div>
       <div

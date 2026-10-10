@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useStore } from "zustand";
-import { Play } from "../../components/icons";
+import { Menu } from "../../components/Menu";
+import { ChevronDown, Lines, Play } from "../../components/icons";
 import { formatShortcut } from "../../lib/platform";
 import { useWorkspace } from "../../stores/workspaceStore";
-import { cancelActive, runActive } from "./commands";
+import { cancelActive, explainActive, runActive } from "./commands";
 import { formatElapsed, useElapsed } from "./ResultsPanel";
 import { getRuntime } from "./runtime";
 import { CONSOLE_KIND } from "./state";
@@ -21,6 +23,7 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
   const busy = useStore(runtime.store, (s) => s.busy);
   const startedAt = useStore(runtime.store, (s) => s.startedAt);
   const elapsed = useElapsed(busy ? startedAt : null);
+  const [explainMenu, setExplainMenu] = useState(false);
   return (
     <>
       {busy ? (
@@ -44,6 +47,48 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
           <span className={styles.kbd}>{formatShortcut("Mod+Enter")}</span>
         </button>
       )}
+      <span className={styles.splitButton}>
+        <button
+          type="button"
+          className={styles.tbButton}
+          disabled={busy}
+          onClick={() => void explainActive(false)}
+        >
+          <Lines size={12} />
+          Explain
+        </button>
+        <button
+          type="button"
+          className={`${styles.tbButton} ${styles.splitChevron}`}
+          aria-label="More explain options"
+          aria-haspopup="menu"
+          aria-expanded={explainMenu}
+          disabled={busy}
+          onClick={() => setExplainMenu((o) => !o)}
+        >
+          <ChevronDown size={12} />
+        </button>
+        {explainMenu ? (
+          <>
+            <div
+              className={styles.menuScrim}
+              onMouseDown={() => setExplainMenu(false)}
+              aria-hidden="true"
+            />
+            <div className={styles.explainMenu}>
+              <Menu
+                aria-label="Explain options"
+                items={[{ id: "analyze", label: "Explain Analyze…" }]}
+                onClose={() => setExplainMenu(false)}
+                onSelect={() => {
+                  setExplainMenu(false);
+                  void explainActive(true);
+                }}
+              />
+            </div>
+          </>
+        ) : null}
+      </span>
     </>
   );
 }
