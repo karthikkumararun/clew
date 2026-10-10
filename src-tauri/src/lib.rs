@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod connections;
 pub mod drivers;
 pub mod error;
 pub mod paths;
@@ -84,6 +85,25 @@ pub fn run() {
                     timeout: Duration::from_secs(120),
                 }),
             };
+            let password_prompts = Arc::new(connections::service::PendingPasswords::default());
+            let handle = app.handle().clone();
+            let (connections, loaded) = connections::service::ConnectionService::new(
+                &data_dir,
+                Arc::new(connections::secrets::KeyringStore),
+                Arc::new(connections::service::EventPasswordPrompter {
+                    pending: password_prompts.clone(),
+                    emit: Arc::new(move |prompt| {
+                        let _ = handle.emit("password_prompt", prompt);
+                    }),
+                    timeout: Duration::from_secs(120),
+                }),
+            );
+            if let Some(backup) = loaded.backup {
+                eprintln!(
+                    "connections.json was unreadable; moved to {}",
+                    backup.display()
+                );
+            }
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
             spawn_idle_sweeper(sessions.clone());
             app.manage(state::AppState {
@@ -92,6 +112,8 @@ pub fn run() {
                 registry,
                 sessions,
                 host_key_prompts,
+                connections: Arc::new(connections),
+                password_prompts,
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -119,6 +141,14 @@ pub fn run() {
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
             commands::sessions::host_key_answer,
+            commands::connections::connections_list,
+            commands::connections::connections_save,
+            commands::connections::connections_delete,
+            commands::connections::connections_duplicate,
+            commands::connections::groups_save,
+            commands::connections::groups_delete,
+            commands::connections::connection_secret_status,
+            commands::connections::password_answer,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

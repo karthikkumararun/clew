@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use crate::connections::service::{ConnectionService, PendingPasswords};
 use crate::drivers::registry::Registry;
 use crate::sessions::SessionManager;
 use crate::store::Store;
@@ -15,4 +16,6 @@ pub struct AppState {
     pub registry: Arc<Registry>,
     pub sessions: Arc<SessionManager>,
     pub host_key_prompts: Arc<PendingPrompts>,
+    pub connections: Arc<ConnectionService>,
+    pub password_prompts: Arc<PendingPasswords>,
 }

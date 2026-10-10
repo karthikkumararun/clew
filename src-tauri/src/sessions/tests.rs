@@ -214,6 +214,7 @@ fn cfg(query_timeout_secs: Option<u64>) -> ResolvedConfig {
         query_timeout_secs,
         read_only: false,
         options: Default::default(),
+        on_connect: vec![],
     }
 }
 

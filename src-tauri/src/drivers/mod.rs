@@ -222,6 +222,9 @@ pub struct ResolvedConfig {
     /// Driver-specific extras (e.g. `application_name`).
     #[serde(default)]
     pub options: BTreeMap<String, String>,
+    /// Statements to run on every new session (a saved connection's "on connect" list).
+    #[serde(default)]
+    pub on_connect: Vec<String>,
 }
 
 fn default_connect_timeout() -> u64 {

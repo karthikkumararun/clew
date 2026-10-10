@@ -1,11 +1,11 @@
 ## 1. Model and storage (Rust)
 
-- [ ] 1.1 Define the connection model, groups and environment enum with serde (`connections/model.rs`) (spec: connection-management › Connection model)
-- [ ] 1.2 Implement `store.rs`: load, atomic save, mtime-guarded merge-by-id, schema version (spec: connection-management › Persist connections without secrets)
-- [ ] 1.3 Implement `secrets.rs` on `keyring` with redacted `Debug` and the keychain-unavailable fallback
-- [ ] 1.4 Implement `resolve(id) -> ResolvedConfig` (fills secrets; asks the frontend for "ask every time" passwords via an event)
-- [ ] 1.5 Commands: `connections_list`, `connections_save`, `connections_delete`, `connections_duplicate`, `groups_save`, `groups_delete`
-- [ ] 1.6 Test: no secret ever appears in `connections.json`; concurrent edit merge; production defaults
+- [x] 1.1 Define the connection model, groups and environment enum with serde (`connections/model.rs`) (spec: connection-management › Connection model)
+- [x] 1.2 Implement `store.rs`: load, atomic save, mtime-guarded merge-by-id, schema version (spec: connection-management › Persist connections without secrets)
+- [x] 1.3 Implement `secrets.rs` on `keyring` with redacted `Debug` and the keychain-unavailable fallback
+- [x] 1.4 Implement `resolve(id) -> ResolvedConfig` (fills secrets; asks the frontend for "ask every time" passwords via an event)
+- [x] 1.5 Commands: `connections_list`, `connections_save`, `connections_delete`, `connections_duplicate`, `groups_save`, `groups_delete`
+- [x] 1.6 Test: no secret ever appears in `connections.json`; concurrent edit merge; production defaults
 
 ## 2. URL parsing
 

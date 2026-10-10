@@ -20,4 +20,8 @@ read_only: boolean,
 /**
  * Driver-specific extras (e.g. `application_name`).
  */
-options: { [key in string]: string }, };
+options: { [key in string]: string }, 
+/**
+ * Statements to run on every new session (a saved connection's "on connect" list).
+ */
+on_connect: Array<string>, };
