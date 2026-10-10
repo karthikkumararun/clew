@@ -24,10 +24,10 @@
 
 ## 4. Transport
 
-- [ ] 4.1 Implement TLS config (modes, CA file, client cert/key, OS trust store via rustls-native-certs) (spec: driver-framework › TLS)
-- [ ] 4.2 Implement the SSH tunnel with agent / key / password auth and local forward (spec: driver-framework › SSH tunnel)
-- [ ] 4.3 Implement host-key verification: read `~/.ssh/known_hosts`, read/write `<app_data>/known_hosts`, emit a `host_key_prompt` event and wait for the user's answer
-- [ ] 4.4 Test: tunnel through the docker bastion; host-key mismatch refuses; verify-full hostname mismatch fails
+- [x] 4.1 Implement TLS config (modes, CA file, client cert/key, OS trust store via rustls-native-certs) (spec: driver-framework › TLS)
+- [x] 4.2 Implement the SSH tunnel with agent / key / password auth and local forward (spec: driver-framework › SSH tunnel)
+- [x] 4.3 Implement host-key verification: read `~/.ssh/known_hosts`, read/write `<app_data>/known_hosts`, emit a `host_key_prompt` event and wait for the user's answer
+- [x] 4.4 Test: tunnel through the docker bastion; host-key mismatch refuses; verify-full hostname mismatch fails (TLS cases run in-process against a generated CA; the same checks run against a real server in the PostgreSQL conformance suite)
 
 ## 5. PostgreSQL driver
 

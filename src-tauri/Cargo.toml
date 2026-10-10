@@ -26,6 +26,11 @@ rust_decimal = { version = "1.43.0", features = ["serde-str"] }
 uuid = { version = "1.28.0", features = ["serde", "v4"] }
 tokio = { version = "1.53.2", features = ["rt-multi-thread", "sync", "time", "macros", "net", "io-util"] }
 futures = "0.3.34"
+russh = "0.64.1"
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12"] }
+rustls-native-certs = "0.8.4"
+rustls-pemfile = "2.2.0"
 
 [profile.release]
 codegen-units = 1
@@ -34,5 +39,10 @@ opt-level = 3
 panic = "abort"
 strip = true
 
+[features]
+# Integration tests that need the docker-compose services (see docker-compose.yml).
+integration = []
+
 [dev-dependencies]
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"] }
 tempfile = "3.27.0"

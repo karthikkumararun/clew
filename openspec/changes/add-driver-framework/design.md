@@ -61,6 +61,12 @@ One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequen
 ### SSH
 `russh` client; local forward on `127.0.0.1:0`; the tunnel task lives as long as any session or pool for that connection. Known hosts: read `~/.ssh/known_hosts` (read-only) plus `<app_data>/known_hosts` (read-write).
 
+### Transport notes (implementation)
+- TLS (`transport/tls.rs`): `disable`/`prefer`/`require`/`verify-ca`/`verify-full` over rustls (ring). `require` encrypts without verifying; `verify-ca` checks the chain but not the host name; `verify-full` checks both. sqlx drivers receive the mode and file paths and use `map_tls_error` to turn handshake failures into `tls_failed` with a readable reason.
+- SSH (`transport/ssh.rs`, `transport/hostkey.rs`): unknown host keys pause the connection and emit a `host_key_prompt` event; the UI answers with the `host_key_answer` command (120 s timeout counts as a rejection). A rejected key fails with `cancelled`; a changed key fails with `host_key_mismatch` before any credentials are sent. Accepted keys are written to `<app data>/known_hosts`; `~/.ssh/known_hosts` is only read.
+- With a tunnel the driver connects to `127.0.0.1:<port>`, so `verify-full` cannot match the real host name; use `verify-ca` for tunnelled TLS connections.
+- A key with a missing passphrase fails with `auth_failed`; asking for it through a prompt is left to `add-connection-management`, which owns the keychain.
+
 ### Errors
 `DriverError { code: ErrorCode, message, detail: Option<String>, position: Option<u32>, hint: Option<String> }` where `ErrorCode` covers `auth_failed | timeout | connection_lost | query_failed | cancelled | tls_failed | host_key_mismatch | file_not_found | database_locked | access_denied | driver_unavailable | unsupported`.
 

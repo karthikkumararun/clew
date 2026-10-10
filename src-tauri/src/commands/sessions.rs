@@ -49,6 +49,8 @@ pub async fn connection_disconnect(
 pub struct OpenedSession {
     pub session_id: String,
     pub server: ServerInfo,
+    /// `via SSH <host>` when tunnelled.
+    pub transport: Option<String>,
 }
 
 #[tauri::command]
@@ -56,8 +58,12 @@ pub async fn session_open(
     state: State<'_, AppState>,
     connection_id: String,
 ) -> AppResult<OpenedSession> {
-    let (session_id, server) = state.sessions.open_session(&connection_id).await?;
-    Ok(OpenedSession { session_id, server })
+    let opened = state.sessions.open_session(&connection_id).await?;
+    Ok(OpenedSession {
+        session_id: opened.session_id,
+        server: opened.server,
+        transport: opened.transport,
+    })
 }
 
 #[tauri::command]
@@ -132,4 +138,10 @@ pub async fn completion_snapshot(
         .sessions
         .completion_snapshot(&connection_id, &database)
         .await?)
+}
+
+/// The user's answer to a `host_key_prompt` event.
+#[tauri::command]
+pub fn host_key_answer(state: State<'_, AppState>, prompt_id: String, accept: bool) -> bool {
+    state.host_key_prompts.answer(&prompt_id, accept)
 }

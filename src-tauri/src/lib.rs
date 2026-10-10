@@ -6,12 +6,13 @@ pub mod sessions;
 pub mod settings;
 pub mod state;
 pub mod store;
+pub mod transport;
 pub mod window;
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use tauri::{Manager, PhysicalPosition};
+use tauri::{Emitter, Manager, PhysicalPosition};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 use crate::window::Rect;
@@ -71,13 +72,26 @@ pub fn run() {
             let data_dir = paths::app_data_dir(&app.path().data_dir()?);
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
             let registry = Arc::new(drivers::registry::Registry::with_defaults());
-            let sessions = Arc::new(sessions::SessionManager::new(registry.clone()));
+            let host_key_prompts = Arc::new(transport::hostkey::PendingPrompts::default());
+            let handle = app.handle().clone();
+            let ssh_env = transport::ssh::SshEnv {
+                known_hosts: transport::hostkey::KnownHosts::new(&data_dir),
+                prompter: Arc::new(transport::hostkey::EventPrompter {
+                    pending: host_key_prompts.clone(),
+                    emit: Arc::new(move |prompt| {
+                        let _ = handle.emit("host_key_prompt", prompt);
+                    }),
+                    timeout: Duration::from_secs(120),
+                }),
+            };
+            let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
             spawn_idle_sweeper(sessions.clone());
             app.manage(state::AppState {
                 data_dir,
                 store,
                 registry,
                 sessions,
+                host_key_prompts,
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -103,6 +117,7 @@ pub fn run() {
             commands::sessions::value_fetch_full,
             commands::sessions::introspect_children,
             commands::sessions::completion_snapshot,
+            commands::sessions::host_key_answer,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

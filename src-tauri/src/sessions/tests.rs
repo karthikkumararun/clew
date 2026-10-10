@@ -188,6 +188,16 @@ impl Session for FakeSession {
     }
 }
 
+fn ssh_env() -> SshEnv {
+    SshEnv {
+        known_hosts: crate::transport::hostkey::KnownHosts {
+            user_file: None,
+            app_file: std::env::temp_dir().join("clew-test-known-hosts"),
+        },
+        prompter: Arc::new(crate::transport::hostkey::RejectUnknown),
+    }
+}
+
 fn cfg(query_timeout_secs: Option<u64>) -> ResolvedConfig {
     ResolvedConfig {
         driver: "fake".into(),
@@ -224,9 +234,9 @@ async fn harness_with_delay(query_timeout_secs: Option<u64>, open_delay: Duratio
         opens: opens.clone(),
         open_delay,
     }));
-    let mgr = Arc::new(SessionManager::new(Arc::new(registry)));
+    let mgr = Arc::new(SessionManager::new(Arc::new(registry), ssh_env()));
     mgr.connect("c1", cfg(query_timeout_secs)).await.unwrap();
-    let (session, _) = mgr.open_session("c1").await.unwrap();
+    let session = mgr.open_session("c1").await.unwrap().session_id;
     Harness {
         mgr,
         opens,
@@ -659,7 +669,7 @@ async fn introspection_does_not_wait_for_a_running_query() {
 
 #[tokio::test]
 async fn connecting_with_an_unknown_driver_is_driver_unavailable() {
-    let mgr = SessionManager::new(Arc::new(Registry::new()));
+    let mgr = SessionManager::new(Arc::new(Registry::new()), ssh_env());
     let err = mgr.connect("c", cfg(None)).await.unwrap_err();
     assert_eq!(err.code, ErrorCode::DriverUnavailable);
     let err = mgr.test_connection(&cfg(None)).await.unwrap_err();
@@ -668,7 +678,7 @@ async fn connecting_with_an_unknown_driver_is_driver_unavailable() {
 
 #[tokio::test]
 async fn opening_a_session_for_an_unconnected_connection_fails() {
-    let mgr = SessionManager::new(Arc::new(Registry::new()));
+    let mgr = SessionManager::new(Arc::new(Registry::new()), ssh_env());
     assert!(mgr.open_session("nope").await.is_err());
 }
 
@@ -681,7 +691,7 @@ async fn a_slow_host_times_out_naming_host_and_port() {
         opens: Arc::new(AtomicUsize::new(0)),
         open_delay: Duration::from_secs(5),
     }));
-    let mgr = SessionManager::new(Arc::new(registry));
+    let mgr = SessionManager::new(Arc::new(registry), ssh_env());
     let err = mgr.test_connection(&config).await.unwrap_err();
     assert_eq!(err.code, ErrorCode::Timeout);
     assert!(err.message.contains("db.internal:5432"));

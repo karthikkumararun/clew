@@ -12,10 +12,21 @@ use crate::drivers::split::split;
 use crate::drivers::{
     CancelHandle, Driver, DriverError, DriverResult, ErrorCode, ExecRequest, ExecSummary,
     FullValueRequest, MetaPool, NodePath, ResolvedConfig, ResultEvent, ResultId, ResultSink,
-    SchemaSnapshot, ServerInfo, Session, TreeNode, Value,
+    SchemaSnapshot, ServerInfo, Session, Target, TreeNode, Value,
 };
+use crate::transport::ssh::{SshEnv, SshTunnel};
+use crate::transport::tls;
 
 pub type SessionId = String;
+
+/// Result of opening a session.
+#[derive(Debug, Clone)]
+pub struct SessionOpened {
+    pub session_id: SessionId,
+    pub server: ServerInfo,
+    /// e.g. `via SSH bastion` when the connection is tunnelled.
+    pub transport: Option<String>,
+}
 pub type ConnectionId = String;
 
 /// Sessions idle for this long are closed.
@@ -26,8 +37,11 @@ pub type Emit = Arc<dyn Fn(ResultEvent) -> bool + Send + Sync>;
 
 struct ConnectionEntry {
     driver: Arc<dyn Driver>,
+    /// The config drivers connect with: when tunnelling, the target is the local forward.
     cfg: ResolvedConfig,
     pool: MetaPool,
+    /// Lives as long as any session or pool of this connection (they hold this entry).
+    tunnel: Option<Arc<SshTunnel>>,
 }
 
 struct SessionState {
@@ -54,6 +68,7 @@ struct Inner {
 
 pub struct SessionManager {
     registry: Arc<Registry>,
+    ssh_env: SshEnv,
     inner: StdMutex<Inner>,
     next_id: AtomicU64,
 }
@@ -115,9 +130,10 @@ pub fn transaction_effect(sql: &str) -> Option<bool> {
 }
 
 impl SessionManager {
-    pub fn new(registry: Arc<Registry>) -> Self {
+    pub fn new(registry: Arc<Registry>, ssh_env: SshEnv) -> Self {
         Self {
             registry,
+            ssh_env,
             inner: StdMutex::new(Inner::default()),
             next_id: AtomicU64::new(1),
         }
@@ -147,17 +163,57 @@ impl SessionManager {
             .ok_or_else(|| not_found("session", id))
     }
 
+    /// Validate the transport options and, when configured, open the SSH tunnel. Returns the
+    /// config drivers should connect with (pointing at the local forward) and the tunnel.
+    async fn prepare(
+        &self,
+        cfg: &ResolvedConfig,
+    ) -> DriverResult<(ResolvedConfig, Option<Arc<SshTunnel>>)> {
+        tls::validate(&cfg.tls)?;
+        let Some(ssh) = &cfg.ssh else {
+            return Ok((cfg.clone(), None));
+        };
+        let Target::Network { host, port } = &cfg.target else {
+            return Err(DriverError::new(
+                ErrorCode::Unsupported,
+                "An SSH tunnel needs a host and port to forward to",
+            ));
+        };
+        let tunnel = SshTunnel::open(
+            ssh,
+            host,
+            *port,
+            self.ssh_env.clone(),
+            Duration::from_secs(cfg.connect_timeout_secs.max(1)),
+        )
+        .await?;
+        let mut effective = cfg.clone();
+        effective.target = Target::Network {
+            host: "127.0.0.1".to_string(),
+            port: tunnel.local_port(),
+        };
+        effective.ssh = None;
+        Ok((effective, Some(Arc::new(tunnel))))
+    }
+
     /// Connect without saving anything: round-trip, server version, timing.
     pub async fn test_connection(&self, cfg: &ResolvedConfig) -> DriverResult<ServerInfo> {
         let driver = self.registry.get(&cfg.driver)?;
-        with_connect_timeout(cfg, driver.test(cfg)).await
+        let (effective, _tunnel) = self.prepare(cfg).await?;
+        with_connect_timeout(&effective, driver.test(&effective)).await
     }
 
     /// Register a connection and open its metadata pool.
     pub async fn connect(&self, connection_id: &str, cfg: ResolvedConfig) -> DriverResult<()> {
         let driver = self.registry.get(&cfg.driver)?;
+        let (cfg, tunnel) = self.prepare(&cfg).await?;
         let pool = with_connect_timeout(&cfg, driver.open_meta_pool(&cfg)).await?;
-        let entry = Arc::new(ConnectionEntry { driver, cfg, pool });
+        let entry = Arc::new(ConnectionEntry {
+            driver,
+            cfg,
+            pool,
+            tunnel,
+        });
         let previous = self
             .inner
             .lock()
@@ -192,7 +248,7 @@ impl SessionManager {
     }
 
     /// Open a dedicated session (one physical connection) for an editor tab.
-    pub async fn open_session(&self, connection_id: &str) -> DriverResult<(SessionId, ServerInfo)> {
+    pub async fn open_session(&self, connection_id: &str) -> DriverResult<SessionOpened> {
         let connection = self.connection(connection_id)?;
         let session =
             with_connect_timeout(&connection.cfg, connection.driver.open(&connection.cfg)).await?;
@@ -209,12 +265,21 @@ impl SessionManager {
             last_used: StdMutex::new(Instant::now()),
             connection,
         });
+        let transport = entry
+            .connection
+            .tunnel
+            .as_ref()
+            .map(|t| t.via().to_string());
         self.inner
             .lock()
             .unwrap()
             .sessions
             .insert(id.clone(), entry);
-        Ok((id, server))
+        Ok(SessionOpened {
+            session_id: id,
+            server,
+            transport,
+        })
     }
 
     pub async fn close_session(&self, session_id: &str) -> DriverResult<()> {
