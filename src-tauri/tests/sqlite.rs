@@ -798,3 +798,154 @@ async fn statements_the_app_runs_itself_are_not_recorded() {
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
     assert_eq!(store.history_count("conf").await.unwrap(), 1);
 }
+
+// ---- export -----------------------------------------------------------------------------------
+
+use clew_lib::exporter::{self, FileExportOptions, FileFormat, QueryExport};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+
+fn series(n: u64) -> String {
+    format!(
+        "WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < {n}) \
+         SELECT n AS id, 'row ' || n AS label, n * 1.5 AS ratio FROM s"
+    )
+}
+
+#[tokio::test]
+async fn exporting_100k_rows_streams_to_disk_page_by_page() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let out = dir.path().join("big.csv");
+    let seen: Arc<Mutex<Vec<(u64, u64)>>> = Arc::default();
+    let log = seen.clone();
+    let on_disk = out.clone();
+    let summary = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(100_000),
+            format: FileFormat::Csv,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(move |rows, bytes| {
+                // Rows reach the file while the query is still producing them.
+                let flushed = std::fs::metadata(&on_disk).map(|m| m.len()).unwrap_or(0);
+                log.lock().unwrap().push((rows, bytes.max(flushed)));
+            }),
+        },
+    )
+    .await
+    .expect("export");
+
+    assert_eq!(summary.rows, 100_000);
+    assert!(!summary.cancelled);
+    let text = std::fs::read_to_string(&out).unwrap();
+    assert_eq!(text.lines().count(), 100_001, "header + rows");
+    assert!(text.starts_with("id,label,ratio\r\n1,row 1,1.5\r\n"));
+    assert!(
+        text.ends_with("100000,row 100000,150000\r\n")
+            || text.ends_with("100000,row 100000,150000.0\r\n")
+    );
+    assert_eq!(summary.bytes, text.len() as u64);
+
+    let seen = seen.lock().unwrap();
+    // 100k rows arrive in pages of 5,000, and the file grows with them.
+    assert!(seen.len() >= 20, "{} progress calls", seen.len());
+    assert!(
+        seen.windows(2).all(|w| w[0].0 < w[1].0),
+        "progress only moves forward"
+    );
+    let first_half = seen[seen.len() / 2];
+    assert!(
+        first_half.0 < 100_000 && first_half.1 > 0,
+        "bytes exist before the end: {first_half:?}"
+    );
+}
+
+#[tokio::test]
+async fn cancelling_an_export_deletes_the_partial_file() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let out = dir.path().join("cancelled.csv");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let flag = cancel.clone();
+    let rows_seen = Arc::new(AtomicU64::new(0));
+    let seen = rows_seen.clone();
+    let started = std::time::Instant::now();
+    let summary = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(5_000_000),
+            format: FileFormat::Jsonl,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel,
+            progress: Arc::new(move |rows, _| {
+                seen.store(rows, Ordering::Relaxed);
+                if rows >= 10_000 {
+                    flag.store(true, Ordering::Relaxed);
+                }
+            }),
+        },
+    )
+    .await
+    .expect("a cancelled export is not an error");
+    assert!(summary.cancelled);
+    assert!(!out.exists(), "the partial file is gone");
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(10),
+        "stopped promptly"
+    );
+    assert!(rows_seen.load(Ordering::Relaxed) < 5_000_000);
+}
+
+#[tokio::test]
+async fn an_export_that_returns_no_rows_is_an_error_and_leaves_no_file() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER)").await;
+    let out = dir.path().join("none.csv");
+    let err = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: "INSERT INTO t VALUES (1)".into(),
+            format: FileFormat::Csv,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(|_, _| {}),
+        },
+    )
+    .await
+    .unwrap_err();
+    assert!(err.message.contains("didn't return any rows"), "{err:?}");
+    assert!(!out.exists());
+}
+
+#[tokio::test]
+async fn export_does_not_pollute_the_query_history() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let store = Store::open_in_memory().await.unwrap();
+    c.mgr.set_history_sink(history::sink(store.clone()));
+    exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(10),
+            format: FileFormat::Json,
+            options: FileExportOptions::default(),
+            path: dir.path().join("x.json"),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(|_, _| {}),
+        },
+    )
+    .await
+    .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    assert_eq!(store.history_count("conf").await.unwrap(), 0);
+}

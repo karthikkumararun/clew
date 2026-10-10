@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { IconButton } from "../../components/Button";
-import { Menu } from "../../components/Menu";
-import type { MenuItem } from "../../components/Menu";
-import { ChevronDown, Download, Filter, Refresh } from "../../components/icons";
+import { Download, Filter, Refresh } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
-import { useNotices } from "../../stores/noticesStore";
 import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
 import { CopyAsMenu, ColumnsMenu } from "../grid/GridMenus";
@@ -14,10 +11,12 @@ import type { GridHandle } from "../grid/ResultGrid";
 import { RowsSource } from "../grid/source";
 import { useGridView } from "../grid/useGridView";
 import { quoteIdent, flavorOf } from "../grid/sqlLiteral";
+import { ExportDialog } from "../grid/ExportDialog";
+import type { ExportSource } from "../grid/ExportDialog";
+import { visibleColumns } from "../grid/views";
 import { askChoice } from "./prompts";
 import { formatRows } from "./runtime";
 import type { ConsoleRuntime, ResultTab } from "./runtime";
-import { toCsv, toJson, toTsv } from "./valueFormat";
 import styles from "./Console.module.css";
 
 const TABS: { id: ResultTab; label: string }[] = [
@@ -69,6 +68,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const output = useStore(runtime.store, (s) => s.output);
   const activeKey = useStore(runtime.store, (s) => s.activeResult);
   const lastRun = useStore(runtime.store, (s) => s.lastRun);
+  const resultSql = useStore(runtime.store, (s) => s.resultSql);
   const explainState = useStore(runtime.store, (s) => s.explain);
   const run = useSyncExternalStore(runtime.results.subscribe, runtime.results.getSnapshot);
   const elapsed = useElapsed(busy ? startedAt : null);
@@ -76,7 +76,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [transposed, setTransposed] = useState(false);
-  const [exportMenu, setExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const sets = useMemo(() => run.results.filter((r) => r.columns.length > 0), [run.results]);
   const active = sets.find((r) => r.key === activeKey) ?? sets[0];
@@ -105,26 +105,23 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         : `1–${active.rowCount.toLocaleString()} of ${formatRows(active.rowCount, active.hasMore)}`
     : "";
 
-  const say = (m: string) => useNotices.getState().push(m);
-  const exportItems: MenuItem[] = [
-    { id: "csv", label: "Copy as CSV", disabled: !active },
-    { id: "tsv", label: "Copy as TSV", disabled: !active },
-    { id: "json", label: "Copy as JSON", disabled: !active },
-  ];
-  const exportAs = async (id: string) => {
-    setExportMenu(false);
-    if (!active) return;
+  const exportSource = (): ExportSource | null => {
+    if (!active) return null;
     const v = gv.view;
-    const names = v.columns.map((c) => c.name);
-    const rows = Array.from({ length: v.rowCount }, (_, r) => v.columns.map((_, c) => v.get(c, r)));
-    const text =
-      id === "csv" ? toCsv(names, rows) : id === "tsv" ? toTsv(names, rows) : toJson(names, rows);
-    try {
-      await navigator.clipboard.writeText(text);
-      say(`Copied ${rows.length.toLocaleString()} rows as ${id.toUpperCase()}`);
-    } catch {
-      say("Couldn't copy to the clipboard");
-    }
+    const cols = visibleColumns(v.columns.length, gv.order, gv.hidden);
+    return {
+      loaded: () => ({
+        columns: cols.map((c) => v.columns[c]),
+        rows: Array.from({ length: v.rowCount }, (_, r) => cols.map((c) => v.get(c, r))),
+      }),
+      loadedCount: v.rowCount,
+      hasMore: active.hasMore,
+      sql: resultSql[active.key],
+      connectionId: runtime.connectionId,
+      driver,
+      tableName: sourceTable(active.columns, driver),
+      name: "result",
+    };
   };
 
   const reorderInDatabase = async () => {
@@ -217,36 +214,14 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
               onShowAll={gv.showAll}
             />
             <CopyAsMenu grid={grid} />
-            <span className={styles.exportWrap}>
-              <button
-                type="button"
-                className={styles.exportButton}
-                aria-haspopup="menu"
-                aria-expanded={exportMenu}
-                onClick={() => setExportMenu((o) => !o)}
-              >
-                <Download size={13} />
-                Export
-                <ChevronDown size={12} />
-              </button>
-              {exportMenu ? (
-                <>
-                  <div
-                    className={styles.menuScrim}
-                    onMouseDown={() => setExportMenu(false)}
-                    aria-hidden="true"
-                  />
-                  <div className={styles.exportMenu}>
-                    <Menu
-                      aria-label="Export results"
-                      items={exportItems}
-                      onClose={() => setExportMenu(false)}
-                      onSelect={(id) => void exportAs(id)}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </span>
+            <button
+              type="button"
+              className={styles.exportButton}
+              onClick={() => setExporting(true)}
+            >
+              <Download size={13} />
+              Export…
+            </button>
           </>
         ) : null}
       </div>
@@ -328,6 +303,9 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)
           : null}
       </div>
+      {exporting && exportSource() ? (
+        <ExportDialog source={exportSource()!} onClose={() => setExporting(false)} />
+      ) : null}
     </section>
   );
 }

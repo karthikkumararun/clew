@@ -17,9 +17,9 @@
 
 ## 3. Export
 
-- [ ] 3.1 Rust `export_result` streaming writer for CSV/TSV/JSON/JSONL/Markdown/INSERT with progress channel and cancel (spec: data-grid › Export)
-- [ ] 3.2 Export dialog (format, scope loaded/all, header, delimiter, NULL text, date format)
-- [ ] 3.3 Test: export 100k rows from SQLite with bounded memory; cancel deletes the file
+- [x] 3.1 Rust `export_result` streaming writer for CSV/TSV/JSON/JSONL/Markdown/INSERT with progress channel and cancel (spec: data-grid › Export)
+- [x] 3.2 Export dialog (format, scope loaded/all, header, delimiter, NULL text, date format)
+- [x] 3.3 Test: export 100k rows from SQLite with bounded memory; cancel deletes the file
 
 ## 4. Table editor tab
 

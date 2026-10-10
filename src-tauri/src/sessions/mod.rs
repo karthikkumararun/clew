@@ -527,6 +527,16 @@ impl SessionManager {
         self.execute_inner(session_id, req, emit, true).await
     }
 
+    /// Like [`Self::execute`] but not recorded in the query history (exports re-run queries).
+    pub async fn execute_unrecorded(
+        &self,
+        session_id: &str,
+        req: ExecRequest,
+        emit: Emit,
+    ) -> DriverResult<Option<ExecSummary>> {
+        self.execute_inner(session_id, req, emit, false).await
+    }
+
     async fn execute_inner(
         &self,
         session_id: &str,

@@ -2,6 +2,7 @@ pub mod commands;
 pub mod connections;
 pub mod drivers;
 pub mod error;
+pub mod exporter;
 pub mod files;
 pub mod history;
 pub mod paths;
@@ -126,6 +127,7 @@ pub fn run() {
                 password_prompts,
                 test_cancels: Default::default(),
                 files,
+                exports: Default::default(),
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -162,6 +164,9 @@ pub fn run() {
             commands::files::file_write,
             commands::files::file_watch,
             commands::files::file_unwatch,
+            commands::export::export_query,
+            commands::export::export_cancel,
+            commands::export::export_rows,
             commands::sessions::host_key_answer,
             commands::connections::connections_list,
             commands::connections::connections_save,
