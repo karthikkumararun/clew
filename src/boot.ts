@@ -1,5 +1,6 @@
 import { isTauri, tauriUiStateBackend } from "./lib/ipc";
 import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
+import { registerConsoleTab } from "./features/console/ConsoleTab";
 import { startExplorerSync, useExplorer } from "./features/explorer/explorerStore";
 import { rehydrateLayout } from "./stores/layoutStore";
 import { applySettingsToDocument, useSettings } from "./stores/settingsStore";
@@ -22,6 +23,8 @@ export async function boot(): Promise<void> {
   await useSettings.getState().load();
   applySettingsToDocument(useSettings.getState().settings);
   useSettings.subscribe((s) => applySettingsToDocument(s.settings));
+  // Editor kinds must exist before the last session is reopened.
+  registerConsoleTab();
   restoreSession();
   startSessionPersistence();
 }

@@ -1,8 +1,8 @@
 ## 1. Console tab
 
-- [ ] 1.1 Register the `console` tab kind with session lifecycle (open on first run, close with tab), title/subtitle, env stripe, restore text after restart (spec: sql-console › Console tabs)
-- [ ] 1.2 Mod+T new console with connection picker fallback
-- [ ] 1.3 Test: open/close lifecycle; restore text
+- [x] 1.1 Register the `console` tab kind with session lifecycle (open on first run, close with tab), title/subtitle, env stripe, restore text after restart (spec: sql-console › Console tabs)
+- [x] 1.2 Mod+T new console with connection picker fallback
+- [x] 1.3 Test: open/close lifecycle; restore text
 
 ## 2. Editor
 

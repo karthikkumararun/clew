@@ -32,6 +32,10 @@ export interface TabKind<S = unknown> {
   isDirty?(state: S): boolean;
   /** Persist the editor's content. Resolve false (or throw) to abort closing. */
   save?(tab: Tab<S>): Promise<boolean>;
+  /** Ask before closing for reasons other than unsaved text (e.g. an open transaction). */
+  confirmClose?(tab: Tab<S>): Promise<boolean>;
+  /** Release what the tab holds (a database session, a file watch) once it is closed. */
+  onClose?(tab: Tab<S>): void;
   status?(state: S): TabStatus | undefined;
   serialize?(state: S): unknown;
   deserialize?(raw: unknown): S;
