@@ -29,10 +29,10 @@ Writes are atomic (write temp + rename) and guarded by an mtime check with merge
 `keyring` crate; service `Clew`, account `<id>:password`, `<id>:ssh-passphrase`, `<id>:ssh-password`. `secrets.rs` is the only module that touches the keychain. Resolving a connection (`resolve(id) -> ResolvedConfig`) pulls secrets in memory; `ResolvedConfig` implements `Debug` with secrets redacted.
 
 ### Dialog architecture
-`ConnectionDialog` holds a draft in local state (Zustand slice per dialog). `DriverMeta.formKind` picks the General form: `NetworkForm`, `FileForm`, `UriForm` (MongoDB), `KeyValueForm` (Redis). Port follows the driver default until the field is "dirty". URL preview is built by a shared `buildUrl(draft)` mirrored from Rust `url.rs` tests (password always omitted).
+`ConnectionDialog` holds a draft in local state (Zustand slice per dialog). `DriverMeta.formKind` picks the General form: `NetworkForm`, `OracleForm`, `FileForm`, `UriForm` (MongoDB), `KeyValueForm` (Redis). Port follows the driver default until the field is "dirty". URL preview is built by a shared `buildUrl(draft)` mirrored from Rust `url.rs` tests (password always omitted).
 
 ### Imports
-`import/` has one module per source returning `Vec<ImportCandidate>`; the preview dialog shows them. DataGrip: parse `dataSources.xml` `<data-source>` → `driver-ref` + `jdbc-url` (map JDBC URL schemes to Clew drivers). DBeaver: `data-sources.json` `connections.*.configuration`. pgpass: one candidate per non-wildcard line (password goes to keychain only if the user ticks "Import passwords").
+`import/` has one module per source returning `Vec<ImportCandidate>`; the preview dialog shows them. DataGrip: parse `dataSources.xml` `<data-source>` → `driver-ref` + `jdbc-url` (map JDBC URL schemes to Clew drivers, incl. `jdbc:oracle:thin:@host:port/service` and `@host:port:SID`). DBeaver: `data-sources.json` `connections.*.configuration`. pgpass: one candidate per non-wildcard line (password goes to keychain only if the user ticks "Import passwords").
 
 ### Toolbar chip and switching database/schema
 The chip reads the active tab's `{connectionId, database, schema}`. Switching database opens a new session for the tab (Postgres needs a new connection per database); switching schema runs `SET search_path` (PG) / `USE` (MySQL).

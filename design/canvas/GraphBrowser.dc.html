@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew graph browser</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.tb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #262B33;background:#1A1E25;color:#E6E8EB;font-size:12px;white-space:nowrap}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:#9AA3AE}
+.h{margin:0;padding:0 14px 6px;font-size:11px;font-weight:600;letter-spacing:0.08em;color:#9AA3AE}
+.lbl{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;color:#0E1014;white-space:nowrap}
+.rel{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:4px;border:1px solid #2E343D;background:#1A1E25;font:500 11px/1 'JetBrains Mono',monospace;color:#C9CED6;white-space:nowrap}
+.ln{display:block;height:20px;white-space:pre}
+.k{color:#C9A0FF}.s{color:#9CD08B}.n{color:#F0B37E}.l{color:#7FC8F8}
+.kv{display:grid;grid-template-columns:90px minmax(0,1fr);gap:6px 12px;font-size:12px;margin:0}
+.kv dt{color:#9AA3AE;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.kv dd{margin:0;font-family:'JetBrains Mono',monospace;color:#E6E8EB;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #0E1014; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <header style="min-height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+    <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #9AA3AE">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #E3A64F"></span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 14px; border-radius: 3px; background: #66D1D6; color: #0E1014; font: 600 8.5px/1 'JetBrains Mono', monospace">N4</span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">staging-neo4j</a><span>›</span>
+      <span style="color: #E6E8EB; font-weight: 600">neo4j</span>
+    </nav>
+    <button class="tb" type="button" style="background: #E3A64F; border-color: #E3A64F; color: #0E1014; font-weight: 600"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5l9 5.5-9 5.5z" fill="currentColor"/></svg>Run<span class="mono" style="font-weight: 500; opacity: 0.75">⌘↵</span></button>
+    <button class="tb" type="button">Profile</button>
+    <span style="display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 4px; background: #2A2418; color: #F2C27F; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">STAGING · READ</span>
+    <div style="flex: 1"></div>
+    <button class="tb" type="button" style="color: #9AA3AE"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>Go to anything…<span class="mono" style="font-size: 11px">⌘K</span></button>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+
+    <!-- Graph schema -->
+    <aside aria-label="Graph schema" style="flex: 1 1 220px; max-width: 240px; height: 100%; background: #14171C; border-right: 1px solid #262B33; padding-top: 12px; display: flex; flex-direction: column; gap: 18px; overflow: auto">
+      <div>
+        <h2 class="h">NODE LABELS</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px">
+          <button type="button" class="lbl" style="background: #7FC8F8; border: 0">User <span style="opacity: 0.7">8.1k</span></button>
+          <button type="button" class="lbl" style="background: #F0B37E; border: 0">Product <span style="opacity: 0.7">3.9k</span></button>
+          <button type="button" class="lbl" style="background: #C9A0FF; border: 0">Category <span style="opacity: 0.7">42</span></button>
+          <button type="button" class="lbl" style="background: #9CD08B; border: 0">Review <span style="opacity: 0.7">21k</span></button>
+        </div>
+      </div>
+      <div>
+        <h2 class="h">RELATIONSHIP TYPES</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px">
+          <button type="button" class="rel">PURCHASED</button>
+          <button type="button" class="rel">FOLLOWS</button>
+          <button type="button" class="rel">IN_CATEGORY</button>
+          <button type="button" class="rel">WROTE</button>
+          <button type="button" class="rel">ABOUT</button>
+        </div>
+      </div>
+      <div>
+        <h2 class="h">PROPERTY KEYS</h2>
+        <div class="mono" style="display: flex; flex-direction: column; padding: 0 14px; font-size: 12px; color: #C9CED6; gap: 4px">
+          <span>name</span><span>email</span><span>plan</span><span>sku</span><span>price</span><span>rating</span><span>created_at</span>
+        </div>
+      </div>
+      <div>
+        <h2 class="h">INDEXES &amp; CONSTRAINTS</h2>
+        <div class="mono" style="display: flex; flex-direction: column; padding: 0 14px; font-size: 11.5px; color: #9AA3AE; gap: 4px">
+          <span>:User(email) UNIQUE</span><span>:Product(sku) UNIQUE</span><span>:Review(created_at) RANGE</span>
+        </div>
+      </div>
+    </aside>
+
+    <main style="flex: 999 1 520px; min-width: 0; height: 100%; display: flex; flex-direction: column">
+      <!-- Cypher editor -->
+      <section aria-label="Cypher editor" class="mono" style="height: 112px; flex: none; display: flex; font-size: 13px; line-height: 20px; border-bottom: 1px solid #262B33">
+        <div aria-hidden="true" style="width: 48px; flex: none; padding: 10px 10px 0 0; text-align: right; color: #4E5661; border-right: 1px solid #1A1E25">
+          <span class="ln" style="color: #E3A64F">▶ 1</span><span class="ln">2</span><span class="ln">3</span><span class="ln">4</span>
+        </div>
+        <div style="flex: 1; min-width: 0; padding: 10px 0 0 14px; background: #13171D">
+          <span class="ln"><span style="color: #7D8794">// who else bought what Ada bought</span></span>
+          <span class="ln"><span class="k">MATCH</span> (u:<span class="l">User</span> {name: <span class="s">'Ada Lovelace'</span>})-[:<span class="l">PURCHASED</span>]-&gt;(p:<span class="l">Product</span>)&lt;-[:<span class="l">PURCHASED</span>]-(other:<span class="l">User</span>)</span>
+          <span class="ln"><span class="k">RETURN</span> u, p, other</span>
+          <span class="ln"><span class="k">LIMIT</span> <span class="n">25</span></span>
+        </div>
+      </section>
+
+      <!-- Result toolbar -->
+      <div style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+        <div role="tablist" aria-label="Result view" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #0E1014; border: 1px solid #262B33">
+          <button role="tab" aria-selected="true" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: #262D36; font-size: 12px">Graph</button>
+          <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Table</button>
+          <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">JSON</button>
+          <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Plan</button>
+        </div>
+        <div style="flex: 1"></div>
+        <span style="color: #9AA3AE; font-size: 12px">10 nodes · 15 relationships · 18 ms</span>
+        <button class="tb" type="button">Export<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+      </div>
+
+      <!-- Graph canvas -->
+      <div style="flex: 1; min-height: 0; position: relative; background: #0E1014; background-image: radial-gradient(#1A1E25 1px, transparent 1px); background-size: 20px 20px">
+        <svg role="img" aria-label="Graph of 10 nodes: Ada Lovelace and four other users connected to five products and one category" width="100%" height="100%" viewBox="0 0 760 520" preserveAspectRatio="xMidYMid meet" style="position: absolute; inset: 0">
+          <g stroke="#3A4250" stroke-width="1.4" fill="none">
+            <line x1="380" y1="260" x2="230" y2="140"/><line x1="380" y1="260" x2="540" y2="140"/><line x1="380" y1="260" x2="250" y2="390"/><line x1="380" y1="260" x2="520" y2="390"/>
+            <line x1="100" y1="250" x2="230" y2="140"/><line x1="100" y1="250" x2="250" y2="390"/>
+            <line x1="670" y1="260" x2="540" y2="140"/><line x1="670" y1="260" x2="520" y2="390"/>
+            <line x1="385" y1="480" x2="250" y2="390"/><line x1="385" y1="480" x2="520" y2="390"/>
+            <line x1="385" y1="45" x2="230" y2="140"/><line x1="385" y1="45" x2="540" y2="140"/>
+            <line x1="540" y1="140" x2="680" y2="60"/>
+            <line x1="380" y1="260" x2="100" y2="250" stroke="#4A5566" stroke-dasharray="4 4"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="8.5" fill="#7D8794" text-anchor="middle">
+            <text x="300" y="194">PURCHASED</text><text x="462" y="194">PURCHASED</text><text x="306" y="320">PURCHASED</text><text x="452" y="320">PURCHASED</text>
+            <text x="612" y="96">IN_CATEGORY</text><text x="240" y="248">FOLLOWS</text>
+          </g>
+          <!-- Users -->
+          <g font-family="IBM Plex Sans, sans-serif" font-size="9.5" font-weight="600" text-anchor="middle" fill="#0E1014">
+            <circle cx="380" cy="260" r="32" fill="#7FC8F8" stroke="#E3A64F" stroke-width="3"/><text x="380" y="257">Ada</text><text x="380" y="269">Lovelace</text>
+            <circle cx="100" cy="250" r="26" fill="#7FC8F8"/><text x="100" y="253">Grace</text>
+            <circle cx="670" cy="260" r="26" fill="#7FC8F8"/><text x="670" y="263">Alan</text>
+            <circle cx="385" cy="480" r="26" fill="#7FC8F8"/><text x="385" y="483">Katherine</text>
+            <circle cx="385" cy="45" r="26" fill="#7FC8F8"/><text x="385" y="48">Barbara</text>
+            <!-- Products -->
+            <circle cx="230" cy="140" r="26" fill="#F0B37E"/><text x="230" y="143">Oak Table</text>
+            <circle cx="540" cy="140" r="26" fill="#F0B37E"/><text x="540" y="143">Brass Lamp</text>
+            <circle cx="250" cy="390" r="26" fill="#F0B37E"/><text x="250" y="393">Linen Sofa</text>
+            <circle cx="520" cy="390" r="26" fill="#F0B37E"/><text x="520" y="393">Desk Mat</text>
+            <!-- Category -->
+            <circle cx="680" cy="60" r="22" fill="#C9A0FF"/><text x="680" y="63">Lighting</text>
+          </g>
+        </svg>
+
+        <!-- legend + zoom -->
+        <div style="position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; border-radius: 8px; border: 1px solid #262B33; background: #14171C">
+          <span class="lbl" style="background: #7FC8F8; height: 22px">User 5</span>
+          <span class="lbl" style="background: #F0B37E; height: 22px">Product 4</span>
+          <span class="lbl" style="background: #C9A0FF; height: 22px">Category 1</span>
+          <span class="rel">PURCHASED 12</span><span class="rel">FOLLOWS 1</span><span class="rel">IN_CATEGORY 1</span>
+        </div>
+        <div style="position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 2px; padding: 2px; border-radius: 8px; border: 1px solid #262B33; background: #14171C">
+          <button class="ib" type="button" aria-label="Zoom in"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+          <button class="ib" type="button" aria-label="Zoom out"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8h10"/></svg></button>
+          <button class="ib" type="button" aria-label="Fit to screen"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Inspector -->
+    <aside aria-label="Selected node" style="flex: 1 1 280px; max-width: 300px; height: 100%; display: flex; flex-direction: column; background: #14171C; border-left: 1px solid #262B33">
+      <div style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 14px; border-bottom: 1px solid #262B33">
+        <span class="lbl" style="background: #7FC8F8; height: 22px">User</span>
+        <span class="mono" style="color: #9AA3AE; font-size: 11.5px">&lt;id&gt; 4:7f1c…:1042</span>
+        <div style="flex: 1"></div>
+        <button class="ib" type="button" aria-label="Close inspector"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div style="flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 18px">
+        <dl class="kv">
+          <dt>name</dt><dd style="color: #9CD08B">"Ada Lovelace"</dd>
+          <dt>email</dt><dd style="color: #9CD08B">"ada@example.com"</dd>
+          <dt>plan</dt><dd style="color: #9CD08B">"pro"</dd>
+          <dt>orders</dt><dd style="color: #F0B37E">42</dd>
+          <dt>created_at</dt><dd style="color: #7FC8F8">2024-03-11T09:12:00Z</dd>
+        </dl>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE; margin-bottom: 8px">RELATIONSHIPS</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+            <div style="display: flex; justify-content: space-between"><span class="rel">→ PURCHASED</span><span style="color: #9AA3AE">42</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="rel">→ FOLLOWS</span><span style="color: #9AA3AE">7</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="rel">← FOLLOWS</span><span style="color: #9AA3AE">130</span></div>
+            <div style="display: flex; justify-content: space-between"><span class="rel">→ WROTE</span><span style="color: #9AA3AE">12</span></div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <button class="tb" type="button" style="justify-content: center">Expand neighbours</button>
+          <button class="tb" type="button" style="justify-content: center; background: transparent">Hide node</button>
+          <button class="tb" type="button" style="justify-content: center; background: transparent">Copy as Cypher MATCH</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="height: 26px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px; border-top: 1px solid #262B33; background: #14171C; color: #9AA3AE; font-size: 11.5px; white-space: nowrap; overflow: hidden">
+    <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC4A1"></span>Connected · staging-neo4j</span>
+    <span>Neo4j 5.24 · cluster (3 members)</span>
+    <span>Access mode: READ</span>
+    <span style="flex: 1"></span>
+    <span>Double-click a node to expand · drag to rearrange</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

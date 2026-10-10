@@ -75,11 +75,13 @@
   --drv-mysql: #F0A35E;
   --drv-mariadb: #C9A0FF;
   --drv-sqlserver: #7FC8F8;
+  --drv-oracle: #EE8B6F;
   --drv-clickhouse: #F2D06B;
   --drv-sqlite: #B8C0CC;
   --drv-duckdb: #E8D27A;
   --drv-mongodb: #6CC48A;
   --drv-redis: #F2766B;
+  --drv-neo4j: #66D1D6;
 
   /* Type (fonts are bundled locally, never fetched at runtime) */
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;

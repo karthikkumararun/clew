@@ -17,7 +17,7 @@
 
 - [ ] 3.1 Build the dialog shell, driver list with search and SQL/NoSQL groups per `ConnectionDialog.dc.html` (spec: connection-management › Connection dialog)
 - [ ] 3.2 Build Name (with suggestion), Group select, Environment chips
-- [ ] 3.3 Build General forms: NetworkForm, FileForm, UriForm, KeyValueForm; port follows driver default until edited
+- [ ] 3.3 Build General forms: NetworkForm, OracleForm (connect-by, role, wallet, Instant Client status), FileForm, UriForm, KeyValueForm; port follows driver default until edited
 - [ ] 3.4 Build the SSH tunnel, SSL / TLS and Advanced tabs
 - [ ] 3.5 Build the URL preview with Copy and the Production safeguards box
 - [ ] 3.6 Validation, Esc / Mod+Enter, focus order

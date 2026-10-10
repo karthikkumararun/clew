@@ -4,8 +4,8 @@
 
 **Clew** (an old English word for a ball of thread used to guide someone out of a labyrinth) is an open-source database IDE in the spirit of DataGrip, for macOS and Windows.
 
-- SQL: PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, ClickHouse, DuckDB
-- NoSQL: MongoDB, Redis
+- SQL: PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, Oracle, ClickHouse, DuckDB
+- NoSQL: MongoDB, Redis, Neo4j (graph view + Cypher console)
 - Saved connections with environments, SSH tunnels, TLS and keychain-stored secrets
 - SQL console with schema-aware completion, data grid with staged editing, document and key browsers
 - Production safeguards: read-only by default, confirmed writes, blocked dangerous statements

@@ -1,10 +1,14 @@
-## 1. MySQL and MariaDB
+## 1. Oracle
 
-- [ ] 1.1 Driver module with flavor, connect/test, sessions, streaming execute, KILL QUERY cancel (spec: driver-framework › MySQL and MariaDB drivers)
-- [ ] 1.2 Type mapping incl. zero dates, unsigned bigint, JSON, BIT, ENUM/SET
-- [ ] 1.3 Introspection, completion snapshot, SHOW CREATE DDL, session read-only
-- [ ] 1.4 Editing support (backtick quoting, LIMIT paging, no RETURNING on MySQL → reload by PK)
-- [ ] 1.5 Test: conformance suite against mysql:8 and mariadb:11
+- [ ] 1.1 Instant Client detection (settings path, ORACLE_HOME, library path, standard folders) and an `oracle_client_status` command for the connection dialog (spec: driver-framework › Oracle driver)
+- [ ] 1.2 Driver on the `oracle` crate: connect by service name / SID / TNS alias / Easy Connect, role, wallet; test with server version
+- [ ] 1.3 Session on spawn_blocking: streaming fetch, break_execution cancel, OFFSET/FETCH paging, DBMS_OUTPUT capture
+- [ ] 1.4 Extend `split.rs` with `/` terminators and PL/SQL block detection (+ fixtures shared with the editor)
+- [ ] 1.5 Type mapping (NUMBER, DATE/TIMESTAMP variants, INTERVAL, RAW, CLOB/BLOB truncation, ROWID)
+- [ ] 1.6 Introspection (schemas, tables, views, mviews, sequences, synonyms, packages, procedures, functions, columns, constraints, indexes), completion snapshot, DBMS_METADATA DDL
+- [ ] 1.7 Read-only via SET TRANSACTION READ ONLY per transaction; editing by PK or ROWID; double-quote identifier quoting
+- [ ] 1.8 Connection dialog: Oracle form (connect-by select, service/SID/alias, role, wallet folder) and Instant Client status / setup help per `design/canvas/ConnectionDialog.dc.html`
+- [ ] 1.9 Test: conformance suite against Oracle Database 23ai Free (scheduled CI job); missing-client error path
 
 ## 2. SQL Server
 
@@ -31,4 +35,4 @@
 
 ## 5. CI
 
-- [ ] 5.1 Extend docker-compose and the integration workflow with the new services and build caching (spec: driver-framework › Conformance across SQL drivers)
+- [ ] 5.1 Extend docker-compose and the integration workflow with SQL Server, Oracle and ClickHouse (Oracle and SQL Server on a schedule) and build caching (spec: driver-framework › Conformance across SQL drivers)

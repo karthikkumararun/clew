@@ -9,14 +9,14 @@ context: |
   then friends and the open-source community. License: MIT.
 
   ## Product scope (v1)
-  - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, ClickHouse, DuckDB)
-    and NoSQL databases (MongoDB, Redis).
+  - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, Oracle, ClickHouse, DuckDB)
+    and NoSQL databases (MongoDB, Redis, Neo4j).
   - Manage and persist connections (groups, environment color coding, SSH tunnels, TLS, keychain secrets).
   - Database explorer tree with lazy schema introspection.
   - SQL console: multi-tab editor, run statement / script, autocomplete from live schema, history.
   - Data grid: virtualized results, table editor with filter/sort/paging, inline edits staged as
     pending changes and submitted in a transaction, record panel with FK navigation, export.
-  - Document browser (MongoDB) and key browser (Redis).
+  - Document browser (MongoDB), key browser (Redis) and graph browser with Cypher console (Neo4j).
   - Command palette (Cmd/Ctrl+K) across all connections.
   - Production safeguards: read-only by default, write confirmation, unsafe-statement blocking.
   - AI assistant side panel (bring your own model: GitHub Copilot, Claude, OpenAI/Codex, custom
@@ -32,8 +32,8 @@ context: |
     no component library. Icons: inline stroke SVG components (16px viewBox, 1.3–1.6 stroke).
   - SQL editor: CodeMirror 6 (@codemirror/lang-sql with dialects, custom schema completion).
   - Data grid: @glideapps/glide-data-grid (canvas-based, virtualized, editable), themed from tokens.
-  - Rust: tokio; sqlx (postgres, mysql/mariadb, sqlite); tiberius (SQL Server); clickhouse (HTTP);
-    duckdb (bundled); mongodb; redis; russh (SSH tunnels); rustls; keyring (macOS Keychain /
+  - Rust: tokio; sqlx (postgres, mysql/mariadb, sqlite); tiberius (SQL Server); oracle (rust-oracle/ODPI-C, user-installed Instant Client loaded at runtime); clickhouse (HTTP);
+    duckdb (bundled); mongodb; redis; neo4rs (Neo4j); russh (SSH tunnels); rustls; keyring (macOS Keychain /
     Windows Credential Manager); serde; thiserror; tracing; reqwest (rustls) for AI providers;
     sqlparser for statement classification.
   - IPC: Tauri commands for request/response; tauri::ipc::Channel for streaming result batches and events.

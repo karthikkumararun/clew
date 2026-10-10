@@ -13,17 +13,18 @@ Clew ("by ADK") is an open-source DataGrip-style database IDE for macOS and Wind
 Implement one change at a time, in this order (each depends on the earlier ones):
 
 1. `add-app-shell`
-2. `add-driver-framework`
+2. `add-driver-framework`  (PostgreSQL, MySQL/MariaDB, SQLite)
 3. `add-connection-management`
 4. `add-database-explorer`
 5. `add-sql-console`
 6. `add-data-grid`
 7. `add-production-safeguards`
-8. `add-more-sql-drivers`
+8. `add-more-sql-drivers`  (SQL Server, Oracle, ClickHouse, DuckDB)
 9. `add-nosql-browser`
-10. `add-command-palette`
-11. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
-12. `add-release-packaging`
+10. `add-graph-browser`  (Neo4j)
+11. `add-command-palette`
+12. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
+13. `add-release-packaging`
 
 ## Workflow per change
 

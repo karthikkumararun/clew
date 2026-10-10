@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Driver registry
-The system SHALL keep a registry of available drivers. Each driver SHALL declare: id, display name, 2-letter badge, color token, family (`sql`, `document` or `keyvalue`), default port (if any), connection-form kind (`network`, `file`, `uri` or `keyvalue`), SQL dialect (for `sql` drivers) and capability flags (`transactions`, `cancel`, `explain`, `editable_results`, `schemas`, `multiple_databases`).
+The system SHALL keep a registry of available drivers. Each driver SHALL declare: id, display name, 2-letter badge, color token, family (`sql`, `document`, `keyvalue` or `graph`), default port (if any), connection-form kind (`network`, `file`, `uri` or `keyvalue`), SQL dialect (for `sql` drivers) and capability flags (`transactions`, `cancel`, `explain`, `editable_results`, `schemas`, `multiple_databases`).
 
 #### Scenario: List drivers
 - **WHEN** the frontend requests the driver list
@@ -133,6 +133,17 @@ The system SHALL include a PostgreSQL driver (versions 12+) supporting all requi
 #### Scenario: Server version in status
 - **WHEN** a PostgreSQL session opens
 - **THEN** the status bar shows "PostgreSQL <major.minor>"
+
+### Requirement: MySQL and MariaDB drivers
+The system SHALL include MySQL (8.0+) and MariaDB (10.6+) drivers with default port 3306, dialects `mysql` / `mariadb`, streaming results, cancellation via `KILL QUERY <connection id>` on a separate connection, introspection (databases as the top level, tables, views, routines, triggers, columns, keys, indexes), DDL via `SHOW CREATE`, and session read-only via `SET SESSION TRANSACTION READ ONLY`.
+
+#### Scenario: Cancel a long query
+- **WHEN** the user cancels `SELECT SLEEP(60)` on MySQL
+- **THEN** the query stops within 2 seconds and the session stays usable
+
+#### Scenario: Zero dates
+- **WHEN** a DATETIME column contains `0000-00-00 00:00:00`
+- **THEN** the value arrives as `other` with that text, not as an error
 
 ### Requirement: SQLite driver
 The system SHALL include a SQLite driver for local database files supporting execution, cancellation (interrupt), introspection (main + attached databases), editing and EXPLAIN QUERY PLAN.
