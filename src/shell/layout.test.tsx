@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { Star } from "../components/icons";
 import App from "../App";
@@ -58,8 +58,9 @@ describe("canvas metrics", () => {
 describe("workspace layout", () => {
   it("renders the brand mark", () => {
     render(<App />);
-    expect(screen.getByText("Clew")).toBeInTheDocument();
-    expect(screen.getByText("by ADK")).toBeInTheDocument();
+    const toolbar = within(screen.getByRole("banner"));
+    expect(toolbar.getByText("Clew")).toBeInTheDocument();
+    expect(toolbar.getByText("by ADK")).toBeInTheDocument();
   });
 
   it("starts with a 272px sidebar", () => {

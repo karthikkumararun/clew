@@ -41,7 +41,7 @@ CSS Modules per component; class names follow the canvas (e.g. `.tb` → `Button
 A small in-house registry (no library): bindings `{ id, keys: 'Mod+Shift+K', scope: 'global' | 'editor' | 'grid' | 'dialog', when?(), run() }`. One `keydown` listener on `window`; the editor scope is handled by CodeMirror keymaps that call into the registry, so the editor wins inside the editor. Labels come from `formatShortcut(keys, platform)`.
 
 ### Persistence
-Rust side owns files under the platform app-data dir (`tauri::path::app_data_dir`, identifier `dev.adk.clew`, product name `Clew`):
+Rust side owns files under `<platform data dir>/Clew` (`~/Library/Application Support/Clew`, `%APPDATA%\Clew`), resolved with `tauri::path::data_dir()` plus the product name rather than `app_data_dir()` (which would use the identifier `dev.adk.clew`), so the real path matches the Welcome footer and spec (`src-tauri/src/paths.rs`):
 - `settings.json`: preferences (serde, versioned with `"version": 1`).
 - `clew.db`: SQLite (sqlx, migrations in `src-tauri/migrations/`) with tables `ui_state(key TEXT PK, value TEXT)`; later changes add history and saved queries.
 Window geometry uses `tauri-plugin-window-state`.

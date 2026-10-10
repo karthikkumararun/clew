@@ -7,7 +7,7 @@ export interface Command {
   category: string;
   /** Registry keys, e.g. "Mod+N". Bound in the global scope. */
   shortcut?: string;
-  run: () => void | Promise<void>;
+  run: (arg?: unknown) => void | Promise<void>;
 }
 
 const commands = new Map<string, { command: Command; unbind: () => void }>();
@@ -56,10 +56,10 @@ export function listCommands(): Command[] {
 }
 
 /** Run a command by id. Unknown ids are a no-op (later changes register them). */
-export async function runCommand(id: string): Promise<boolean> {
+export async function runCommand(id: string, arg?: unknown): Promise<boolean> {
   const c = commands.get(id)?.command;
   if (!c) return false;
-  await c.run();
+  await c.run(arg);
   return true;
 }
 

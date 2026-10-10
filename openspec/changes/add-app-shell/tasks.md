@@ -41,10 +41,10 @@
 
 ## 6. Welcome screen
 
-- [ ] 6.1 Build `Welcome.tsx` per `design/canvas/Welcome.dc.html` including the thread background line, actions, URL field, Recent list (empty state "No connections yet"), shortcut hints (spec: app-shell › Welcome screen)
-- [ ] 6.2 Add a Rust command `app_paths()` returning the connections file path and app version; show them in the footer
-- [ ] 6.3 Wire the Welcome actions to command ids (`connection.new`, `connection.import`, `file.openDatabase`, `connection.fromUrl`) that are no-ops until later changes register them
-- [ ] 6.4 Test: Welcome shows when no tabs are open and after the last tab closes
+- [x] 6.1 Build `Welcome.tsx` per `design/canvas/Welcome.dc.html` including the thread background line, actions, URL field, Recent list (empty state "No connections yet"), shortcut hints (spec: app-shell › Welcome screen)
+- [x] 6.2 Add a Rust command `app_paths()` returning the connections file path and app version; show them in the footer
+- [x] 6.3 Wire the Welcome actions to command ids (`connection.new`, `connection.import`, `file.openDatabase`, `connection.fromUrl`) that are no-ops until later changes register them
+- [x] 6.4 Test: Welcome shows when no tabs are open and after the last tab closes
 
 ## 7. Settings and persistence
 
