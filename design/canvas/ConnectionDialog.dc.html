@@ -42,7 +42,7 @@ input,select{font:inherit}
         <label for="drv-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search drivers</label>
         <input id="drv-search" class="in" placeholder="Search drivers…" style="height: 30px; font-size: 12px; margin: 0 2px 8px; width: auto">
         <div style="padding: 6px 10px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #7D8794">SQL</div>
-        <sc-for list="{{sqlDrivers}}" as="d" hint-placeholder-count="7">
+        <sc-for list="{{sqlDrivers}}" as="d" hint-placeholder-count="8">
           <button type="button" class="drv" onClick="{{d.pick}}" aria-pressed="{{d.selected}}" style="background: {{d.bg}}; color: {{d.fg}}; box-shadow: {{d.ring}}">
             <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: {{d.color}}; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">{{d.badge}}</span>{{d.name}}
           </button>
@@ -99,6 +99,29 @@ input,select{font:inherit}
                     <div class="fld"><label for="c-store">Save password</label><select id="c-store" class="in"><option>In system keychain</option><option>Ask every time</option><option>Don’t save</option></select></div>
                   </div>
                   <div class="fld"><label for="c-db">Database</label><input id="c-db" class="in mono" value="analytics" onChange="{{noop}}"></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{isOracle}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px">
+                    <div class="fld"><label for="o-host">Host</label><input id="o-host" class="in mono" value="db.internal" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="o-port">Port</label><input id="o-port" class="in mono" value="{{port}}" onChange="{{noop}}"></div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 12px">
+                    <div class="fld"><label for="o-by">Connect by</label><select id="o-by" class="in"><option>Service name</option><option>SID</option><option>TNS alias</option><option>Easy Connect string</option></select></div>
+                    <div class="fld"><label for="o-svc">Service name</label><input id="o-svc" class="in mono" value="ORCLPDB1" onChange="{{noop}}"></div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+                    <div class="fld"><label for="o-user">User</label><input id="o-user" class="in mono" value="karthik" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="o-pass">Password</label><input id="o-pass" class="in mono" type="password" value="placeholder-pw" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="o-role">Role</label><select id="o-role" class="in"><option>Default</option><option>SYSDBA</option><option>SYSOPER</option></select></div>
+                  </div>
+                  <div class="fld"><label for="o-wallet">Wallet folder (Autonomous Database, optional)</label><input id="o-wallet" class="in mono" placeholder="~/wallets/Wallet_mydb" onChange="{{noop}}"></div>
+                  <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid #262B33; background: #111419; font-size: 12px; color: #9AA3AE">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC4A1; flex: none"></span>
+                    <span style="flex: 1">Oracle Instant Client 23.5 found</span>
+                    <a href="#" style="text-decoration: none">Change…</a>
+                  </div>
                 </div>
               </sc-if>
               <sc-if value="{{isFile}}" hint-placeholder-val="{{false}}">
@@ -219,6 +242,7 @@ class Component extends DCLogic {
       { id: 'postgres', name: 'PostgreSQL', badge: 'PG', color: '#6EA8FE', kind: 'net', port: '5432', ver: 'PostgreSQL 16.2', scheme: 'postgresql' },
       { id: 'mysql', name: 'MySQL', badge: 'MY', color: '#F0A35E', kind: 'net', port: '3306', ver: 'MySQL 8.4', scheme: 'mysql' },
       { id: 'mariadb', name: 'MariaDB', badge: 'MA', color: '#C9A0FF', kind: 'net', port: '3306', ver: 'MariaDB 11.4', scheme: 'mariadb' },
+      { id: 'oracle', name: 'Oracle', badge: 'OR', color: '#EE8B6F', kind: 'oracle', port: '1521', ver: 'Oracle Database 23ai', scheme: 'oracle' },
       { id: 'mssql', name: 'SQL Server', badge: 'MS', color: '#7FC8F8', kind: 'net', port: '1433', ver: 'SQL Server 2022', scheme: 'sqlserver' },
       { id: 'clickhouse', name: 'ClickHouse', badge: 'CH', color: '#F2D06B', kind: 'net', port: '8123', ver: 'ClickHouse 24.8', scheme: 'clickhouse' },
       { id: 'sqlite', name: 'SQLite', badge: 'SQ', color: '#B8C0CC', kind: 'file', ver: 'SQLite 3.46', scheme: 'sqlite' },
@@ -252,15 +276,16 @@ class Component extends DCLogic {
     let urlPreview;
     if (cur.kind === 'net') urlPreview = cur.scheme + '://karthik@db.internal:' + cur.port + '/analytics?sslmode=verify-full';
     else if (cur.kind === 'file') urlPreview = cur.scheme + ':///Users/karthik/Projects/notes/notes.sqlite';
+    else if (cur.kind === 'oracle') urlPreview = 'oracle://karthik@db.internal:1521/ORCLPDB1 (service name)';
     else if (cur.kind === 'mongo') urlPreview = 'mongodb+srv://karthik@cluster0.example.net/shop?authSource=admin';
     else urlPreview = 'redis://localhost:' + cur.port + '/0';
     const envName = (ENV.find((e) => e.id === s.env) || ENV[3]).id;
     return {
-      sqlDrivers: ALL.slice(0, 7).map(mk),
-      noDrivers: ALL.slice(7).map(mk),
+      sqlDrivers: ALL.slice(0, 8).map(mk),
+      noDrivers: ALL.slice(8).map(mk),
       envs, tabs,
       tabGeneral: s.tab === 'general', tabSsh: s.tab === 'ssh', tabSsl: s.tab === 'ssl', tabAdv: s.tab === 'advanced',
-      isNet: cur.kind === 'net', isFile: cur.kind === 'file', isMongo: cur.kind === 'mongo', isRedis: cur.kind === 'redis',
+      isNet: cur.kind === 'net', isOracle: cur.kind === 'oracle', isFile: cur.kind === 'file', isMongo: cur.kind === 'mongo', isRedis: cur.kind === 'redis',
       isProd: s.env === 'prod',
       port: cur.port || '',
       connName: envName + '-' + cur.id,

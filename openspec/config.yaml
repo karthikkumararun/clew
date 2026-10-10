@@ -9,7 +9,7 @@ context: |
   then friends and the open-source community. License: MIT.
 
   ## Product scope (v1)
-  - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, ClickHouse, DuckDB)
+  - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, Oracle, ClickHouse, DuckDB)
     and NoSQL databases (MongoDB, Redis).
   - Manage and persist connections (groups, environment color coding, SSH tunnels, TLS, keychain secrets).
   - Database explorer tree with lazy schema introspection.
@@ -32,7 +32,7 @@ context: |
     no component library. Icons: inline stroke SVG components (16px viewBox, 1.3–1.6 stroke).
   - SQL editor: CodeMirror 6 (@codemirror/lang-sql with dialects, custom schema completion).
   - Data grid: @glideapps/glide-data-grid (canvas-based, virtualized, editable), themed from tokens.
-  - Rust: tokio; sqlx (postgres, mysql/mariadb, sqlite); tiberius (SQL Server); clickhouse (HTTP);
+  - Rust: tokio; sqlx (postgres, mysql/mariadb, sqlite); tiberius (SQL Server); oracle (rust-oracle/ODPI-C, user-installed Instant Client loaded at runtime); clickhouse (HTTP);
     duckdb (bundled); mongodb; redis; russh (SSH tunnels); rustls; keyring (macOS Keychain /
     Windows Credential Manager); serde; thiserror; tracing; reqwest (rustls) for AI providers;
     sqlparser for statement classification.

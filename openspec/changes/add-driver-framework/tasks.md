@@ -38,15 +38,23 @@
 - [ ] 5.5 Report source table/column per result column (via `attrelid`/`attnum` from the row description)
 - [ ] 5.6 Test: conformance suite against PostgreSQL 16 in docker-compose
 
-## 6. SQLite driver
+## 6. MySQL and MariaDB driver
 
-- [ ] 6.1 Implement open (file path, create-if-missing, busy timeout 5s, read-only flag) (spec: driver-framework › SQLite driver)
-- [ ] 6.2 Implement execute/fetch_more on a blocking thread with interrupt-based cancel
-- [ ] 6.3 Implement introspection (main + attached, tables, views, indexes, triggers, columns, PK, FKs) and the completion snapshot
-- [ ] 6.4 Test: conformance suite against a temp file DB; locked-database scenario
+- [ ] 6.1 Driver module with flavor, connect/test, sessions, streaming execute, KILL QUERY cancel (spec: driver-framework › MySQL and MariaDB drivers)
+- [ ] 6.2 Type mapping incl. zero dates, unsigned bigint, JSON, BIT, ENUM/SET
+- [ ] 6.3 Introspection, completion snapshot, SHOW CREATE DDL, session read-only
+- [ ] 6.4 Result source table/column metadata and backtick quoting / LIMIT paging for editing (no RETURNING on MySQL → reload by PK)
+- [ ] 6.5 Test: conformance suite against mysql:8 and mariadb:11 in docker-compose
 
-## 7. Frontend IPC layer
+## 7. SQLite driver
 
-- [ ] 7.1 Add typed TS bindings in `src/lib/ipc/drivers.ts` for every command and the `ResultEvent` union (generate types with `ts-rs` or `specta`)
-- [ ] 7.2 Add a `useQueryRun()` hook that manages a channel, accumulates batches and exposes fetchMore/cancel
-- [ ] 7.3 Test: Vitest with a mocked channel covers batches, done, error and cancel
+- [ ] 7.1 Implement open (file path, create-if-missing, busy timeout 5s, read-only flag) (spec: driver-framework › SQLite driver)
+- [ ] 7.2 Implement execute/fetch_more on a blocking thread with interrupt-based cancel
+- [ ] 7.3 Implement introspection (main + attached, tables, views, indexes, triggers, columns, PK, FKs) and the completion snapshot
+- [ ] 7.4 Test: conformance suite against a temp file DB; locked-database scenario
+
+## 8. Frontend IPC layer
+
+- [ ] 8.1 Add typed TS bindings in `src/lib/ipc/drivers.ts` for every command and the `ResultEvent` union (generate types with `ts-rs` or `specta`)
+- [ ] 8.2 Add a `useQueryRun()` hook that manages a channel, accumulates batches and exposes fetchMore/cancel
+- [ ] 8.3 Test: Vitest with a mocked channel covers batches, done, error and cancel

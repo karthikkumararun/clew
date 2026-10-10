@@ -8,7 +8,7 @@ The app shell exists (`add-app-shell`). No database code yet. Later changes (exp
 - One async Rust contract that every driver implements, with family-specific extensions.
 - Streaming, cancellable, paged execution that never blocks the UI.
 - A value model the grid can render and edit without knowing the driver.
-- PostgreSQL and SQLite drivers that pass the shared conformance test suite.
+- PostgreSQL, MySQL/MariaDB and SQLite drivers that pass the shared conformance test suite.
 
 **Non-Goals:**
 - Loading drivers at runtime from external plugin files. v1 compiles drivers in; the registry is the seam for a plugin system later.
@@ -52,6 +52,9 @@ Alternative considered: `LIMIT/OFFSET` re-queries. Rejected: wrong for non-deter
 
 ### Statement splitting
 Script mode needs statement boundaries. Use a small dialect-aware splitter in Rust (`drivers/split.rs`) that handles quotes, dollar-quoting (PG), comments and `BEGIN … END` blocks; the frontend uses the same rules through the CodeMirror parser for "current statement". A shared test corpus keeps both in sync.
+
+### MySQL / MariaDB
+One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequences, `RETURNING` in MariaDB). sqlx `mysql` streaming via `fetch`; cancel opens a short-lived second connection and issues `KILL QUERY <id>`.
 
 ### SSH
 `russh` client; local forward on `127.0.0.1:0`; the tunnel task lives as long as any session or pool for that connection. Known hosts: read `~/.ssh/known_hosts` (read-only) plus `<app_data>/known_hosts` (read-write).
