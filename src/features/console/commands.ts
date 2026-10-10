@@ -2,10 +2,15 @@ import { connOfId } from "../explorer/tree";
 import { useExplorer } from "../explorer/explorerStore";
 import { useConnections } from "../../connections/connectionsStore";
 import { registerCommand } from "../../shell/registry/commands";
+import { registerShortcut } from "../../shell/registry/shortcuts";
+import { useNoticesStore } from "./notices";
+import { formatSql } from "./editor/format";
+import { getView } from "./editor/views";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { pickConnection } from "./ConnectionPicker";
 import { CONSOLE_KIND, newConsoleKey } from "./state";
 import type { ConsoleState } from "./state";
+import type { Tab } from "../../shell/registry/tabKinds";
 
 /** Arguments of `console.new`. */
 export interface NewConsoleArgs {
@@ -43,6 +48,33 @@ export async function openConsole(args: NewConsoleArgs = {}): Promise<string | n
   return useWorkspace.getState().openTab({ kind: CONSOLE_KIND, key: newConsoleKey(), state });
 }
 
+/** The active tab when it is a console, with its live editor. */
+export function activeConsole() {
+  const { tabs, activeTabId } = useWorkspace.getState();
+  const tab = tabs.find((t) => t.id === activeTabId && t.kind === CONSOLE_KIND);
+  const view = tab ? getView(tab.id) : undefined;
+  return tab && view ? { tab: tab as Tab<ConsoleState>, view } : null;
+}
+
+/** Format the selection, or the whole script when nothing is selected. */
+export function formatActiveEditor(): void {
+  const active = activeConsole();
+  if (!active) return;
+  const { tab, view } = active;
+  const driver = useConnections
+    .getState()
+    .file.connections.find((c) => c.id === tab.state.connectionId)?.driver;
+  const sel = view.state.selection.main;
+  const from = sel.empty ? 0 : sel.from;
+  const to = sel.empty ? view.state.doc.length : sel.to;
+  try {
+    const formatted = formatSql(view.state.sliceDoc(from, to), driver ?? "");
+    view.dispatch({ changes: { from, to, insert: formatted } });
+  } catch (e) {
+    useNoticesStore.push(`Couldn't format: ${(e as Error).message.split("\n")[0]}`);
+  }
+}
+
 /** Commands owned by the SQL console. Returns a disposer. */
 export function registerConsoleCommands(): () => void {
   const disposers = [
@@ -54,6 +86,21 @@ export function registerConsoleCommands(): () => void {
       run: async (arg) => {
         const a = (arg && typeof arg === "object" ? arg : {}) as NewConsoleArgs;
         await openConsole(a);
+      },
+    }),
+    registerCommand({
+      id: "console.format",
+      title: "Format SQL",
+      category: "Console",
+      run: () => formatActiveEditor(),
+    }),
+    registerShortcut({
+      id: "console.format",
+      keys: "Mod+Shift+F",
+      scope: "editor",
+      run: (e) => {
+        e.preventDefault();
+        formatActiveEditor();
       },
     }),
   ];

@@ -6,10 +6,10 @@
 
 ## 2. Editor
 
-- [ ] 2.1 CodeMirror setup with the token theme, gutter, dialect per driver, font size from settings (spec: sql-console › SQL editor)
-- [ ] 2.2 Statement detection StateField + current-statement tint + ▶ gutter marker, using the shared split fixtures
-- [ ] 2.3 Comment toggle, find/replace, multi-cursor, format SQL (sql-formatter)
-- [ ] 2.4 Test: statement ranges over the shared fixture corpus
+- [x] 2.1 CodeMirror setup with the token theme, gutter, dialect per driver, font size from settings (spec: sql-console › SQL editor)
+- [x] 2.2 Statement detection StateField + current-statement tint + ▶ gutter marker, using the shared split fixtures
+- [x] 2.3 Comment toggle, find/replace, multi-cursor, format SQL (sql-formatter)
+- [x] 2.4 Test: statement ranges over the shared fixture corpus
 
 ## 3. Completion
 

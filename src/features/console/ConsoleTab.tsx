@@ -1,4 +1,7 @@
 import { useMemo } from "react";
+import { useSettings } from "../../stores/settingsStore";
+import { Editor } from "./editor/Editor";
+import { useConsoleUi } from "./ui";
 import { Terminal } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { BADGE_ENV } from "../../connections/display";
@@ -24,6 +27,7 @@ function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
   const connection = useConnections((s) =>
     s.file.connections.find((c) => c.id === tab.state.connectionId),
   );
+  const fontSize = useSettings((s) => s.settings.editorFontSize);
   // The runtime (session, running query) outlives this view.
   useMemo(() => getRuntime(tab.id, tab.state.connectionId), [tab.id, tab.state.connectionId]);
   if (!connection) {
@@ -35,17 +39,19 @@ function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
   }
   return (
     <div className={styles.console} data-shortcut-scope="editor">
-      <textarea
-        className={styles.plainEditor}
-        aria-label="SQL editor"
-        spellCheck={false}
-        value={tab.state.text}
-        onChange={(e) =>
-          useWorkspace.getState().updateTabState<Partial<ConsoleState>>(tab.id, {
-            text: e.target.value,
-          })
-        }
-      />
+      <div className={styles.editorPane}>
+        <Editor
+          tabId={tab.id}
+          driver={connection.driver}
+          value={tab.state.text}
+          fontSize={fontSize}
+          onChange={(text) =>
+            useWorkspace.getState().updateTabState<Partial<ConsoleState>>(tab.id, { text })
+          }
+          onCursor={(line, col) => useConsoleUi.getState().setCursor(tab.id, line, col)}
+          onRunStatement={() => {}}
+        />
+      </div>
     </div>
   );
 }
@@ -63,7 +69,10 @@ const consoleKind: TabKind<ConsoleState> = {
   serialize: serializeConsole,
   deserialize: deserializeConsole,
   render: ({ tab }) => <ConsoleView key={tab.id} tab={tab} />,
-  onClose: (tab) => disposeRuntime(tab.id),
+  onClose: (tab) => {
+    disposeRuntime(tab.id);
+    useConsoleUi.getState().forget(tab.id);
+  },
 };
 
 export function registerConsoleTab(): () => void {
