@@ -1,6 +1,9 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { APP_VERSION } from "./appInfo";
 import { getPlatform } from "./platform";
+import { DEFAULT_SETTINGS } from "../stores/settingsDefaults";
+import type { Settings } from "../stores/settingsDefaults";
+import type { UiStateBackend } from "./uiState";
 
 /** Shape of errors crossing IPC from the Rust `AppError`. */
 export interface AppError {
@@ -47,3 +50,26 @@ export async function appPaths(): Promise<AppPaths> {
     appVersion: APP_VERSION,
   };
 }
+
+export interface SettingsPayload {
+  settings: Settings;
+  notice: string | null;
+}
+
+export async function settingsGet(): Promise<SettingsPayload> {
+  if (!isTauri()) return { settings: DEFAULT_SETTINGS, notice: null };
+  return invoke<SettingsPayload>("settings_get");
+}
+
+export async function settingsSet(settings: Settings): Promise<Settings> {
+  if (!isTauri()) return settings;
+  return invoke<Settings>("settings_set", { settings });
+}
+
+/** UI-state backend backed by the `ui_state` table in clew.db. */
+export const tauriUiStateBackend: UiStateBackend = {
+  load: () => invoke<Record<string, string>>("ui_state_all"),
+  save: (key, value) => {
+    void invoke("ui_state_set", { key, value }).catch(() => {});
+  },
+};

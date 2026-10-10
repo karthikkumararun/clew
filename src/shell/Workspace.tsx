@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { NARROW_BREAKPOINT, useLayout } from "../stores/layoutStore";
 import { EditorArea } from "./EditorArea";
+import { Notices } from "./Notices";
+import { SettingsDialog } from "./SettingsDialog";
 import { SidePanel } from "./SidePanel";
 import { Sidebar } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
@@ -26,6 +28,8 @@ export function Workspace() {
         <SidePanel />
       </div>
       <StatusBar />
+      <SettingsDialog />
+      <Notices />
     </div>
   );
 }

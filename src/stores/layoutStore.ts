@@ -43,3 +43,11 @@ export const useLayout = create<LayoutState>((set, get) => ({
   },
   toggleSidePanel: () => (get().sidePanelOpen ? get().closeSidePanel() : get().openSidePanel()),
 }));
+
+/** Re-read persisted flags after the UI-state cache has been hydrated at startup. */
+export function rehydrateLayout() {
+  useLayout.setState({
+    sidebarOpen: getUiBool("layout.sidebarOpen", true),
+    sidePanelOpen: getUiBool("layout.sidePanelOpen", false),
+  });
+}

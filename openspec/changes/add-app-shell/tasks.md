@@ -48,8 +48,8 @@
 
 ## 7. Settings and persistence
 
-- [ ] 7.1 Rust: app-data dir setup, `settings.json` read/write with versioning, corrupt-file backup + defaults (spec: app-shell › Settings)
-- [ ] 7.2 Rust: `clew.db` with sqlx migrations and `ui_state` table; commands `ui_state_get/set`
-- [ ] 7.3 Frontend: `settingsStore` + `SettingsDialog` (Mod+,) with font size, page size, confirm-close, update-check toggle
-- [ ] 7.4 Persist and restore open tabs (debounced) and sidebar state; add `tauri-plugin-window-state` with off-screen correction (spec: app-shell › Persisted workspace state)
-- [ ] 7.5 Test: Rust tests for settings defaults/corruption; Vitest for restore of three tabs
+- [x] 7.1 Rust: app-data dir setup, `settings.json` read/write with versioning, corrupt-file backup + defaults (spec: app-shell › Settings)
+- [x] 7.2 Rust: `clew.db` with sqlx migrations and `ui_state` table; commands `ui_state_get/set`
+- [x] 7.3 Frontend: `settingsStore` + `SettingsDialog` (Mod+,) with font size, page size, confirm-close, update-check toggle
+- [x] 7.4 Persist and restore open tabs (debounced) and sidebar state; add `tauri-plugin-window-state` with off-screen correction (spec: app-shell › Persisted workspace state)
+- [x] 7.5 Test: Rust tests for settings defaults/corruption; Vitest for restore of three tabs

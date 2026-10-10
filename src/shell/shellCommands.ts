@@ -1,6 +1,7 @@
 import { registerCommand } from "./registry/commands";
 import { registerStatusItem } from "./registry/statusItems";
 import { registerTabStatusItems } from "./tabStatus";
+import { useSettings } from "../stores/settingsStore";
 import { useLayout } from "../stores/layoutStore";
 import { useWorkspace } from "../stores/workspaceStore";
 import { APP_VERSION } from "../lib/appInfo";
@@ -14,6 +15,13 @@ export function registerShellCommands(): () => void {
       category: "View",
       shortcut: "Mod+B",
       run: () => useLayout.getState().toggleSidebar(),
+    }),
+    registerCommand({
+      id: "settings.open",
+      title: "Settings",
+      category: "App",
+      shortcut: "Mod+,",
+      run: () => useSettings.getState().openDialog(),
     }),
     registerCommand({
       id: "tab.close",
