@@ -9,9 +9,9 @@
 
 ## 2. URL parsing
 
-- [ ] 2.1 Implement `url.rs` parse + build for every scheme in the spec (spec: connection-management › Paste a connection URL)
-- [ ] 2.2 Command `connections_parse_url`
-- [ ] 2.3 Test: table-driven parse/build round-trips; unknown scheme error
+- [x] 2.1 Implement `url.rs` parse + build for every scheme in the spec (spec: connection-management › Paste a connection URL)
+- [x] 2.2 Command `connections_parse_url`
+- [x] 2.3 Test: table-driven parse/build round-trips; unknown scheme error
 
 ## 3. Connection dialog (frontend)
 

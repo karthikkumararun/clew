@@ -2,6 +2,7 @@ use tauri::State;
 
 use crate::connections::model::{ConnectionsFile, Group};
 use crate::connections::service::{SaveOutcome, SaveRequest, SecretStatus};
+use crate::connections::url::{parse_url, ParsedUrl};
 use crate::drivers::Secret;
 use crate::error::AppResult;
 use crate::state::AppState;
@@ -60,4 +61,10 @@ pub fn password_answer(
     password: Option<Secret>,
 ) -> bool {
     state.password_prompts.answer(&prompt_id, password)
+}
+
+/// Parse a pasted connection URL into a prefilled draft.
+#[tauri::command]
+pub fn connections_parse_url(url: String) -> AppResult<ParsedUrl> {
+    parse_url(&url)
 }

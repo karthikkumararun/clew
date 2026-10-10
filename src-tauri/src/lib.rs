@@ -149,6 +149,7 @@ pub fn run() {
             commands::connections::groups_delete,
             commands::connections::connection_secret_status,
             commands::connections::password_answer,
+            commands::connections::connections_parse_url,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

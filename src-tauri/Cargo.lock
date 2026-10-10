@@ -618,6 +618,7 @@ dependencies = [
  "chrono",
  "futures",
  "keyring",
+ "percent-encoding",
  "rcgen",
  "russh",
  "rust_decimal",
@@ -636,6 +637,7 @@ dependencies = [
  "tokio-rustls",
  "ts-rs",
  "ulid",
+ "url",
  "uuid",
 ]
 
