@@ -14,9 +14,9 @@
 ## 3. Completion
 
 - [ ] 3.1 Fetch and cache the completion snapshot per connection/database; refresh after successful DDL (spec: sql-console › Schema-aware completion)
-- [ ] 3.2 Completion source: keywords, schemas, tables, columns with types, aliases, functions with signatures
-- [ ] 3.3 Popup styling per canvas (icons, dim signature, right-aligned kind, footer hint)
-- [ ] 3.4 Test: alias `o.` lists orders columns; keyword completion before snapshot arrives
+- [x] 3.2 Completion source: keywords, schemas, tables, columns with types, aliases, functions with signatures
+- [x] 3.3 Popup styling per canvas (icons, dim signature, right-aligned kind, footer hint)
+- [x] 3.4 Test: alias `o.` lists orders columns; keyword completion before snapshot arrives
 
 ## 4. Running
 

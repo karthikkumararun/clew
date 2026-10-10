@@ -77,6 +77,49 @@ export const baseTheme = EditorView.theme(
       backgroundColor: "color-mix(in srgb, var(--accent) 50%, transparent)",
     },
 
+    // Completion popup, as in the canvas: icon, name, dim signature, right-aligned kind/type.
+    ".cm-tooltip.cm-tooltip-autocomplete": {
+      width: "340px",
+      overflow: "hidden",
+      boxShadow: "var(--shadow-popover)",
+      borderColor: "var(--border-strong)",
+      borderRadius: "8px",
+      fontSize: "12px",
+    },
+    ".cm-tooltip.cm-tooltip-autocomplete::after": {
+      display: "block",
+      padding: "6px 10px",
+      borderTop: "1px solid var(--border)",
+      color: "var(--text-dim)",
+      fontFamily: "var(--font-ui)",
+      fontSize: "11px",
+    },
+    ".cm-tooltip-autocomplete > ul": {
+      fontFamily: "var(--font-mono)",
+      maxHeight: "208px",
+    },
+    ".cm-tooltip-autocomplete > ul > li": {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      height: "26px",
+      padding: "0 10px",
+      color: "var(--text)",
+    },
+    ".cm-tooltip-autocomplete > ul > li[aria-selected]": {
+      backgroundColor: "var(--bg-segment-active)",
+      color: "var(--text)",
+    },
+    ".cm-completionLabel": { whiteSpace: "nowrap" },
+    ".cm-completionMatchedText": { textDecoration: "none", color: "var(--accent)" },
+    ".cm-completionDetail": {
+      marginLeft: "0",
+      color: "var(--text-muted)",
+      fontStyle: "normal",
+    },
+    ".cm-sqlIcon": { width: "14px", textAlign: "center", flex: "none" },
+    ".cm-sqlKind": { marginLeft: "auto", color: "var(--text-dim)", paddingLeft: "8px" },
+
     // Diagnostics (execution errors).
     ".cm-lintRange-error": {
       backgroundImage: "none",

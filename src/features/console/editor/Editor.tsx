@@ -1,9 +1,4 @@
-import {
-  autocompletion,
-  closeBrackets,
-  closeBracketsKeymap,
-  completionKeymap,
-} from "@codemirror/autocomplete";
+import { closeBrackets, closeBracketsKeymap, completionKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { sql } from "@codemirror/lang-sql";
 import { bracketMatching, indentOnInput } from "@codemirror/language";
@@ -72,7 +67,6 @@ export function Editor(props: EditorProps) {
         EditorState.allowMultipleSelections.of(true),
         EditorView.clickAddsSelectionRange.of((e) => e.altKey || e.metaKey),
         search({ top: true }),
-        autocompletion({ icons: false, defaultKeymap: false }),
         keymap.of([
           ...closeBracketsKeymap,
           ...completionKeymap,

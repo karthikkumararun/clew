@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSettings } from "../../stores/settingsStore";
+import { useExtensionTarget } from "./completionTarget";
 import { Editor } from "./editor/Editor";
 import { useConsoleUi } from "./ui";
 import { Terminal } from "../../components/icons";
@@ -28,6 +29,7 @@ function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
     s.file.connections.find((c) => c.id === tab.state.connectionId),
   );
   const fontSize = useSettings((s) => s.settings.editorFontSize);
+  const completion = useExtensionTarget(tab.id);
   // The runtime (session, running query) outlives this view.
   useMemo(() => getRuntime(tab.id, tab.state.connectionId), [tab.id, tab.state.connectionId]);
   if (!connection) {
@@ -49,6 +51,8 @@ function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
             useWorkspace.getState().updateTabState<Partial<ConsoleState>>(tab.id, { text })
           }
           onCursor={(line, col) => useConsoleUi.getState().setCursor(tab.id, line, col)}
+          extensions={completion.extension}
+          onReady={completion.onReady}
           onRunStatement={() => {}}
         />
       </div>

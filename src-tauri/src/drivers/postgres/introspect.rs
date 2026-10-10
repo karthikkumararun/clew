@@ -374,7 +374,8 @@ async fn table_children(
 
 #[allow(clippy::type_complexity)]
 pub async fn snapshot(meta: &PgMeta, db: &str) -> DriverResult<SchemaSnapshot> {
-    let pool = meta.pool(Some(db)).await?;
+    // An empty name means the connection's own database.
+    let pool = meta.pool(Some(db).filter(|d| !d.is_empty())).await?;
     let schemas: Vec<String> = sqlx::query_scalar(
         "SELECT n.nspname::text FROM pg_namespace n WHERE n.nspname NOT LIKE 'pg\\_%' \
          AND n.nspname <> 'information_schema' AND has_schema_privilege(n.oid, 'USAGE') ORDER BY n.nspname",

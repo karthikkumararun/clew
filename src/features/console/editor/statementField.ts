@@ -109,6 +109,10 @@ export function runStatementOnLine(view: EditorView, lineFrom: number): boolean 
   return true;
 }
 
+/** The statement under the cursor of a state that has the statement field. */
+export const currentStatementOf = (state: EditorState): StatementRange | null =>
+  state.field(statementField, false)?.current ?? null;
+
 export const statementExtensions = (
   dialect: SplitDialect,
   onRun: (range: StatementRange) => void,
