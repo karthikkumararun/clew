@@ -141,11 +141,13 @@ afterEach(() => {
 });
 
 const listbox = () => screen.findByRole("listbox", { name: "History" });
+/** The entries, once they have loaded (the list itself is on screen from the start). */
+const options = async () => within(await listbox()).findAllByRole("option");
 
 describe("History tab", () => {
   it("lists the connection's statements newest first with outcome, rows, time and duration", async () => {
     await mountHistory();
-    const rows = within(await listbox()).getAllByRole("option");
+    const rows = await options();
     expect(api.list).toHaveBeenCalledWith("c1", "", null);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent("SELECT * FROM orders WHERE total > 100"); // flattened
@@ -180,7 +182,7 @@ describe("History tab", () => {
 
   it("shows the whole statement of the selected entry", async () => {
     await mountHistory();
-    fireEvent.click(within(await listbox()).getAllByRole("option")[0]);
+    fireEvent.click((await options())[0]);
     const detail = screen.getByRole("complementary", { name: "Statement" });
     expect(detail.querySelector("pre")!.textContent).toBe(
       "SELECT * FROM orders\nWHERE total > 100",
@@ -191,7 +193,7 @@ describe("History tab", () => {
     const { id } = await mountHistory("-- notes\n");
     const view = getView(id)!;
     act(() => view.dispatch({ selection: { anchor: view.state.doc.length } }));
-    fireEvent.click(within(await listbox()).getAllByRole("option")[1]);
+    fireEvent.click((await options())[1]);
     fireEvent.click(screen.getByRole("button", { name: "Insert into editor" }));
     expect(view.state.doc.toString()).toBe("-- notes\nUPDATE users SET name = 'x'");
     const tab = useWorkspace.getState().tabs.find((t) => t.id === id)!;
@@ -200,7 +202,7 @@ describe("History tab", () => {
 
   it("Open in new console opens the same connection with the text, without running it", async () => {
     await mountHistory();
-    fireEvent.click(within(await listbox()).getAllByRole("option")[2]);
+    fireEvent.click((await options())[2]);
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Open in new console" })),
     );
@@ -214,7 +216,7 @@ describe("History tab", () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     await mountHistory();
-    fireEvent.click(within(await listbox()).getAllByRole("option")[0]);
+    fireEvent.click((await options())[0]);
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy" })));
     expect(writeText).toHaveBeenCalledWith("SELECT * FROM orders\nWHERE total > 100");
   });
