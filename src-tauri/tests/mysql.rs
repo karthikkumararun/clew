@@ -417,6 +417,36 @@ both! {
         c.must("DROP DATABASE conf_ddl").await;
     };
 
+    table_meta_reports_structure => |f| async move {
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_meta").await;
+        c.must("CREATE DATABASE conf_meta").await;
+        c.must("CREATE TABLE conf_meta.users (id BIGINT PRIMARY KEY, email VARCHAR(100) NOT NULL, UNIQUE KEY users_email (email))").await;
+        c.must("CREATE TABLE conf_meta.orders (id BIGINT PRIMARY KEY, user_id BIGINT NOT NULL, status VARCHAR(20) DEFAULT 'new' COMMENT 'Order state', note TEXT, KEY orders_status_idx (status), CONSTRAINT orders_user_fk FOREIGN KEY (user_id) REFERENCES conf_meta.users (id) ON DELETE CASCADE)").await;
+        c.must("CREATE TABLE conf_meta.items (order_id BIGINT, n INT, CONSTRAINT items_order_fk FOREIGN KEY (order_id) REFERENCES conf_meta.orders (id))").await;
+        let db = NodePath::root().child(NodeKind::Database, "conf_meta");
+        let orders = c.mgr.table_meta("conf", &db.child(NodeKind::Table, "orders")).await.expect("meta");
+        let col = |n: &str| orders.columns.iter().find(|c| c.name == n).unwrap();
+        assert!(col("id").primary_key);
+        assert!(!col("user_id").nullable && col("note").nullable);
+        assert_eq!(col("status").comment.as_deref(), Some("Order state"));
+        // MariaDB reports string defaults quoted, MySQL does not.
+        assert_eq!(col("status").default.as_deref().map(|d| d.trim_matches('\'')), Some("new"));
+        let idx = orders.indexes.iter().find(|i| i.name == "orders_status_idx").unwrap();
+        assert_eq!(idx.columns, ["status"]);
+        assert!(!idx.unique);
+        assert!(orders.indexes.iter().any(|i| i.primary && i.unique));
+        let fk = &orders.foreign_keys[0];
+        assert_eq!((fk.name.as_str(), fk.ref_table.as_str()), ("orders_user_fk", "users"));
+        assert_eq!(fk.on_delete.as_deref(), Some("CASCADE"));
+        assert_eq!(orders.referenced_by.len(), 1);
+        assert_eq!(orders.referenced_by[0].table, "items");
+        assert_eq!(orders.referenced_by[0].columns, ["order_id"]);
+        let users = c.mgr.table_meta("conf", &db.child(NodeKind::Table, "users")).await.unwrap();
+        assert!(users.indexes.iter().any(|i| i.name == "users_email" && i.unique));
+        c.must("DROP DATABASE conf_meta").await;
+    };
+
     count_rows_is_exact => |f| async move {
         let c = connect(&root(f)).await;
         c.must("DROP DATABASE IF EXISTS conf_count").await;

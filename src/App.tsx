@@ -4,6 +4,7 @@ import { installShortcutListener } from "./shell/registry/shortcuts";
 import { registerConnectionCommands } from "./connections/commands";
 import { useConnections } from "./connections/connectionsStore";
 import { registerConsoleCommands } from "./features/console/commands";
+import { registerTableCommands } from "./features/table-editor/TableTab";
 import { registerExplorerCommands } from "./features/explorer/commands";
 import { registerShellCommands } from "./shell/shellCommands";
 
@@ -14,6 +15,7 @@ export default function App() {
     const offConnections = registerConnectionCommands();
     const offExplorer = registerExplorerCommands();
     const offConsole = registerConsoleCommands();
+    const offTable = registerTableCommands();
     void useConnections.getState().load();
     return () => {
       offKeys();
@@ -21,6 +23,7 @@ export default function App() {
       offConnections();
       offExplorer();
       offConsole();
+      offTable();
     };
   }, []);
   return <Workspace />;

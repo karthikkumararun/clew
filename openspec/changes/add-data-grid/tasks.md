@@ -23,12 +23,12 @@
 
 ## 4. Table editor tab
 
-- [ ] 4.1 Register the `table` tab kind: breadcrumb, view switcher, env badge, Open in console (spec: table-editor › Table editor tab)
-- [ ] 4.2 Rust `table_query` with dialect paging and exact/estimated count
-- [ ] 4.3 WHERE / ORDER BY inputs with column completion, error under input, quick filter from cell (spec: table-editor › Filter and order)
-- [ ] 4.4 Paging toolbar with page size and "Rows x–y of n · ms" (spec: table-editor › Paging and counts)
-- [ ] 4.5 Structure / Indexes / Relations / DDL views (spec: table-editor › Structure, indexes, relations and DDL views)
-- [ ] 4.6 Test: query building per dialect; bad filter keeps rows
+- [x] 4.1 Register the `table` tab kind: breadcrumb, view switcher, env badge, Open in console (spec: table-editor › Table editor tab)
+- [x] 4.2 Rust `table_query` with dialect paging and exact/estimated count
+- [x] 4.3 WHERE / ORDER BY inputs with column completion, error under input, quick filter from cell (spec: table-editor › Filter and order)
+- [x] 4.4 Paging toolbar with page size and "Rows x–y of n · ms" (spec: table-editor › Paging and counts)
+- [x] 4.5 Structure / Indexes / Relations / DDL views (spec: table-editor › Structure, indexes, relations and DDL views)
+- [x] 4.6 Test: query building per dialect; bad filter keeps rows
 
 ## 5. Editing
 

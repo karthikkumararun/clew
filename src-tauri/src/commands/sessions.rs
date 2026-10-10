@@ -140,6 +140,27 @@ pub async fn introspect_ddl(
     Ok(state.sessions.ddl(&connection_id, &path).await?)
 }
 
+/// The SELECT (and count) behind a table's Data view, for the connection's dialect.
+#[tauri::command]
+pub fn table_query_sql(
+    state: State<'_, AppState>,
+    connection_id: String,
+    request: crate::table_query::TableQueryRequest,
+) -> AppResult<crate::table_query::TableQuery> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    Ok(crate::table_query::build(&driver, &request))
+}
+
+/// Structure, indexes, foreign keys and statistics of a table.
+#[tauri::command]
+pub async fn table_meta(
+    state: State<'_, AppState>,
+    connection_id: String,
+    path: NodePath,
+) -> AppResult<crate::drivers::table_meta::TableMeta> {
+    Ok(state.sessions.table_meta(&connection_id, &path).await?)
+}
+
 /// Exact `SELECT count(*)` of a table or view, to replace the explorer's estimate.
 #[tauri::command]
 pub async fn explorer_count_rows(

@@ -39,7 +39,7 @@ impl PgMeta {
         Ok(meta)
     }
 
-    async fn pool(&self, db: Option<&str>) -> DriverResult<PgPool> {
+    pub(super) async fn pool(&self, db: Option<&str>) -> DriverResult<PgPool> {
         let db = db.unwrap_or(&self.default_db).to_string();
         let mut pools = self.pools.lock().await;
         if let Some(p) = pools.get(&db) {
@@ -54,7 +54,7 @@ impl PgMeta {
         Ok(pool)
     }
 
-    fn err(&self, e: sqlx::Error) -> DriverError {
+    pub(super) fn err(&self, e: sqlx::Error) -> DriverError {
         map_error(e, &self.target)
     }
 }

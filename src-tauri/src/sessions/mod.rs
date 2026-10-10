@@ -745,6 +745,21 @@ impl SessionManager {
         c.driver.ddl(&c.pool, path).await
     }
 
+    /// The driver id (`postgres`, …) of a connected connection.
+    pub fn driver_id(&self, connection_id: &str) -> DriverResult<String> {
+        Ok(self.connection(connection_id)?.driver.meta().id.to_string())
+    }
+
+    /// Columns, indexes, foreign keys and statistics of a table, through the metadata pool.
+    pub async fn table_meta(
+        &self,
+        connection_id: &str,
+        path: &NodePath,
+    ) -> DriverResult<crate::drivers::table_meta::TableMeta> {
+        let c = self.connection(connection_id)?;
+        c.driver.table_meta(&c.pool, path).await
+    }
+
     /// Exact row count of a table or view, through the metadata pool.
     pub async fn count_rows(&self, connection_id: &str, path: &NodePath) -> DriverResult<i64> {
         let c = self.connection(connection_id)?;

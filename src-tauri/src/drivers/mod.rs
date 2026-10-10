@@ -10,6 +10,7 @@ pub mod postgres;
 pub mod registry;
 pub mod split;
 pub mod sqlite;
+pub mod table_meta;
 pub mod value;
 
 use std::any::Any;
@@ -458,6 +459,15 @@ pub trait Driver: Send + Sync {
     /// The `CREATE` statement for the object at `path` (e.g. via `SHOW CREATE TABLE`).
     async fn ddl(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<String> {
         Err(DriverError::unsupported("showing DDL"))
+    }
+
+    /// Columns, indexes, foreign keys and statistics of the table at `path`.
+    async fn table_meta(
+        &self,
+        _pool: &MetaPool,
+        _path: &NodePath,
+    ) -> DriverResult<table_meta::TableMeta> {
+        Err(DriverError::unsupported("showing table structure"))
     }
 
     /// Exact `SELECT count(*)` of the table or view at `path`, on the metadata pool.

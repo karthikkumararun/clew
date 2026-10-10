@@ -10,6 +10,7 @@ pub mod sessions;
 pub mod settings;
 pub mod state;
 pub mod store;
+pub mod table_query;
 pub mod transport;
 pub mod window;
 
@@ -156,6 +157,8 @@ pub fn run() {
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
             commands::sessions::explorer_count_rows,
+            commands::sessions::table_meta,
+            commands::sessions::table_query_sql,
             commands::sessions::history_list,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,

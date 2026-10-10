@@ -21,7 +21,7 @@ use crate::drivers::{DriverError, DriverResult, ErrorCode};
 const SYSTEM_DBS: &str = "'information_schema','mysql','performance_schema','sys'";
 
 pub struct MyMeta {
-    pool: MySqlPool,
+    pub(super) pool: MySqlPool,
     target: String,
 }
 
@@ -48,7 +48,7 @@ impl MyMeta {
         Ok(Self { pool, target })
     }
 
-    fn err(&self, e: sqlx::Error) -> DriverError {
+    pub(super) fn err(&self, e: sqlx::Error) -> DriverError {
         map_error(e, &self.target, None)
     }
 }

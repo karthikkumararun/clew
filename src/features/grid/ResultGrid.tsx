@@ -88,6 +88,12 @@ export interface ResultGridProps {
   onActivate?: (col: number, row: number) => boolean | void;
   decorations?: GridDecorations;
   readOnly?: boolean;
+  /** Source columns that make up the primary key (a key icon in the header). */
+  keyColumns?: ReadonlySet<number>;
+  /** Second header line for a column; defaults to its type (`int8 · PK`, `int8 → users.id`). */
+  headerDetail?: (column: number) => string | undefined;
+  /** Right-click on a data cell, in display coordinates with the pointer position. */
+  onCellContext?: (col: number, row: number, x: number, y: number) => void;
 }
 
 /** Width that fits the header and the first rows of a column. */
@@ -121,6 +127,9 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
     onActivate,
     decorations,
     readOnly = true,
+    keyColumns,
+    headerDetail,
+    onCellContext,
   } = props;
 
   const [selection, setSelection] = useState<GridSelection>(EMPTY_SELECTION);
@@ -242,11 +251,23 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
       ctx.font = `${isSelected ? 600 : 500} ${t.baseFontStyle} ${t.fontFamily}`;
       ctx.fillStyle = isSelected ? t.textHeaderSelected : t.textHeader;
       const nameMax = rect.width - pad * 2 - (arrow ? 16 : 0);
-      ctx.fillText(clip(ctx, meta?.name ?? column.title, nameMax), rect.x + pad, rect.y + 14);
+      const isKey = keyColumns?.has(sc) === true;
+      let x = rect.x + pad;
+      if (isKey) {
+        ctx.fillStyle = t.accentColor;
+        ctx.fillText("⚿", x, rect.y + 14);
+        x += 14;
+      }
+      ctx.fillStyle = isSelected ? t.textHeaderSelected : t.textHeader;
+      ctx.fillText(
+        clip(ctx, meta?.name ?? column.title, nameMax - (isKey ? 14 : 0)),
+        x,
+        rect.y + 14,
+      );
       ctx.font = `10.5px ${t.fontFamily}`;
       ctx.fillStyle = t.textLight;
       ctx.fillText(
-        clip(ctx, meta?.type_name ?? "", rect.width - pad * 2),
+        clip(ctx, headerDetail?.(sc) ?? meta?.type_name ?? "", rect.width - pad * 2),
         rect.x + pad,
         rect.y + 29,
       );
@@ -258,7 +279,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
       }
       ctx.restore();
     },
-    [source, sort],
+    [source, sort, keyColumns, headerDetail],
   );
 
   const deco = decorations;
@@ -372,6 +393,11 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
           } else if (!e.isEdge) {
             onSort?.(sc);
           }
+        }}
+        onCellContextMenu={([col, row], e) => {
+          if (!onCellContext) return;
+          e.preventDefault();
+          onCellContext(col, row, e.bounds.x + e.localEventX, e.bounds.y + e.localEventY);
         }}
         onCellActivated={([col, row]) => {
           if (onActivate?.(visible[col], row) === true) return;

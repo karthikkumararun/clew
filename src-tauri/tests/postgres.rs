@@ -880,3 +880,87 @@ async fn ddl_of_a_table_matches_the_golden_output() {
         c.must(drop).await;
     }
 }
+
+#[tokio::test]
+async fn table_meta_reports_columns_keys_indexes_and_relations() {
+    let c = connect(&suite().cfg).await;
+    for drop in [
+        "DROP TABLE IF EXISTS tm_items",
+        "DROP TABLE IF EXISTS tm_orders",
+        "DROP TABLE IF EXISTS tm_users",
+    ] {
+        c.must(drop).await;
+    }
+    c.must("CREATE TABLE tm_users (id bigint PRIMARY KEY, email text NOT NULL UNIQUE)")
+        .await;
+    c.must(
+        "CREATE TABLE tm_orders (id bigint PRIMARY KEY, user_id bigint NOT NULL REFERENCES tm_users (id) ON DELETE CASCADE, \
+         status text DEFAULT 'new', note text)",
+    )
+    .await;
+    c.must("COMMENT ON COLUMN tm_orders.status IS 'Order state'")
+        .await;
+    c.must("CREATE INDEX tm_orders_status_idx ON tm_orders (status, note)")
+        .await;
+    c.must("CREATE TABLE tm_items (order_id bigint REFERENCES tm_orders (id), n int)")
+        .await;
+    c.must("INSERT INTO tm_users VALUES (1, 'a@example.com')")
+        .await;
+    c.must("INSERT INTO tm_orders SELECT g, 1, 'new', NULL FROM generate_series(1, 50) g")
+        .await;
+    c.must("ANALYZE tm_orders").await;
+
+    let path = |t: &str| {
+        NodePath::root()
+            .child(NodeKind::Database, "clew")
+            .child(NodeKind::Schema, "public")
+            .child(NodeKind::Group, "tables")
+            .child(NodeKind::Table, t)
+    };
+    let orders = c.mgr.table_meta("conf", &path("tm_orders")).await.unwrap();
+    let col = |n: &str| orders.columns.iter().find(|c| c.name == n).unwrap();
+    assert!(col("id").primary_key);
+    assert!(!col("user_id").nullable);
+    assert!(col("note").nullable);
+    assert_eq!(col("status").type_name, "text");
+    assert_eq!(col("status").comment.as_deref(), Some("Order state"));
+    assert!(col("status").default.as_deref().unwrap().contains("'new'"));
+
+    let names: Vec<_> = orders.indexes.iter().map(|i| i.name.as_str()).collect();
+    assert_eq!(names, ["tm_orders_pkey", "tm_orders_status_idx"]);
+    assert!(orders.indexes[0].primary && orders.indexes[0].unique);
+    let idx = &orders.indexes[1];
+    assert_eq!(idx.columns, ["status", "note"]);
+    assert_eq!(idx.method.as_deref(), Some("btree"));
+    assert!(idx.size_bytes.unwrap() > 0);
+
+    let fk = &orders.foreign_keys[0];
+    assert_eq!(
+        (fk.ref_table.as_str(), fk.ref_schema.as_deref()),
+        ("tm_users", Some("public"))
+    );
+    assert_eq!(
+        (fk.columns.clone(), fk.ref_columns.clone()),
+        (vec!["user_id".to_string()], vec!["id".to_string()])
+    );
+    assert_eq!(fk.on_delete.as_deref(), Some("CASCADE"));
+    assert_eq!(fk.on_update.as_deref(), Some("NO ACTION"));
+
+    assert_eq!(orders.referenced_by.len(), 1);
+    assert_eq!(orders.referenced_by[0].table, "tm_items");
+    assert_eq!(orders.referenced_by[0].columns, ["order_id"]);
+    assert_eq!(orders.estimated_rows, Some(50));
+
+    let users = c.mgr.table_meta("conf", &path("tm_users")).await.unwrap();
+    assert!(users
+        .indexes
+        .iter()
+        .any(|i| i.unique && !i.primary && i.columns == ["email"]));
+    for drop in [
+        "DROP TABLE tm_items",
+        "DROP TABLE tm_orders",
+        "DROP TABLE tm_users",
+    ] {
+        c.must(drop).await;
+    }
+}

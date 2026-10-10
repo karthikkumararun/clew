@@ -5,6 +5,7 @@ pub mod config;
 pub mod decode;
 pub mod error;
 pub mod introspect;
+pub mod metadata;
 pub mod session;
 
 use std::path::Path;
@@ -140,6 +141,14 @@ impl Driver for SqliteDriver {
 
     async fn ddl(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<String> {
         introspect::ddl(pool.downcast::<Arc<SqliteMeta>>()?, path).await
+    }
+
+    async fn table_meta(
+        &self,
+        pool: &MetaPool,
+        path: &NodePath,
+    ) -> DriverResult<crate::drivers::table_meta::TableMeta> {
+        metadata::table_meta(pool.downcast::<Arc<SqliteMeta>>()?, path).await
     }
 
     async fn count_rows(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<i64> {

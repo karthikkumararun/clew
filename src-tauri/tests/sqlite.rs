@@ -949,3 +949,96 @@ async fn export_does_not_pollute_the_query_history() {
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
     assert_eq!(store.history_count("conf").await.unwrap(), 0);
 }
+
+// ---- table metadata ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn table_meta_reports_columns_keys_indexes_and_relations() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE)")
+        .await;
+    c.must(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE, \
+         status TEXT DEFAULT 'new', note TEXT)",
+    )
+    .await;
+    c.must("CREATE INDEX orders_status_idx ON orders (status, note)")
+        .await;
+    c.must("CREATE TABLE order_items (order_id INTEGER REFERENCES orders (id), n INTEGER)")
+        .await;
+
+    let db = NodePath::root().child(NodeKind::Database, "main");
+    let orders = c
+        .mgr
+        .table_meta("conf", &db.child(NodeKind::Table, "orders"))
+        .await
+        .unwrap();
+
+    let col = |n: &str| orders.columns.iter().find(|c| c.name == n).unwrap();
+    assert_eq!(
+        orders
+            .columns
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect::<Vec<_>>(),
+        ["id", "user_id", "status", "note"]
+    );
+    assert!(col("id").primary_key);
+    assert!(!col("user_id").nullable && !col("user_id").primary_key);
+    assert!(col("note").nullable);
+    assert_eq!(col("status").default.as_deref(), Some("'new'"));
+    assert_eq!(col("status").type_name, "TEXT");
+
+    let idx = orders
+        .indexes
+        .iter()
+        .find(|i| i.name == "orders_status_idx")
+        .unwrap();
+    assert_eq!(idx.columns, ["status", "note"]);
+    assert!(!idx.unique && !idx.primary);
+
+    assert_eq!(orders.foreign_keys.len(), 1);
+    let fk = &orders.foreign_keys[0];
+    assert_eq!(
+        (
+            fk.ref_table.as_str(),
+            fk.columns.as_slice(),
+            fk.ref_columns.as_slice()
+        ),
+        (
+            "users",
+            &["user_id".to_string()][..],
+            &["id".to_string()][..]
+        )
+    );
+    assert_eq!(fk.on_delete.as_deref(), Some("CASCADE"));
+
+    assert_eq!(orders.referenced_by.len(), 1);
+    assert_eq!(orders.referenced_by[0].table, "order_items");
+    assert_eq!(orders.referenced_by[0].columns, ["order_id"]);
+    assert_eq!(orders.referenced_by[0].ref_columns, ["id"]);
+
+    let users = c
+        .mgr
+        .table_meta("conf", &db.child(NodeKind::Table, "users"))
+        .await
+        .unwrap();
+    assert!(
+        users
+            .indexes
+            .iter()
+            .any(|i| i.unique && i.columns == ["email"]),
+        "{:?}",
+        users.indexes
+    );
+    assert_eq!(
+        users
+            .referenced_by
+            .iter()
+            .map(|r| r.table.as_str())
+            .collect::<Vec<_>>(),
+        ["orders"]
+    );
+    assert!(users.foreign_keys.is_empty());
+}
