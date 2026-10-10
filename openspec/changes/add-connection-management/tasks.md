@@ -38,10 +38,20 @@
 - [ ] 5.2 Wire `connection.new`, `connection.fromUrl`, `file.openDatabase` (opens SQLite/DuckDB file picker → prefilled dialog) commands
 - [ ] 5.3 Test: recent ordering and click-to-connect with a mocked IPC
 
-## 6. Import and export
+## 6. Export
 
-- [ ] 6.1 Implement importers: DataGrip, DBeaver, pgpass, Clew JSON with fixtures (spec: connection-management › Import connections)
-- [ ] 6.2 Build the import preview dialog (checkboxes, duplicate flag, unsupported-driver rows disabled, "Import passwords" for pgpass)
-- [ ] 6.3 Implement export of selected connections without secrets (spec: connection-management › Export connections)
-- [ ] 6.4 Update the Welcome copy to list only the importers that exist
-- [ ] 6.5 Test: importer fixtures; export contains no secrets
+- [ ] 6.1 Rust: `.clew` format writer — header, Argon2id KDF, AES-256-GCM with header as associated data, zeroized buffers; plain JSON when no secrets (spec: connection-management › Export connections)
+- [ ] 6.2 Collect secrets from the keychain, SSH key files and linked SQL files; per-item warnings (password not included, key not found)
+- [ ] 6.3 Export tab UI per `ImportExport.dc.html`: connection checklist by group, Include options, passphrase + confirm with strength meter (min 12), file summary, Export…
+- [ ] 6.4 Test: round-trip export/import; header tamper and wrong passphrase fail; no secret in plain export
+
+## 7. Import
+
+- [ ] 7.1 Rust: `.clew` reader with version check, unlock, review candidates; write passwords to keychain and SSH keys to `<app_data>/ssh-keys/` with owner-only permissions (spec: connection-management › Import a Clew export)
+- [ ] 7.2 DataGrip discovery (all versions, global + project folders) and `dataSources.xml` parsing incl. SSH/SSL and JDBC URL mapping for every Clew driver (spec: connection-management › Import from DataGrip)
+- [ ] 7.3 DataGrip consoles and scratches import into Scripts folders with links, merge-into-existing and collision suffixes (spec: connection-management › Import SQL files from DataGrip)
+- [ ] 7.4 DataGrip password import on macOS via security-framework (confirm keychain item naming first); disabled with explanation on Windows
+- [ ] 7.5 DBeaver and pgpass importers (spec: connection-management › Import from DBeaver and pgpass)
+- [ ] 7.6 Import tab UI per `ImportExport.dc.html`: source cards, DataGrip folder picker, review table with status, options (SQL files, passwords, environment detection, group), unlock box for encrypted files
+- [ ] 7.7 Scripts folder per connection (default path, change, rename prompt) and Save dialog default (spec: connection-management › Connection scripts)
+- [ ] 7.8 Test: DataGrip fixtures (2025.x and 2026.x XML, Oracle service/SID URLs, SSH tunnel), console linking, duplicate handling, environment detection

@@ -12,6 +12,8 @@ context: |
   - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, Oracle, ClickHouse, DuckDB)
     and NoSQL databases (MongoDB, Redis, Neo4j).
   - Manage and persist connections (groups, environment color coding, SSH tunnels, TLS, keychain secrets).
+  - Import/export connections: encrypted `.clew` export (passwords, SSH keys, SQL files; AES-256-GCM +
+    Argon2id passphrase), import from Clew exports, DataGrip (data sources + SQL consoles), DBeaver, pgpass.
   - Database explorer tree with lazy schema introspection.
   - SQL console: multi-tab editor, run statement / script, autocomplete from live schema, history.
   - Data grid: virtualized results, table editor with filter/sort/paging, inline edits staged as

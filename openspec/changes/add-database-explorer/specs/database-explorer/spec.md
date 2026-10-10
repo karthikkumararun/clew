@@ -76,3 +76,14 @@ When the active editor tab is a table editor, the explorer SHALL reveal and high
 #### Scenario: Switch tab
 - **WHEN** the user switches to the `orders` table tab
 - **THEN** the explorer scrolls to and highlights `orders`
+
+### Requirement: Scripts node
+Each connection in the explorer SHALL show a "Scripts" node listing the SQL files linked to it (from its Scripts folder), with New script, Reveal in Finder/Explorer and Refresh actions. Opening a script SHALL open it in a console bound to that connection.
+
+#### Scenario: Open an imported console
+- **WHEN** the user double-clicks `monthly_revenue.sql` under `analytics-prod › Scripts`
+- **THEN** it opens in a console tab bound to `analytics-prod`, titled with the file name
+
+#### Scenario: File removed on disk
+- **WHEN** a linked file was deleted outside Clew
+- **THEN** the Scripts node drops it on the next refresh
