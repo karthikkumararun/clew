@@ -101,3 +101,71 @@ pub fn connections_test_cancel(state: State<'_, AppState>, test_id: String) {
         let _ = tx.send(());
     }
 }
+
+/// What the status bar shows for a connected connection.
+#[derive(ts_rs::TS)]
+#[ts(export)]
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectedInfo {
+    pub server: ServerInfo,
+    /// `via SSH <host>` when tunnelled.
+    pub transport: Option<String>,
+}
+
+/// Connect a saved connection: resolve its secrets (asking when needed), open the tunnel and the
+/// metadata pool. Connecting again replaces the previous connection.
+#[tauri::command]
+pub async fn connections_connect(
+    state: State<'_, AppState>,
+    connection_id: String,
+) -> AppResult<ConnectedInfo> {
+    let config = state.connections.resolve(&connection_id).await?;
+    state.sessions.connect(&connection_id, config).await?;
+    let server = state.sessions.connection_server(&connection_id).await?;
+    let _ = state.connections.touch_last_used(
+        &connection_id,
+        &chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+    );
+    Ok(ConnectedInfo {
+        server,
+        transport: state.sessions.connection_transport(&connection_id),
+    })
+}
+
+/// Sessions with an uncommitted transaction, so the UI can ask before disconnecting.
+#[tauri::command]
+pub fn connections_open_transactions(
+    state: State<'_, AppState>,
+    connection_id: String,
+) -> Vec<String> {
+    state.sessions.sessions_in_transaction(&connection_id)
+}
+
+/// Close every session and the tunnel; "ask every time" passwords are forgotten.
+/// `end_transactions` is `commit`, `rollback`, or absent.
+#[tauri::command]
+pub async fn connections_disconnect(
+    state: State<'_, AppState>,
+    connection_id: String,
+    end_transactions: Option<String>,
+) -> AppResult<()> {
+    match end_transactions.as_deref() {
+        Some("commit") => {
+            state
+                .sessions
+                .end_transactions(&connection_id, true)
+                .await?
+        }
+        Some("rollback") => {
+            state
+                .sessions
+                .end_transactions(&connection_id, false)
+                .await?
+        }
+        _ => {}
+    }
+    state.sessions.disconnect(&connection_id).await;
+    state.connections.forget_session_secrets(&connection_id);
+    Ok(())
+}

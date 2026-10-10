@@ -1,8 +1,10 @@
 /** Typed bindings for the connection commands (`src-tauri/src/commands/connections.rs`). */
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "../lib/ipc";
+import type { ConnectedInfo } from "../lib/ipc/generated/ConnectedInfo";
 import type { ConnectionsFile } from "../lib/ipc/generated/ConnectionsFile";
 import type { Group } from "../lib/ipc/generated/Group";
+import type { HostKeyPrompt } from "../lib/ipc/generated/HostKeyPrompt";
 import type { ParsedUrl } from "../lib/ipc/generated/ParsedUrl";
 import type { PasswordPrompt } from "../lib/ipc/generated/PasswordPrompt";
 import type { SaveOutcome } from "../lib/ipc/generated/SaveOutcome";
@@ -10,6 +12,7 @@ import type { SaveRequest } from "../lib/ipc/generated/SaveRequest";
 import type { SecretStatus } from "../lib/ipc/generated/SecretStatus";
 import type { ServerInfo } from "../lib/ipc/generated/ServerInfo";
 
+export type { ConnectedInfo };
 export type { Connection } from "../lib/ipc/generated/Connection";
 export type { ConnectionsFile } from "../lib/ipc/generated/ConnectionsFile";
 export type { Environment } from "../lib/ipc/generated/Environment";
@@ -45,4 +48,26 @@ export const passwordAnswer = (promptId: string, password: string | null) =>
 
 export function onPasswordPrompt(handler: (p: PasswordPrompt) => void): Promise<() => void> {
   return listen<PasswordPrompt>("password_prompt", (e) => handler(e.payload));
+}
+
+export const connectionsConnect = (connectionId: string) =>
+  invoke<ConnectedInfo>("connections_connect", { connectionId });
+export const connectionsOpenTransactions = (connectionId: string) =>
+  invoke<string[]>("connections_open_transactions", { connectionId });
+export const connectionsDisconnect = (
+  connectionId: string,
+  endTransactions?: "commit" | "rollback",
+) => invoke<void>("connections_disconnect", { connectionId, endTransactions });
+export const sessionSwitchNamespace = (
+  sessionId: string,
+  target: { database?: string; schema?: string },
+) =>
+  invoke<string>("session_switch_namespace", {
+    sessionId,
+    database: target.database,
+    schema: target.schema,
+  });
+
+export function onHostKeyPromptEvent(handler: (p: HostKeyPrompt) => void): Promise<() => void> {
+  return listen<HostKeyPrompt>("host_key_prompt", (e) => handler(e.payload));
 }

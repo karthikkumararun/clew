@@ -26,17 +26,17 @@
 
 ## 4. Organise, connect and the chip
 
-- [ ] 4.1 Rename, duplicate (copies secrets), delete with confirmation (removes secrets, closes tabs), move between groups (spec: connection-management › Organise connections)
-- [ ] 4.2 Commands `connections_connect` / `connections_disconnect`; disconnect asks about open transactions (spec: connection-management › Connect and disconnect)
-- [ ] 4.3 Toolbar connection chip with database/schema switcher (spec: connection-management › Toolbar connection chip)
-- [ ] 4.4 Status bar connection item (dot, name, server version, "via SSH <host>")
-- [ ] 4.5 Test: delete removes secrets; schema switch issues the right statement
+- [x] 4.1 Rename, duplicate (copies secrets), delete with confirmation (removes secrets, closes tabs), move between groups (spec: connection-management › Organise connections)
+- [x] 4.2 Commands `connections_connect` / `connections_disconnect`; disconnect asks about open transactions (spec: connection-management › Connect and disconnect)
+- [x] 4.3 Toolbar connection chip with database/schema switcher (spec: connection-management › Toolbar connection chip)
+- [x] 4.4 Status bar connection item (dot, name, server version, "via SSH <host>")
+- [x] 4.5 Test: delete removes secrets; schema switch issues the right statement
 
 ## 5. Welcome wiring
 
-- [ ] 5.1 Recent list (5 most recent, relative time, short address) and open-on-click (spec: connection-management › Recent connections)
-- [ ] 5.2 Wire `connection.new`, `connection.fromUrl`, `file.openDatabase` (opens SQLite/DuckDB file picker → prefilled dialog) commands
-- [ ] 5.3 Test: recent ordering and click-to-connect with a mocked IPC
+- [x] 5.1 Recent list (5 most recent, relative time, short address) and open-on-click (spec: connection-management › Recent connections)
+- [x] 5.2 Wire `connection.new`, `connection.fromUrl`, `file.openDatabase` (opens SQLite/DuckDB file picker → prefilled dialog) commands
+- [x] 5.3 Test: recent ordering and click-to-connect with a mocked IPC
 
 ## 6. Export
 

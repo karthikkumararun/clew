@@ -4,7 +4,6 @@ import { Checkbox, Input, Select } from "../components/Input";
 import { Dialog } from "../components/Dialog";
 import { Check, Warning } from "../components/icons";
 import { ENV_COLORS } from "../components/Badge";
-import type { Environment as BadgeEnv } from "../components/Badge";
 import { registerShortcut } from "../shell/registry/shortcuts";
 import { runCommand } from "../shell/registry/commands";
 import { driversList } from "../lib/ipc/drivers";
@@ -14,6 +13,7 @@ import type { SecretStatus } from "./api";
 import { CATALOG } from "./catalog";
 import type { CatalogDriver } from "./catalog";
 import { useConnections } from "./connectionsStore";
+import { BADGE_ENV } from "./display";
 import type { DialogRequest } from "./connectionsStore";
 import {
   ENVIRONMENTS,
@@ -40,13 +40,6 @@ const TABS: { id: TabId; label: string }[] = [
 
 const NEW_GROUP = "__new__";
 const SLOW_TEST_MS = 2000;
-
-const ENV_TOKEN: Record<string, BadgeEnv> = {
-  local: "local",
-  development: "dev",
-  staging: "staging",
-  production: "production",
-};
 
 type TestState =
   | { phase: "idle" }
@@ -354,7 +347,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                     aria-checked={draft.environment === env.id}
                     style={
                       draft.environment === env.id
-                        ? { borderColor: ENV_COLORS[ENV_TOKEN[env.id]] }
+                        ? { borderColor: ENV_COLORS[BADGE_ENV[env.id]] }
                         : undefined
                     }
                     onClick={() => {
@@ -364,7 +357,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                   >
                     <span
                       className={styles.envDot}
-                      style={{ background: ENV_COLORS[ENV_TOKEN[env.id]] }}
+                      style={{ background: ENV_COLORS[BADGE_ENV[env.id]] }}
                     />
                     {env.label}
                   </button>

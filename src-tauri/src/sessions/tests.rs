@@ -34,12 +34,16 @@ const META: DriverMeta = DriverMeta {
     },
 };
 
+type Statements = Arc<StdMutex<Vec<String>>>;
+
 struct FakeDriver {
     opens: Arc<AtomicUsize>,
     open_delay: Duration,
+    record: Statements,
 }
 
 struct FakeSession {
+    record: Statements,
     next_result: ResultId,
     cancel: Arc<Notify>,
     cancelled: Arc<AtomicBool>,
@@ -76,6 +80,7 @@ impl Driver for FakeDriver {
         tokio::time::sleep(self.open_delay).await;
         self.opens.fetch_add(1, Ordering::SeqCst);
         Ok(Box::new(FakeSession {
+            record: self.record.clone(),
             next_result: 1,
             cancel: Arc::new(Notify::new()),
             cancelled: Arc::new(AtomicBool::new(false)),
@@ -100,6 +105,7 @@ impl Driver for FakeDriver {
 #[async_trait]
 impl Session for FakeSession {
     async fn execute(&mut self, req: ExecRequest, sink: ResultSink) -> DriverResult<ExecSummary> {
+        self.record.lock().unwrap().push(req.sql.clone());
         self.cancelled.store(false, Ordering::SeqCst);
         let id = self.next_result;
         self.next_result += 1;
@@ -234,6 +240,7 @@ async fn harness_with_delay(query_timeout_secs: Option<u64>, open_delay: Duratio
     registry.register(Arc::new(FakeDriver {
         opens: opens.clone(),
         open_delay,
+        record: Default::default(),
     }));
     let mgr = Arc::new(SessionManager::new(Arc::new(registry), ssh_env()));
     mgr.connect("c1", cfg(query_timeout_secs)).await.unwrap();
@@ -243,6 +250,20 @@ async fn harness_with_delay(query_timeout_secs: Option<u64>, open_delay: Duratio
         opens,
         session,
     }
+}
+
+fn manager_recording() -> (Arc<SessionManager>, Statements) {
+    let record: Statements = Default::default();
+    let mut registry = Registry::new();
+    registry.register(Arc::new(FakeDriver {
+        opens: Arc::new(AtomicUsize::new(0)),
+        open_delay: Duration::ZERO,
+        record: record.clone(),
+    }));
+    (
+        Arc::new(SessionManager::new(Arc::new(registry), ssh_env())),
+        record,
+    )
 }
 
 type Log = Arc<StdMutex<Vec<ResultEvent>>>;
@@ -691,6 +712,7 @@ async fn a_slow_host_times_out_naming_host_and_port() {
     registry.register(Arc::new(FakeDriver {
         opens: Arc::new(AtomicUsize::new(0)),
         open_delay: Duration::from_secs(5),
+        record: Default::default(),
     }));
     let mgr = SessionManager::new(Arc::new(registry), ssh_env());
     let err = mgr.test_connection(&config).await.unwrap_err();
@@ -753,4 +775,104 @@ fn transaction_effect_classifies_statements() {
     assert_eq!(transaction_effect("ROLLBACK TO SAVEPOINT a"), None);
     assert_eq!(transaction_effect("SELECT 1"), None);
     assert_eq!(transaction_effect(""), None);
+}
+
+#[tokio::test]
+async fn on_connect_statements_run_on_every_new_session_and_a_failure_blocks_it() {
+    let (mgr, record) = manager_recording();
+    let mut c = cfg(None);
+    c.on_connect = vec!["SELECT 1".into(), "  ".into(), "SELECT 2".into()];
+    mgr.connect("c1", c.clone()).await.unwrap();
+    let opened = mgr.open_session("c1").await.unwrap();
+    assert_eq!(record.lock().unwrap().as_slice(), ["SELECT 1", "SELECT 2"]);
+    mgr.close_session(&opened.session_id).await.unwrap();
+
+    c.on_connect = vec!["FAIL".into()];
+    mgr.connect("c2", c).await.unwrap();
+    let err = mgr.open_session("c2").await.unwrap_err();
+    assert!(
+        err.message
+            .starts_with("The statement run on connect failed"),
+        "{}",
+        err.message
+    );
+    assert_eq!(mgr.session_count(), 0);
+}
+
+#[tokio::test]
+async fn open_transactions_are_reported_and_ended() {
+    let (mgr, record) = manager_recording();
+    mgr.connect("c1", cfg(None)).await.unwrap();
+    let s = mgr.open_session("c1").await.unwrap();
+    assert!(mgr.sessions_in_transaction("c1").is_empty());
+    mgr.execute(
+        &s.session_id,
+        ExecRequest {
+            sql: "BEGIN".into(),
+            page_size: 10,
+            script: false,
+            continue_on_error: false,
+        },
+        Arc::new(|_| true),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        mgr.sessions_in_transaction("c1"),
+        vec![s.session_id.clone()]
+    );
+    mgr.end_transactions("c1", false).await.unwrap();
+    assert!(mgr.sessions_in_transaction("c1").is_empty());
+    assert_eq!(
+        record.lock().unwrap().last().map(String::as_str),
+        Some("ROLLBACK")
+    );
+    assert!(mgr.is_connected("c1"));
+    mgr.disconnect("c1").await;
+    assert!(!mgr.is_connected("c1"));
+}
+
+#[test]
+fn switch_statements_follow_the_dialect() {
+    assert_eq!(
+        switch_statement(Dialect::Postgresql, None, Some("billing")).unwrap(),
+        "SET search_path TO \"billing\""
+    );
+    assert_eq!(
+        switch_statement(Dialect::Postgresql, Some("x"), Some("we\"ird")).unwrap(),
+        "SET search_path TO \"we\"\"ird\""
+    );
+    assert_eq!(
+        switch_statement(Dialect::Mysql, Some("shop"), None).unwrap(),
+        "USE `shop`"
+    );
+    assert_eq!(
+        switch_statement(Dialect::Mariadb, Some("a`b"), None).unwrap(),
+        "USE `a``b`"
+    );
+    assert_eq!(
+        switch_statement(Dialect::Postgresql, Some("other"), None)
+            .unwrap_err()
+            .code,
+        ErrorCode::Unsupported
+    );
+    assert_eq!(
+        switch_statement(Dialect::Sqlite, Some("x"), None)
+            .unwrap_err()
+            .code,
+        ErrorCode::Unsupported
+    );
+}
+
+#[tokio::test]
+async fn switching_schema_runs_the_statement_on_the_session() {
+    let (mgr, record) = manager_recording();
+    mgr.connect("c1", cfg(None)).await.unwrap();
+    let s = mgr.open_session("c1").await.unwrap();
+    let sql = mgr
+        .switch_namespace(&s.session_id, None, Some("billing"))
+        .await
+        .unwrap();
+    assert_eq!(sql, "SET search_path TO \"billing\"");
+    assert_eq!(record.lock().unwrap().last().unwrap(), &sql);
 }
