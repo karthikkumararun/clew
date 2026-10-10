@@ -3,10 +3,10 @@ import { registerShortcut } from "../../shell/registry/shortcuts";
 import { useConnections } from "../../connections/connectionsStore";
 import { introspectDdl } from "../../lib/ipc/drivers";
 import { useNotices } from "../../stores/noticesStore";
-import { explorerCountRows } from "./api";
+import { explorerCountRows, scriptsNew, scriptsReveal } from "./api";
 import { useExplorer } from "./explorerStore";
 import { isTableLike, namespaceOf, qualifiedName } from "./names";
-import { connOfId } from "./tree";
+import { connOfId, scriptsNodeId } from "./tree";
 
 const say = (message: string) => useNotices.getState().push(message);
 
@@ -181,6 +181,48 @@ export function registerExplorerCommands(): () => void {
           path: table,
           column: t.entry.name,
         });
+      },
+    }),
+    registerCommand({
+      id: "explorer.openScript",
+      title: "Open script",
+      category: "Explorer",
+      run: async (arg) => {
+        const t = target(arg);
+        if (t?.entry?.kind !== "script" || !t.entry.file) return;
+        await delegate("script.open", { connectionId: t.conn.id, path: t.entry.file.path });
+      },
+    }),
+    registerCommand({
+      id: "explorer.newScript",
+      title: "New script",
+      category: "Explorer",
+      run: async (arg) => {
+        const t = target(arg);
+        if (!t) return;
+        try {
+          const path = await scriptsNew(t.conn.id, "script");
+          const ex = useExplorer.getState();
+          await ex.expand(scriptsNodeId(t.conn.id));
+          await ex.refresh(scriptsNodeId(t.conn.id));
+          await delegate("script.open", { connectionId: t.conn.id, path }, `Created ${path}`);
+        } catch (e) {
+          fail("Couldn't create the script", e);
+        }
+      },
+    }),
+    registerCommand({
+      id: "explorer.revealScript",
+      title: "Reveal in file manager",
+      category: "Explorer",
+      run: async (arg) => {
+        const t = target(arg);
+        if (!t) return;
+        try {
+          await scriptsReveal(t.conn.id, t.entry?.file?.relPath);
+        } catch (e) {
+          fail("Couldn't open the file manager", e);
+        }
       },
     }),
     registerCommand({

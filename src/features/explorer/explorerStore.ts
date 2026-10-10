@@ -5,7 +5,9 @@ import type { TreeNode } from "../../lib/ipc/drivers";
 import { getUiState, setUiState } from "../../lib/uiState";
 import { useWorkspace } from "../../stores/workspaceStore";
 import type { NodePath } from "../../lib/ipc/drivers";
-import { connOfId, nodeId, rootEntry } from "./tree";
+import { CATALOG } from "../../connections/catalog";
+import { scriptsList } from "./api";
+import { connOfId, nodeId, rootEntry, scriptNodeId, scriptsNodeId } from "./tree";
 import type { NodeEntry } from "./tree";
 
 const KEY_EXPANDED = "explorer.expanded";
@@ -92,6 +94,47 @@ export const useExplorer = create<ExplorerState>((set, get) => {
     state: "idle",
   });
 
+  /** Children of a node: introspection, or the Scripts folder's files for the Scripts node. */
+  async function loadChildren(entry: NodeEntry): Promise<NodeEntry[]> {
+    if (entry.kind === "scripts") {
+      const files = await scriptsList(entry.connId);
+      return files.map((f) => ({
+        id: scriptNodeId(entry.connId, f.relPath),
+        connId: entry.connId,
+        parentId: entry.id,
+        kind: "script" as const,
+        name: f.relPath,
+        path: [],
+        hasChildren: false,
+        file: { path: f.path, relPath: f.relPath },
+        childIds: [],
+        state: "idle" as const,
+      }));
+    }
+    const children = await introspectChildren(entry.connId, entry.path);
+    const fresh = children.map((n) => toEntry(entry.connId, entry.id, n));
+    // Every SQL connection also shows its Scripts folder, after the databases.
+    if (entry.kind === "connection") {
+      const driver = useConnections
+        .getState()
+        .file.connections.find((c) => c.id === entry.connId)?.driver;
+      if (CATALOG.find((d) => d.id === driver)?.family === "sql") {
+        fresh.push({
+          id: scriptsNodeId(entry.connId),
+          connId: entry.connId,
+          parentId: entry.id,
+          kind: "scripts",
+          name: "Scripts",
+          path: [],
+          hasChildren: true,
+          childIds: [],
+          state: "idle",
+        });
+      }
+    }
+    return fresh;
+  }
+
   async function fetchChildren(id: string): Promise<void> {
     const entry = get().nodes[id];
     if (!entry) return;
@@ -99,9 +142,8 @@ export const useExplorer = create<ExplorerState>((set, get) => {
     generation.set(id, gen);
     patchEntry(id, { state: "loading", error: undefined });
     try {
-      const children = await introspectChildren(entry.connId, entry.path);
+      const fresh = await loadChildren(entry);
       if (generation.get(id) !== gen) return; // a newer request owns this node
-      const fresh = children.map((n) => toEntry(entry.connId, id, n));
       set((s) => {
         const nodes = { ...s.nodes };
         const old = nodes[id];

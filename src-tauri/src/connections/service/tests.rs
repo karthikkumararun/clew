@@ -456,3 +456,49 @@ mod export_tests {
         assert_eq!(payload.groups.len(), 1);
     }
 }
+
+#[test]
+fn scripts_list_create_and_reveal_stay_inside_the_connections_folder() {
+    let f = fixture(None);
+    let scripts = f._dir.path().join("my-scripts");
+    let mut c = conn("c1", "db");
+    c.scripts_dir = Some(scripts.to_string_lossy().into_owned());
+    f.svc.save(req(c, SecretUpdate::Keep)).unwrap();
+
+    // The folder doesn't exist yet: an empty list, not an error.
+    assert!(f.svc.scripts_list("c1").unwrap().is_empty());
+
+    // New scripts get `.sql`, a safe name, and a numeric suffix instead of overwriting.
+    let first = f.svc.scripts_create("c1", "report").unwrap();
+    assert!(first.ends_with("report.sql"));
+    let second = f.svc.scripts_create("c1", "report").unwrap();
+    assert!(second.ends_with("report (2).sql"));
+    let odd = f.svc.scripts_create("c1", "a/b: c.sql").unwrap();
+    assert!(odd.ends_with("a_b_ c.sql"));
+    assert!(std::path::Path::new(&odd).starts_with(&scripts));
+
+    let names: Vec<_> = f
+        .svc
+        .scripts_list("c1")
+        .unwrap()
+        .into_iter()
+        .map(|s| s.name)
+        .collect();
+    assert_eq!(names, ["a_b_ c.sql", "report (2).sql", "report.sql"]);
+
+    // A path that escapes the folder is refused before anything is launched.
+    assert_eq!(
+        f.svc
+            .scripts_reveal("c1", Some("../secret"))
+            .unwrap_err()
+            .code,
+        "invalid"
+    );
+    assert_eq!(
+        f.svc
+            .scripts_reveal("c1", Some("missing.sql"))
+            .unwrap_err()
+            .code,
+        "not_found"
+    );
+}

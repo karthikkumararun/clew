@@ -4,7 +4,7 @@ import type { NodePath, TreeNode } from "../../lib/ipc/drivers";
 import { resetUiState } from "../../lib/uiState";
 import { startExplorerSync, useExplorer } from "./explorerStore";
 import { conn, file, tn } from "./testing";
-import { nodeId } from "./tree";
+import { nodeId, scriptsNodeId } from "./tree";
 
 const api = vi.hoisted(() => ({ children: vi.fn() }));
 vi.mock("../../lib/ipc/drivers", () => ({
@@ -83,6 +83,7 @@ describe("lazy expansion", () => {
     expect(nodes.c1.childIds).toEqual([
       ID.db,
       nodeId("c1", [{ kind: "database", name: "billing" }]),
+      scriptsNodeId("c1"), // every SQL connection also lists its Scripts folder
     ]);
     expect(nodes[ID.db].state).toBe("idle"); // not loaded until expanded
   });

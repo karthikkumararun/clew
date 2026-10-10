@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
+  File,
   Folder,
   Key,
   Link,
@@ -208,10 +209,12 @@ export function TreeRow(p: TreeRowProps) {
     const icon =
       e.kind === "database" ? (
         <Database size={13} className={styles.plainIcon} />
-      ) : e.kind === "schema" ? (
+      ) : e.kind === "schema" || e.kind === "scripts" ? (
         <Folder size={13} className={styles.plainIcon} />
       ) : isTable ? (
         <Table size={13} className={styles.tableIcon} />
+      ) : e.kind === "script" ? (
+        <File size={13} className={styles.plainIcon} />
       ) : e.kind === "column" ? (
         <ColumnIcon pk={!!e.column?.primary_key} fk={!!e.column?.foreign_key} />
       ) : null;
@@ -231,6 +234,10 @@ export function TreeRow(p: TreeRowProps) {
         <span title={`≈${e.detail} rows · from statistics`}>{e.detail}</span>
       ) : e.kind === "column" ? (
         (e.detail ?? e.column?.type_name)
+      ) : e.kind === "scripts" ? (
+        e.state === "loaded" ? (
+          String(e.childIds.length)
+        ) : null
       ) : (
         (e.detail ?? null)
       );

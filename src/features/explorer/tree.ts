@@ -7,7 +7,8 @@ import type { Connection, ConnectionsFile, Group } from "../../connections/api";
 
 export type LoadState = "idle" | "loading" | "loaded" | "error";
 
-export type EntryKind = NodeKind | "connection";
+/** `scripts` and `script` are client-side nodes: a connection's Scripts folder and its files. */
+export type EntryKind = NodeKind | "connection" | "scripts" | "script";
 
 /** One node of a connection's introspection tree (the connection itself is the root entry). */
 export interface NodeEntry {
@@ -20,6 +21,8 @@ export interface NodeEntry {
   detail?: string;
   hasChildren: boolean;
   column?: ColumnInfo;
+  /** For a `script` node: the file it stands for. */
+  file?: { path: string; relPath: string };
   childIds: string[];
   state: LoadState;
   error?: string;
@@ -31,6 +34,11 @@ const esc = (s: string) => s.replace(/%/g, "%25").replace(/\//g, "%2F");
 export function nodeId(connId: string, path: NodePath): string {
   return [connId, ...path.map((s) => `${s.kind}:${esc(s.name)}`)].join("/");
 }
+
+/** Id of the Scripts node under a connection, and of a file under it. */
+export const scriptsNodeId = (connId: string) => `${connId}/scripts:Scripts`;
+export const scriptNodeId = (connId: string, relPath: string) =>
+  `${scriptsNodeId(connId)}/script:${esc(relPath)}`;
 
 export function rootEntry(connId: string): NodeEntry {
   return {

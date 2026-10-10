@@ -34,5 +34,5 @@
 
 ## 6. Scripts node
 
-- [ ] 6.1 Scripts node per connection listing linked SQL files, with New script / Reveal / Refresh; open in a bound console (spec: database-explorer › Scripts node)
-- [ ] 6.2 Test: imported file opens bound to its connection; deleted file disappears after refresh
+- [x] 6.1 Scripts node per connection listing linked SQL files, with New script / Reveal / Refresh; open in a bound console (spec: database-explorer › Scripts node)
+- [x] 6.2 Test: imported file opens bound to its connection; deleted file disappears after refresh

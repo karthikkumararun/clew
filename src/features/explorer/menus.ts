@@ -2,7 +2,10 @@ import type { MenuItem } from "../../components/Menu";
 import type { Connection, Group } from "../../connections/api";
 import { ENVIRONMENTS } from "../../connections/draft";
 import { isTableLike } from "./names";
+import { isMac } from "../../lib/platform";
 import type { NodeEntry } from "./tree";
+
+const revealLabel = () => (isMac() ? "Reveal in Finder" : "Reveal in Explorer");
 
 /** Menu entries of a connection row. Ids starting with `env:` / `move:` are handled inline. */
 export function connectionMenu(c: Connection, groups: Group[], connected: boolean): MenuItem[] {
@@ -30,6 +33,20 @@ export function connectionMenu(c: Connection, groups: Group[], connected: boolea
 
 /** Menu entries of an introspection node, by kind. */
 export function nodeMenu(e: NodeEntry): MenuItem[] {
+  if (e.kind === "scripts") {
+    return [
+      { id: "explorer.newScript", label: "New script" },
+      { id: "explorer.revealScript", label: revealLabel() },
+      { id: "explorer.refresh", label: "Refresh" },
+    ];
+  }
+  if (e.kind === "script") {
+    return [
+      { id: "explorer.openScript", label: "Open" },
+      { id: "explorer.revealScript", label: revealLabel() },
+      { id: "explorer.copyName", label: "Copy name" },
+    ];
+  }
   if (isTableLike(e.kind)) {
     return [
       { id: "explorer.openData", label: "Open data" },
