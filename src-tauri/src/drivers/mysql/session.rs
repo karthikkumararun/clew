@@ -341,18 +341,26 @@ impl Session for MySession {
         self.reclaim().await?;
         let mut conn = self.take_idle()?;
         self.cancel.running.store(true, Ordering::SeqCst);
-        let mut query = sqlx::query(AssertSqlSafe(sql.to_string())).persistent(false);
-        for p in params {
-            query = match p {
-                Value::Null => query.bind(None::<String>),
-                Value::Int { value } => query.bind(*value),
-                Value::Float { value } => query.bind(*value),
-                Value::Bool { value } => query.bind(*value as i64),
-                Value::Bytes { value, .. } => query.bind(unhex(value)),
-                other => query.bind(other.sql_text()),
-            };
-        }
-        let result = query.execute(&mut *conn).await;
+        // Transaction control (START TRANSACTION, SAVEPOINT) is not allowed in the prepared
+        // protocol on MySQL, so parameterless statements go over the text protocol.
+        let result = if params.is_empty() {
+            sqlx::raw_sql(AssertSqlSafe(sql.to_string()))
+                .execute(&mut *conn)
+                .await
+        } else {
+            let mut query = sqlx::query(AssertSqlSafe(sql.to_string())).persistent(false);
+            for p in params {
+                query = match p {
+                    Value::Null => query.bind(None::<String>),
+                    Value::Int { value } => query.bind(*value),
+                    Value::Float { value } => query.bind(*value),
+                    Value::Bool { value } => query.bind(*value as i64),
+                    Value::Bytes { value, .. } => query.bind(unhex(value)),
+                    other => query.bind(other.sql_text()),
+                };
+            }
+            query.execute(&mut *conn).await
+        };
         self.cancel.running.store(false, Ordering::SeqCst);
         match result {
             Ok(done) => {

@@ -339,3 +339,69 @@
   position: fixed;
   z-index: 41;
 }
+
+.cellInput {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-app);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  resize: vertical;
+}
+
+.cellInput:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.cellMeta {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.previewSql {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-panel-sunken);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pendingBar {
+  flex: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 6px 16px;
+  border-top: 1px solid var(--pending-bar-border);
+  background: var(--pending-bar-bg);
+  color: var(--pending-bar-text);
+  font-size: var(--fs-small);
+}
+
+.pendingText {
+  opacity: 0.9;
+}
+
+.pendingError {
+  color: var(--danger);
+}
+
+.readOnly {
+  margin-left: 8px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}

@@ -32,13 +32,13 @@
 
 ## 5. Editing
 
-- [ ] 5.1 Editability check (single table + PK/unique key + not read-only) with the read-only reason label (spec: table-editor › Staged inline editing)
-- [ ] 5.2 `ChangeSet` model with undo/redo; derived cell/row states and markers (+, −, edited ring)
-- [ ] 5.3 Type-specific cell editors, Set NULL / Set DEFAULT, add/delete row shortcuts
-- [ ] 5.4 Rust `changes_preview` and `changes_apply` (bound params, optimistic check, single transaction, RETURNING reload)
-- [ ] 5.5 Pending bar with breakdown, Preview SQL dialog, Revert all, Submit (Mod+S); failure keeps changes and highlights the failing row (spec: table-editor › Pending changes bar and submit)
-- [ ] 5.6 Guard navigation (close tab, page, filter) with Submit / Discard / Cancel
-- [ ] 5.7 Test: generated SQL golden files for PG and SQLite; conflict detection; rollback on failure
+- [x] 5.1 Editability check (single table + PK/unique key + not read-only) with the read-only reason label (spec: table-editor › Staged inline editing)
+- [x] 5.2 `ChangeSet` model with undo/redo; derived cell/row states and markers (+, −, edited ring)
+- [x] 5.3 Type-specific cell editors, Set NULL / Set DEFAULT, add/delete row shortcuts
+- [x] 5.4 Rust `changes_preview` and `changes_apply` (bound params, optimistic check, single transaction, RETURNING reload)
+- [x] 5.5 Pending bar with breakdown, Preview SQL dialog, Revert all, Submit (Mod+S); failure keeps changes and highlights the failing row (spec: table-editor › Pending changes bar and submit)
+- [x] 5.6 Guard navigation (close tab, page, filter) with Submit / Discard / Cancel
+- [x] 5.7 Test: generated SQL golden files for PG and SQLite; conflict detection; rollback on failure
 
 ## 6. Record panel
 

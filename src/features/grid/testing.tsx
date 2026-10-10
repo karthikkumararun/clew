@@ -8,7 +8,20 @@ import { visibleColumns } from "./views";
  * paint a canvas, so cell text would otherwise be unreachable. It honours the same props.
  */
 export const FakeResultGrid = forwardRef<GridHandle, ResultGridProps>(function FakeResultGrid(
-  { source, onSort, hidden, order, onNearEnd, sort, onCellContext, headerDetail, keyColumns },
+  {
+    source,
+    onSort,
+    hidden,
+    order,
+    onNearEnd,
+    sort,
+    onCellContext,
+    headerDetail,
+    keyColumns,
+    onActivate,
+    onSelectionChange,
+    decorations,
+  },
   ref,
 ) {
   // The few rows that fit always have their end in view.
@@ -48,11 +61,19 @@ export const FakeResultGrid = forwardRef<GridHandle, ResultGridProps>(function F
           ))}
         </div>
         {Array.from({ length: source.rowCount }, (_, r) => (
-          <div key={r} role="row">
+          <div
+            key={r}
+            role="row"
+            data-marker={decorations?.row?.(r)?.marker}
+            data-tint={decorations?.row?.(r)?.bg}
+            onClick={() => onSelectionChange?.({ cols: cols.map((_, i) => i), rows: [r] })}
+          >
             {cols.map((c) => (
               <div
                 key={c}
                 role="gridcell"
+                data-cell={decorations?.cell?.(c, r)}
+                onDoubleClick={() => onActivate?.(c, r)}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   onCellContext?.(cols.indexOf(c), r, e.clientX, e.clientY);

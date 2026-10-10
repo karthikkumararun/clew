@@ -6,8 +6,9 @@ import { registerTabKind } from "../../shell/registry/tabKinds";
 import type { TabKind } from "../../shell/registry/tabKinds";
 import { useWorkspace } from "../../stores/workspaceStore";
 import type { NodePath } from "../../lib/ipc/drivers";
+import { confirmPending, registerTableShortcuts } from "./actions";
 import { TableEditor } from "./TableEditor";
-import { disposeTableRuntime } from "./runtime";
+import { disposeTableRuntime, peekTableRuntime } from "./runtime";
 import { TABLE_KIND, deserializeTable, serializeTable, tableKey, tableName } from "./state";
 import type { TableTabState } from "./state";
 
@@ -27,6 +28,10 @@ const tableKind: TabKind<TableTabState> = {
   serialize: serializeTable,
   deserialize: deserializeTable,
   render: ({ tab }) => <TableEditor key={tab.id} tab={tab} />,
+  confirmClose: async (tab) => {
+    const runtime = peekTableRuntime(tab.id);
+    return runtime ? confirmPending(runtime) : true;
+  },
   onClose: (tab) => disposeTableRuntime(tab.id),
 };
 
@@ -87,5 +92,6 @@ export function registerTableCommands(): () => void {
       },
     }),
   ];
+  disposers.push(registerTableShortcuts());
   return () => disposers.forEach((d) => d());
 }

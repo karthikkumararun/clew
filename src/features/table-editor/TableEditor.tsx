@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { Badge } from "../../components/Badge";
 import { Button, IconButton } from "../../components/Button";
 import { Menu } from "../../components/Menu";
 import type { MenuItem } from "../../components/Menu";
 import { EnvDot } from "../../components/Badge";
-import { ChevronRight, Download, Refresh, Terminal } from "../../components/icons";
+import { ChevronRight, Download, Plus, Refresh, Terminal } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { BADGE_ENV } from "../../connections/display";
 import type { Value } from "../../lib/ipc/drivers";
@@ -20,6 +20,16 @@ import { flavorOf, quoteIdent } from "../grid/sqlLiteral";
 import { useGridView } from "../grid/useGridView";
 import { visibleColumns } from "../grid/views";
 import { tableQuerySql } from "./api";
+import type { NewValue, PreviewStatement } from "./api";
+import { confirmPending, readOnlyReason, submitChanges } from "./actions";
+import { CellEditor } from "./CellEditor";
+import { READ_ONLY_KINDS } from "./editValue";
+import { PendingBar } from "./PendingBar";
+import { PreviewDialog } from "./PreviewDialog";
+import { askChoice } from "../console/prompts";
+import { useNotices } from "../../stores/noticesStore";
+import { formatShortcut } from "../../lib/platform";
+import type { GridDecorations } from "../grid/ResultGrid";
 import { ColumnInput } from "./ColumnInput";
 import { quickFilterSql, andWhere, orderFor, siblingTablePath, sortOf } from "./paths";
 import type { QuickFilter } from "./paths";
@@ -66,6 +76,12 @@ export function TableEditor({ tab }: { tab: TableTab }) {
   const ddlError = useStore(runtime.store, (r) => r.ddlError);
   const keyColumns = useStore(runtime.store, (r) => r.keyColumns);
   const sql = useStore(runtime.store, (r) => r.sql);
+  const submitError = useStore(runtime.store, (r) => r.submitError);
+  const submitting = useStore(runtime.store, (r) => r.submitting);
+  const changes = runtime.changes;
+  const pendingRev = useSyncExternalStore(changes.subscribe, changes.getSnapshot);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const counts = useMemo(() => changes.counts(), [changes, pendingRev]);
 
   const driver = connection?.driver ?? "";
   const flavor = flavorOf(driver);
@@ -164,15 +180,86 @@ export function TableEditor({ tab }: { tab: TableTab }) {
     [meta, data.version],
   );
 
+  const isTable = s.path[s.path.length - 1]?.kind === "table";
+  const reason = readOnlyReason(runtime, {
+    isTable,
+    connectionReadOnly: connection?.safeguards.readOnlyByDefault === true,
+  });
+  const canEdit = reason === null && loaded;
+  runtime.editable = canEdit;
+  const nullableOf = (col: number) =>
+    meta?.columns.find((c) => c.name === columnNames[col])?.nullable !== false;
+  const [editing, setEditing] = useState<{ col: number; row: number } | null>(null);
+  const [preview, setPreview] = useState<{
+    statements: PreviewStatement[] | null;
+    error: string | null;
+  } | null>(null);
+
+  const startEdit = (col: number, row: number) => {
+    if (changes.rowState(row) === "deleted") return;
+    if (READ_ONLY_KINDS.has(data.columns[col]?.kind)) {
+      useNotices.getState().push(`${columnNames[col]} can't be edited here (binary data)`);
+      return;
+    }
+    setEditing({ col, row });
+  };
+  const stage = (col: number, row: number, value: NewValue) => changes.setCell(row, col, value);
+
+  const decorations = useMemo<GridDecorations>(
+    () => ({
+      row: (r) => {
+        const st = changes.rowState(r);
+        if (st === "inserted") return { bg: "grid-inserted-row", marker: "+" };
+        if (st === "deleted") return { bg: "grid-deleted-row", marker: "−", strike: true };
+        if (st === "edited") return { bg: "grid-edited-row" };
+        return undefined;
+      },
+      cell: (c, r) =>
+        submitError?.row === r ? "error" : changes.isEdited(c, r) ? "edited" : undefined,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [changes, pendingRev, submitError],
+  );
+
+  const confirmReload = async () => {
+    const answer = await askChoice({
+      title: "Reload the table?",
+      body: (
+        <p>
+          Reloading reads the rows again and drops all {counts.total} pending changes, so the
+          changed row can be edited again from its current values.
+        </p>
+      ),
+      choices: [
+        { id: "cancel", label: "Cancel" },
+        { id: "reload", label: "Discard and reload", variant: "primary" },
+      ],
+    });
+    if (answer === "reload") await runtime.discardAndReload();
+  };
+
+  const openPreview = () => {
+    setPreview({ statements: null, error: null });
+    runtime.previewChanges().then(
+      (statements) => setPreview({ statements, error: null }),
+      (e) => setPreview({ statements: null, error: String(e?.message ?? e) }),
+    );
+  };
+
+  /** Run `go` once any pending edits are dealt with (submitted or discarded). */
+  const guarded = (go: () => void) => void confirmPending(runtime).then((ok) => ok && go());
+
   const apply = (where = whereDraft, orderBy = orderDraft) =>
-    patchTab(tab.id, { where, orderBy, page: 0 });
+    guarded(() => patchTab(tab.id, { where, orderBy, page: 0 }));
 
   const sort = sortOf(flavor, s.orderBy, columnNames);
   const onSort = (col: number) => {
     const next = sort?.column === col ? (sort.dir === "asc" ? "desc" : null) : "asc";
     const orderBy = orderFor(flavor, columnNames[col], next);
-    setOrderDraft(orderBy);
-    patchTab(tab.id, { orderBy, page: 0 });
+    guarded(() => {
+      setOrderDraft(orderBy);
+      patchTab(tab.id, { orderBy, page: 0 });
+    });
   };
 
   const from = s.page * s.pageSize + 1;
@@ -224,13 +311,23 @@ export function TableEditor({ tab }: { tab: TableTab }) {
     };
   };
 
+  const menuSource = menu ? visibleColumns(data.columns.length, gv.order, gv.hidden)[menu.col] : -1;
   const menuItems: MenuItem[] = menu
     ? [
+        ...(canEdit && changes.rowState(menu.row) !== "deleted"
+          ? [
+              { id: "edit", label: "Edit…" },
+              ...(!nullableOf(menuSource) ? [] : [{ id: "setNull", label: "Set NULL" }]),
+              ...(flavor === "sqlite" && menu.row < changes.loadedRows
+                ? []
+                : [{ id: "setDefault", label: "Set DEFAULT" }]),
+            ]
+          : []),
         { id: "equals", label: "Filter › Equals" },
         { id: "notEquals", label: "Filter › Not equals" },
         { id: "isNull", label: "Filter › Is NULL" },
         { id: "notNull", label: "Filter › Is not NULL" },
-        ...(data.get(menu.col, menu.row).kind === "text"
+        ...(changes.get(menuSource, menu.row).kind === "text"
           ? [{ id: "contains", label: "Filter › Contains" }]
           : []),
       ]
@@ -238,11 +335,13 @@ export function TableEditor({ tab }: { tab: TableTab }) {
   const runQuickFilter = (op: QuickFilter) => {
     if (!menu) return;
     const sc = visibleColumns(data.columns.length, gv.order, gv.hidden)[menu.col];
-    const value: Value = data.get(sc, menu.row);
+    const value: Value = changes.get(sc, menu.row);
     const where = andWhere(s.where, quickFilterSql(flavor, columnNames[sc], value, op));
-    setWhereDraft(where);
-    patchTab(tab.id, { where, page: 0 });
     setMenu(null);
+    guarded(() => {
+      setWhereDraft(where);
+      patchTab(tab.id, { where, page: 0 });
+    });
   };
 
   if (!connection) {
@@ -355,18 +454,55 @@ export function TableEditor({ tab }: { tab: TableTab }) {
           <div className={styles.toolbar}>
             <IconButton
               aria-label="Refresh"
-              onClick={() => {
-                runtime.invalidate();
-                void runtime.load({
-                  where: s.where,
-                  orderBy: s.orderBy,
-                  page: s.page,
-                  pageSize: s.pageSize,
-                });
-              }}
+              onClick={() =>
+                guarded(() => {
+                  runtime.invalidate();
+                  void runtime.load({
+                    where: s.where,
+                    orderBy: s.orderBy,
+                    page: s.page,
+                    pageSize: s.pageSize,
+                  });
+                })
+              }
             >
               <Refresh size={14} />
             </IconButton>
+            <IconButton
+              aria-label="Add row"
+              title={`Add row (${formatShortcut("Mod+N")})`}
+              disabled={!canEdit}
+              onClick={() => {
+                const row = changes.addRow();
+                const first = visibleColumns(data.columns.length, gv.order, gv.hidden)[0];
+                if (first !== undefined) startEdit(first, row);
+              }}
+            >
+              <Plus size={14} />
+            </IconButton>
+            <IconButton
+              aria-label="Delete row"
+              title={`Delete row (${formatShortcut("Mod+Backspace")})`}
+              disabled={!canEdit}
+              onClick={() => {
+                if (runtime.selectedRows.length > 0) changes.deleteRows(runtime.selectedRows);
+              }}
+            >
+              −
+            </IconButton>
+            <IconButton
+              aria-label="Undo"
+              title={`Undo (${formatShortcut("Mod+Z")})`}
+              disabled={!canEdit || !changes.canUndo}
+              onClick={() => changes.undo()}
+            >
+              ↶
+            </IconButton>
+            {reason ? (
+              <span className={styles.readOnly} role="note">
+                {reason}
+              </span>
+            ) : null}
             {data.columns.length > 0 ? (
               <ColumnsMenu
                 columns={data.columns}
@@ -418,14 +554,14 @@ export function TableEditor({ tab }: { tab: TableTab }) {
             <IconButton
               aria-label="Previous page"
               disabled={s.page === 0 || loading}
-              onClick={() => patchTab(tab.id, { page: s.page - 1 })}
+              onClick={() => guarded(() => patchTab(tab.id, { page: s.page - 1 }))}
             >
               ‹
             </IconButton>
             <IconButton
               aria-label="Next page"
               disabled={lastPage || loading}
-              onClick={() => patchTab(tab.id, { page: s.page + 1 })}
+              onClick={() => guarded(() => patchTab(tab.id, { page: s.page + 1 }))}
             >
               ›
             </IconButton>
@@ -433,9 +569,10 @@ export function TableEditor({ tab }: { tab: TableTab }) {
               <span className="sr-only">Rows per page</span>
               <select
                 value={s.pageSize}
-                onChange={(e) =>
-                  patchTab(tab.id, { pageSize: Number(e.target.value) as PageSize, page: 0 })
-                }
+                onChange={(e) => {
+                  const pageSize = Number(e.target.value) as PageSize; // before the select snaps back
+                  guarded(() => patchTab(tab.id, { pageSize, page: 0 }));
+                }}
               >
                 {PAGE_SIZES.map((n) => (
                   <option key={n} value={n}>
@@ -455,7 +592,15 @@ export function TableEditor({ tab }: { tab: TableTab }) {
               ) : null}
               {loaded ? (
                 <ResultGrid
-                  source={data}
+                  source={changes}
+                  readOnly={!canEdit}
+                  decorations={decorations}
+                  onActivate={(col, row) => {
+                    if (!canEdit) return false;
+                    startEdit(col, row);
+                    return true;
+                  }}
+                  onSelectionChange={(cells) => (runtime.selectedRows = cells.rows)}
                   driver={driver}
                   fkColumns={fkColumns}
                   keyColumns={keySet}
@@ -513,10 +658,66 @@ export function TableEditor({ tab }: { tab: TableTab }) {
               aria-label="Cell actions"
               items={menuItems}
               onClose={() => setMenu(null)}
-              onSelect={(id) => runQuickFilter(id as QuickFilter)}
+              onSelect={(id) => {
+                if (id === "edit") {
+                  const at = menu;
+                  setMenu(null);
+                  startEdit(menuSource, at.row);
+                } else if (id === "setNull") {
+                  stage(menuSource, menu.row, { kind: "value", value: { kind: "null" } });
+                  setMenu(null);
+                } else if (id === "setDefault") {
+                  stage(menuSource, menu.row, { kind: "default" });
+                  setMenu(null);
+                } else runQuickFilter(id as QuickFilter);
+              }}
             />
           </div>
         </>
+      ) : null}
+      {s.view === "data" ? (
+        <PendingBar
+          counts={counts}
+          submitting={submitting}
+          error={submitError}
+          submitShortcut={formatShortcut("Mod+S")}
+          onPreview={openPreview}
+          onRevert={() => {
+            changes.clear();
+            runtime.store.setState({ submitError: null });
+          }}
+          onSubmit={() => void submitChanges(runtime)}
+          onReload={() => void confirmReload()}
+        />
+      ) : null}
+      {editing ? (
+        <CellEditor
+          column={data.columns[editing.col]}
+          current={changes.get(editing.col, editing.row)}
+          nullable={nullableOf(editing.col)}
+          allowDefault={flavor !== "sqlite" || editing.row >= changes.loadedRows}
+          onClose={() => setEditing(null)}
+          onSubmit={(value) => {
+            stage(editing.col, editing.row, value);
+            setEditing(null);
+          }}
+        />
+      ) : null}
+      {preview ? (
+        <PreviewDialog
+          statements={preview.statements}
+          error={preview.error}
+          onClose={() => setPreview(null)}
+          onCopy={(text) => void navigator.clipboard.writeText(text)}
+          onOpenInConsole={(text) => {
+            setPreview(null);
+            void runCommand("console.new", {
+              connectionId: s.connectionId,
+              ...namespaceOf(s.path),
+              sql: text,
+            });
+          }}
+        />
       ) : null}
       {exporting && allRows ? (
         <ExportDialog source={exportSource()} onClose={() => setExporting(false)} />

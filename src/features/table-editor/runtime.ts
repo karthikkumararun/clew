@@ -11,7 +11,9 @@ import type { DriverError, NodePath } from "../../lib/ipc/drivers";
 import { QueryRunStore } from "../../lib/ipc/queryRun";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { ColumnarStore } from "../grid/source";
-import { tableMeta, tableQuerySql } from "./api";
+import { changesApply, changesPreview, tableMeta, tableQuerySql } from "./api";
+import type { PreviewStatement } from "./api";
+import { ChangeSet } from "./changeSet";
 import type { TableMeta } from "./api";
 import { rowKeyColumns } from "./state";
 import type { PageSize, TableTabState } from "./state";
@@ -43,6 +45,9 @@ export interface TableRuntimeState {
   sql: string | null;
   ddl: string | null;
   ddlError: string | null;
+  /** The last submit failed: why, and which row (display index) it came from. */
+  submitError: { message: string; conflict: boolean; row: number | null } | null;
+  submitting: boolean;
 }
 
 const INITIAL: TableRuntimeState = {
@@ -59,6 +64,8 @@ const INITIAL: TableRuntimeState = {
   sql: null,
   ddl: null,
   ddlError: null,
+  submitError: null,
+  submitting: false,
 };
 
 const messageOf = (e: unknown) =>
@@ -75,6 +82,13 @@ export class TableRuntime {
   }));
   /** The loaded page. */
   readonly data = new ColumnarStore();
+  /** Staged edits over `data`. */
+  readonly changes = new ChangeSet(this.data);
+  /** Whether cells can be edited (set by the editor from the table's key and the connection). */
+  editable = false;
+  /** Rows selected in the grid, for Delete row. */
+  selectedRows: number[] = [];
+  private lastQuery: Pick<TableTabState, "where" | "orderBy" | "page" | "pageSize"> | null = null;
   private opening: Promise<string> | null = null;
   private closed = false;
   private runId = 0;
@@ -192,12 +206,15 @@ export class TableRuntime {
         );
         return false;
       }
+      this.changes.clear();
       this.data.reset(result.columns);
       this.data.replace(result.rows);
       this.loadedKey = queryKey(q);
+      this.lastQuery = q;
       this.store.setState({
         loaded: true,
         loading: false,
+        submitError: null,
         elapsedMs: result.summary?.elapsed_ms ?? null,
         sql: query.select,
       });
@@ -277,6 +294,61 @@ export class TableRuntime {
     } catch (e) {
       this.store.setState({ ddlError: messageOf(e) });
     }
+  }
+
+  private changeRequest() {
+    const keys = this.store.getState().keyColumns;
+    if (!keys) throw new Error("This table has no key to identify rows by");
+    return this.changes.request(this.path, keys);
+  }
+
+  /** The SQL the staged edits would run. */
+  async previewChanges(): Promise<PreviewStatement[]> {
+    await useConnections.getState().connect(this.connectionId);
+    return changesPreview(this.connectionId, this.changeRequest());
+  }
+
+  /**
+   * Write the staged edits in one transaction. On success the page reloads and the edits are
+   * gone; on failure nothing was written and every edit stays pending.
+   */
+  async submit(): Promise<boolean> {
+    if (this.store.getState().submitting || this.changes.counts().total === 0) return true;
+    this.store.setState({ submitting: true, submitError: null });
+    try {
+      const sessionId = await this.ensureSession();
+      const outcome = await changesApply(this.connectionId, sessionId, this.changeRequest());
+      if (outcome.failure) {
+        const f = outcome.failure;
+        this.store.setState({
+          submitting: false,
+          submitError: {
+            message: f.message,
+            conflict: f.conflict,
+            row: this.changes.rowOfTarget(f.target.kind, f.target.index),
+          },
+        });
+        return false;
+      }
+    } catch (e) {
+      this.store.setState({
+        submitting: false,
+        submitError: { message: messageOf(e), conflict: false, row: null },
+      });
+      return false;
+    }
+    this.changes.clear();
+    this.store.setState({ submitting: false });
+    this.countedFor = null;
+    if (this.lastQuery) await this.load(this.lastQuery);
+    return true;
+  }
+
+  /** Drop the staged edits and read the page again. */
+  async discardAndReload(): Promise<void> {
+    this.changes.clear();
+    this.store.setState({ submitError: null });
+    if (this.lastQuery) await this.load(this.lastQuery);
   }
 
   /** Forget what was loaded (after a submit, or Refresh), keeping the session. */
