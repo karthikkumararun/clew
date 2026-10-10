@@ -1,0 +1,74 @@
+.input,
+.select {
+  height: var(--h-input);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+  color: var(--text);
+  padding: 0 10px;
+  font-size: var(--fs-small);
+}
+
+.input::placeholder {
+  color: var(--text-dim);
+}
+
+.dialog {
+  height: var(--h-input-dialog);
+  border-color: var(--border-strong);
+  font-size: var(--fs-base);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.select {
+  padding-right: 6px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--fs-base);
+  color: var(--text);
+}
+
+.check input {
+  margin: 2px 0 0;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.check small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+}
+
+.segment {
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.segment[aria-checked="true"] {
+  background: var(--bg-segment-active);
+  color: var(--text);
+}

@@ -1,0 +1,215 @@
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { Checkbox, Input, SegmentedControl } from "../components/Input";
+import { Dialog } from "../components/Dialog";
+import { Star } from "../components/icons";
+import { formatShortcut } from "../lib/platform";
+import { FONT_SIZE_RANGE, PAGE_SIZES, useSettings } from "../stores/settingsStore";
+import { listCommands, subscribeCommands } from "./registry/commands";
+import styles from "./SettingsDialog.module.css";
+
+export const SECTIONS = [
+  "General",
+  "Editor",
+  "Data grid",
+  "Keymap",
+  "AI assistant",
+  "Updates",
+] as const;
+
+function Section({ title, lede, children }: { title: string; lede: string; children: ReactNode }) {
+  return (
+    <>
+      <div>
+        <h2 className={styles.title}>{title}</h2>
+        <p className={styles.lede}>{lede}</p>
+      </div>
+      {children}
+    </>
+  );
+}
+
+function General() {
+  const { settings, set } = useSettings();
+  return (
+    <Section title="General" lede="Everyday behaviour. Changes apply immediately.">
+      <div className={styles.card}>
+        <Checkbox
+          label="Confirm before closing a tab with unsaved changes"
+          description="You'll be asked to Save, Discard or Cancel."
+          checked={settings.confirmCloseUnsaved}
+          onChange={(e) => set({ confirmCloseUnsaved: e.target.checked })}
+        />
+      </div>
+    </Section>
+  );
+}
+
+function Editor() {
+  const { settings, set } = useSettings();
+  // Keep a local draft so the field can be cleared while typing; commit valid numbers only.
+  const [draft, setDraft] = useState(String(settings.editorFontSize));
+  useEffect(() => setDraft(String(settings.editorFontSize)), [settings.editorFontSize]);
+  const commit = (value: string) => {
+    const n = Number(value);
+    if (Number.isFinite(n) && value.trim() !== "") set({ editorFontSize: n });
+    else setDraft(String(settings.editorFontSize));
+  };
+  return (
+    <Section title="Editor" lede="Font settings for SQL and script editors.">
+      <div className={styles.card}>
+        <div className={styles.field}>
+          <label htmlFor="set-font-size" className={styles.fieldLabel}>
+            Editor font size
+          </label>
+          <div className={styles.row}>
+            <Input
+              id="set-font-size"
+              dialog
+              type="number"
+              min={FONT_SIZE_RANGE.min}
+              max={FONT_SIZE_RANGE.max}
+              value={draft}
+              style={{ width: 90 }}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                const n = Number(e.target.value);
+                if (
+                  e.target.value.trim() !== "" &&
+                  n >= FONT_SIZE_RANGE.min &&
+                  n <= FONT_SIZE_RANGE.max
+                )
+                  set({ editorFontSize: n });
+              }}
+              onBlur={(e) => commit(e.target.value)}
+            />
+            <span className={styles.muted}>px</span>
+          </div>
+          <p className={styles.help}>
+            {FONT_SIZE_RANGE.min}–{FONT_SIZE_RANGE.max}. Default 13.
+          </p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function DataGrid() {
+  const { settings, set } = useSettings();
+  return (
+    <Section title="Data grid" lede="How many rows the grid loads at a time.">
+      <div className={styles.card}>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel} id="set-page-size">
+            Rows per page
+          </span>
+          <SegmentedControl
+            aria-label="Rows per page"
+            value={settings.gridPageSize}
+            options={PAGE_SIZES.map((n) => ({ value: n, label: String(n) }))}
+            onChange={(n) => set({ gridPageSize: n })}
+          />
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function Keymap() {
+  const [, force] = useState(0);
+  useEffect(() => subscribeCommands(() => force((n) => n + 1)), []);
+  const rows = listCommands().filter((c) => c.shortcut);
+  return (
+    <Section title="Keymap" lede="Shortcuts use Cmd on macOS and Ctrl on Windows.">
+      <div className={styles.card}>
+        {rows.length === 0 ? (
+          <p className={styles.help}>No shortcuts registered.</p>
+        ) : (
+          <div className={styles.keymap}>
+            {rows.map((c) => (
+              <div key={c.id} style={{ display: "contents" }}>
+                <div>{c.title}</div>
+                <div className={styles.keys}>{formatShortcut(c.shortcut as string)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function AiAssistant() {
+  return (
+    <Section
+      title="AI assistant"
+      lede="Bring your own model. Providers, sign-in and privacy controls arrive with the AI assistant."
+    >
+      <div className={styles.card}>
+        <p className={styles.help}>
+          <Star size={12} style={{ verticalAlign: "-2px", color: "var(--accent)" }} /> Nothing to
+          configure yet. No AI provider is contacted by default.
+        </p>
+      </div>
+    </Section>
+  );
+}
+
+function Updates() {
+  const { settings, set } = useSettings();
+  return (
+    <Section
+      title="Updates"
+      lede="Clew makes no network requests of its own unless you turn this on."
+    >
+      <div className={styles.card}>
+        <Checkbox
+          label="Check for updates"
+          description="Off by default. When on, Clew looks for a newer release at startup."
+          checked={settings.checkForUpdates}
+          onChange={(e) => set({ checkForUpdates: e.target.checked })}
+        />
+      </div>
+    </Section>
+  );
+}
+
+const PANELS: Record<(typeof SECTIONS)[number], () => ReactNode> = {
+  General,
+  Editor,
+  "Data grid": DataGrid,
+  Keymap,
+  "AI assistant": AiAssistant,
+  Updates,
+};
+
+export function SettingsDialog() {
+  const open = useSettings((s) => s.dialogOpen);
+  const section = useSettings((s) => s.section) as (typeof SECTIONS)[number];
+  const setSection = useSettings((s) => s.setSection);
+  const close = useSettings((s) => s.closeDialog);
+  if (!open) return null;
+  const Panel = PANELS[section] ?? General;
+  return (
+    <Dialog title="Settings" maxWidth={1120} onClose={close}>
+      <div className={styles.layout}>
+        <nav className={styles.nav} aria-label="Settings sections">
+          {SECTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={styles.navItem}
+              aria-current={s === section ? "page" : undefined}
+              onClick={() => setSection(s)}
+            >
+              {s}
+            </button>
+          ))}
+        </nav>
+        <div className={styles.content}>
+          <Panel />
+        </div>
+      </div>
+    </Dialog>
+  );
+}

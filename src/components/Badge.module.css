@@ -1,0 +1,52 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.neutral {
+  background: var(--bg-raised);
+  color: var(--text-secondary);
+}
+
+.production {
+  background: var(--env-prod-badge-bg);
+  color: var(--env-prod-badge-fg);
+}
+
+.driver {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 14px;
+  border-radius: 3px;
+  font: 600 8.5px/1 var(--font-mono);
+  color: var(--on-accent);
+  flex: none;
+}
+
+.dot {
+  display: inline-block;
+  border-radius: 50%;
+  flex: none;
+}
+
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  font: 500 11px/1 var(--font-mono);
+  color: var(--text-secondary);
+}

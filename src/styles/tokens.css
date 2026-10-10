@@ -1,0 +1,113 @@
+/*
+ * Clew design tokens — source of truth for the UI.
+ * Extracted from the UX canvas (design/canvas/*.dc.html).
+ * The app imports this file as src/styles/tokens.css. Never hard-code these hexes in components.
+ * v1 ships a single dark theme; a light theme would redefine these variables under [data-theme="light"].
+ */
+:root {
+  /* Surfaces */
+  --bg-app: #0e1014; /* editor, grid, page ground */
+  --bg-backdrop: #090a0d; /* behind modals */
+  --bg-panel: #14171c; /* sidebars, toolbars, tab strips, status bar, dialogs */
+  --bg-panel-sunken: #111419; /* filter bars, query bars, dialog side lists, footers */
+  --bg-raised: #1a1e25; /* buttons, grid header, popovers */
+  --bg-hover: #171b21;
+  --bg-selected: #1e242c; /* selected tree row / list item / active result tab */
+  --bg-segment-active: #262d36; /* active segment inside a segmented control */
+  --bg-current-statement: #13171d;
+
+  /* Borders */
+  --border: #262b33;
+  --border-strong: #2e343d; /* inputs, dialogs, popovers */
+  --border-subtle: #1f242b; /* grid cell lines */
+
+  /* Text */
+  --text: #e6e8eb;
+  --text-secondary: #c9ced6;
+  --text-muted: #9aa3ae; /* labels, meta (>= 4.5:1 on panels) */
+  --text-dim: #7d8794; /* types, counts, NULL, comments */
+  --text-gutter: #4e5661; /* editor line numbers only */
+
+  /* Accent: the golden thread */
+  --accent: #e3a64f;
+  --accent-hover: #f2c27f;
+  --on-accent: #0e1014;
+
+  /* Environments (connection color coding) */
+  --env-local: #6cc4a1;
+  --env-dev: #7fc8f8;
+  --env-staging: #e3a64f;
+  --env-prod: #f2766b;
+  --env-prod-badge-bg: #3a1d1b;
+  --env-prod-badge-fg: #f7a39b;
+  --env-prod-surface: #1f1416;
+  --env-prod-border: #5a2a26;
+
+  /* Semantic */
+  --success: #6cc4a1;
+  --info: #7fc8f8;
+  --warning: #e3a64f;
+  --danger: #f2766b;
+
+  /* Syntax + typed values (editor, grid, document tree) */
+  --syn-keyword: #c9a0ff;
+  --syn-function: #7fc8f8;
+  --syn-string: #9cd08b;
+  --syn-number: #f0b37e;
+  --syn-comment: #7d8794;
+  --syn-objectid: #c9a0ff;
+  --syn-date: #7fc8f8;
+  --syn-boolean: #e58fb5;
+  --syn-null: #7d8794; /* rendered italic "NULL" */
+  --syn-link: #7fc8f8; /* foreign-key values */
+
+  /* Grid pending-change states */
+  --grid-edited-row: #1a1f27;
+  --grid-edited-cell: #3a3020; /* + 1.5px inset ring in --accent */
+  --grid-inserted-row: #132219; /* row marker "+" in --success */
+  --grid-deleted-row: #241517; /* strikethrough, row marker "−" in --danger */
+  --pending-bar-bg: #1e1a12;
+  --pending-bar-border: #4a3a22;
+  --pending-bar-text: #c9b48f;
+
+  /* Driver badges (text on badge is --on-accent) */
+  --drv-postgres: #6ea8fe;
+  --drv-mysql: #f0a35e;
+  --drv-mariadb: #c9a0ff;
+  --drv-sqlserver: #7fc8f8;
+  --drv-oracle: #ee8b6f;
+  --drv-clickhouse: #f2d06b;
+  --drv-sqlite: #b8c0cc;
+  --drv-duckdb: #e8d27a;
+  --drv-mongodb: #6cc48a;
+  --drv-redis: #f2766b;
+  --drv-neo4j: #66d1d6;
+
+  /* Type (fonts are bundled locally, never fetched at runtime) */
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --fs-base: 13px;
+  --fs-small: 12px;
+  --fs-meta: 11.5px;
+  --fs-label: 11px; /* uppercase, weight 600, letter-spacing .08em */
+  --fs-code: 13px; /* editor, line-height 20px */
+  --fs-grid: 12px;
+
+  /* Metrics */
+  --h-titlebar: 44px;
+  --h-tabstrip: 36px;
+  --h-toolbar: 40px;
+  --h-statusbar: 26px;
+  --h-tree-row: 24px;
+  --h-grid-row: 26px;
+  --h-button: 28px;
+  --h-input: 28px;
+  --h-input-dialog: 34px;
+  --w-sidebar: 272px; /* resizable 240–420 */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px; /* dialogs, palette */
+  --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.55);
+}

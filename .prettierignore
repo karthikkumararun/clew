@@ -1,0 +1,10 @@
+dist
+node_modules
+src-tauri
+design
+openspec
+pnpm-lock.yaml
+coverage
+.claude
+CLAUDE.md
+README.md
