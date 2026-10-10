@@ -35,6 +35,8 @@ pub trait Session: Send {
     async fn close(self: Box<Self>) -> Result<()>;
 }
 ```
+Additions made while implementing (`src-tauri/src/drivers/mod.rs`): `Driver::open_meta_pool` (the contract takes a `&MetaPool` but nothing created it), `Session::fetch_full_value` (backs `value_fetch_full`; identifies a cell by table path, column and primary-key values) and `Session::server_info` (status bar). `Secret` is deserialize-only and redacted in `Debug`, so passwords can arrive over IPC but never leave. Integers outside ±2^53 are emitted as `bigint` strings so JavaScript never rounds them.
+
 Document and key-value drivers add `DocumentSession` / `KeyValueSession` traits in `add-nosql-browser`; `DriverMeta.family` tells the UI which API to use.
 
 **Why trait objects over an enum:** drivers live in separate modules and can grow independently; the registry is a `HashMap<&'static str, Arc<dyn Driver>>`.

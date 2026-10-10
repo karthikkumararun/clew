@@ -1,10 +1,10 @@
 ## 1. Contract and registry
 
-- [ ] 1.1 Define `DriverMeta`, `DriverFamily`, `FormKind`, `Capabilities`, `ResolvedConfig` (network/file/uri variants, ssh, tls, timeouts) in `drivers/mod.rs` (spec: driver-framework › Driver registry)
-- [ ] 1.2 Define the `Driver` and `Session` traits, `ExecRequest`, `ResultEvent`, `ExecSummary`, `CancelHandle`, `TreeNode`, `NodePath`, `SchemaSnapshot`
-- [ ] 1.3 Define `DriverError` + `ErrorCode` and map them to the shell's `AppError` for IPC
-- [ ] 1.4 Implement the registry and the `drivers_list` command
-- [ ] 1.5 Test: registry lists drivers grouped by family; unknown id gives `driver_unavailable`
+- [x] 1.1 Define `DriverMeta`, `DriverFamily`, `FormKind`, `Capabilities`, `ResolvedConfig` (network/file/uri variants, ssh, tls, timeouts) in `drivers/mod.rs` (spec: driver-framework › Driver registry)
+- [x] 1.2 Define the `Driver` and `Session` traits, `ExecRequest`, `ResultEvent`, `ExecSummary`, `CancelHandle`, `TreeNode`, `NodePath`, `SchemaSnapshot`
+- [x] 1.3 Define `DriverError` + `ErrorCode` and map them to the shell's `AppError` for IPC
+- [x] 1.4 Implement the registry and the `drivers_list` command
+- [x] 1.5 Test: registry lists drivers grouped by family; unknown id gives `driver_unavailable`
 
 ## 2. Value model
 

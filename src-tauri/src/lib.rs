@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod drivers;
 pub mod error;
 pub mod paths;
 pub mod settings;
@@ -55,7 +56,11 @@ pub fn run() {
         .setup(|app| {
             let data_dir = paths::app_data_dir(&app.path().data_dir()?);
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
-            app.manage(state::AppState { data_dir, store });
+            app.manage(state::AppState {
+                data_dir,
+                store,
+                registry: drivers::registry::Registry::with_defaults(),
+            });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
             }
@@ -68,6 +73,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::app::app_paths,
+            commands::drivers::drivers_list,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,
