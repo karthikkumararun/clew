@@ -246,19 +246,27 @@ fn write_file(path: &Path, text: &str) -> AppResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::Duration;
 
-    fn access(dir: &Path) -> (FileAccess, Arc<AtomicUsize>) {
-        let hits = Arc::new(AtomicUsize::new(0));
+    /// A `FileAccess` plus the paths it reported.
+    fn access(dir: &Path) -> (FileAccess, Arc<Mutex<Vec<String>>>) {
+        let hits = Arc::new(Mutex::new(Vec::new()));
         let h = hits.clone();
         let a = FileAccess::new(
             dir,
-            Arc::new(move |_| {
-                h.fetch_add(1, Ordering::SeqCst);
+            Arc::new(move |p| {
+                h.lock().unwrap().push(p.to_string());
             }),
         );
         (a, hits)
+    }
+
+    fn reported(hits: &Arc<Mutex<Vec<String>>>, file: &str) -> usize {
+        hits.lock()
+            .unwrap()
+            .iter()
+            .filter(|p| p.ends_with(file))
+            .count()
     }
 
     #[test]
@@ -380,31 +388,36 @@ mod tests {
         a.allow(&watched);
         a.allow(&quiet);
         a.watch(watched.to_str().unwrap(), &[]).unwrap();
+        // Some platforms (FSEvents) replay events from just before the watch started.
+        std::thread::sleep(Duration::from_millis(600));
+        hits.lock().unwrap().clear();
 
         std::fs::write(&quiet, "changed").unwrap();
-        std::thread::sleep(Duration::from_millis(400));
+        std::thread::sleep(Duration::from_millis(600));
         assert_eq!(
-            hits.load(Ordering::SeqCst),
+            reported(&hits, "q.sql"),
             0,
             "an unwatched file is not reported"
         );
 
         std::fs::write(&watched, "changed").unwrap();
         for _ in 0..50 {
-            if hits.load(Ordering::SeqCst) > 0 {
+            if reported(&hits, "w.sql") > 0 {
                 break;
             }
             std::thread::sleep(Duration::from_millis(100));
         }
-        assert!(
-            hits.load(Ordering::SeqCst) > 0,
-            "a watched file is reported"
-        );
+        assert!(reported(&hits, "w.sql") > 0, "a watched file is reported");
 
         a.unwatch(watched.to_str().unwrap());
-        let before = hits.load(Ordering::SeqCst);
+        std::thread::sleep(Duration::from_millis(600));
+        hits.lock().unwrap().clear();
         std::fs::write(&watched, "again").unwrap();
-        std::thread::sleep(Duration::from_millis(400));
-        assert_eq!(hits.load(Ordering::SeqCst), before);
+        std::thread::sleep(Duration::from_millis(600));
+        assert_eq!(
+            reported(&hits, "w.sql"),
+            0,
+            "after unwatch nothing is reported"
+        );
     }
 }
