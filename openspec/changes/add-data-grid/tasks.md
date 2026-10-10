@@ -1,19 +1,19 @@
 ## 1. Grid component
 
-- [ ] 1.1 Add @glideapps/glide-data-grid; build `ResultGrid` with a token-derived theme, row numbers and two-line headers (spec: data-grid › Grid rendering)
-- [ ] 1.2 Implement `ResultStore` (columnar batches, O(1) cell lookup, append and replace pages)
-- [ ] 1.3 Custom cell renderers: typed colors, right-aligned numbers, italic NULL, FK underline, truncated marker
-- [ ] 1.4 Cell viewer (Shift+Enter): JSON pretty view, bytes hex, long text (spec: data-grid › Cell viewer)
-- [ ] 1.5 Test: store lookups; renderer picks the right style per value kind
+- [x] 1.1 Add @glideapps/glide-data-grid; build `ResultGrid` with a token-derived theme, row numbers and two-line headers (spec: data-grid › Grid rendering)
+- [x] 1.2 Implement `ResultStore` (columnar batches, O(1) cell lookup, append and replace pages)
+- [x] 1.3 Custom cell renderers: typed colors, right-aligned numbers, italic NULL, FK underline, truncated marker
+- [x] 1.4 Cell viewer (Shift+Enter): JSON pretty view, bytes hex, long text (spec: data-grid › Cell viewer)
+- [x] 1.5 Test: store lookups; renderer picks the right style per value kind
 
 ## 2. Selection, copy, sort, columns
 
-- [ ] 2.1 Range/row/column selection; Mod+C as TSV; Copy as CSV / JSON / Markdown / SQL INSERT (spec: data-grid › Selection and copy)
-- [ ] 2.2 Header sort cycle with accent arrow; client-side sort notice for partial console results (spec: data-grid › Sorting and columns)
-- [ ] 2.3 Column resize (auto-fit on double-click), reorder, hide via Columns menu
-- [ ] 2.4 Transpose toggle (spec: data-grid › Transpose)
-- [ ] 2.5 Replace the console's interim table with `ResultGrid`
-- [ ] 2.6 Test: copy formats and dialect quoting; sort cycle
+- [x] 2.1 Range/row/column selection; Mod+C as TSV; Copy as CSV / JSON / Markdown / SQL INSERT (spec: data-grid › Selection and copy)
+- [x] 2.2 Header sort cycle with accent arrow; client-side sort notice for partial console results (spec: data-grid › Sorting and columns)
+- [x] 2.3 Column resize (auto-fit on double-click), reorder, hide via Columns menu
+- [x] 2.4 Transpose toggle (spec: data-grid › Transpose)
+- [x] 2.5 Replace the console's interim table with `ResultGrid`
+- [x] 2.6 Test: copy formats and dialect quoting; sort cycle
 
 ## 3. Export
 

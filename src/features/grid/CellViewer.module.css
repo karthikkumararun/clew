@@ -1,0 +1,101 @@
+.body {
+  padding: 16px 20px;
+  max-height: min(60vh, 560px);
+  overflow: auto;
+  font-size: var(--fs-small);
+}
+
+.meta {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+}
+
+.notice {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--pending-bar-bg);
+  border: 1px solid var(--pending-bar-border);
+  color: var(--pending-bar-text);
+}
+
+.nullNote {
+  margin: 0;
+  color: var(--syn-null);
+  font-style: italic;
+  font-family: var(--font-mono);
+}
+
+.text,
+.hex {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.hex {
+  white-space: pre;
+}
+
+.hexOffset {
+  color: var(--text-dim);
+}
+
+.hexAscii {
+  color: var(--text-muted);
+}
+
+.json {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.jLine {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.jChildren {
+  padding-left: 18px;
+}
+
+.fold {
+  width: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.jKey {
+  color: var(--syn-function);
+}
+
+.jString {
+  color: var(--syn-string);
+}
+
+.jNumber {
+  color: var(--syn-number);
+}
+
+.jBool {
+  color: var(--syn-boolean);
+}
+
+.jNull {
+  color: var(--syn-null);
+}
+
+.jPunct {
+  color: var(--text-secondary);
+}

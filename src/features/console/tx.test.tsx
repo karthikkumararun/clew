@@ -32,6 +32,10 @@ vi.mock("../../lib/ipc/drivers", () => ({
   introspectChildren: vi.fn(),
   isAppError: () => false,
 }));
+vi.mock("../grid/ResultGrid", async () => {
+  const { FakeResultGrid } = await import("../grid/testing");
+  return { ResultGrid: FakeResultGrid, autoWidth: () => 100 };
+});
 vi.mock("../../connections/api", () => ({ sessionSwitchNamespace: vi.fn() }));
 
 type Send = (e: ResultEvent) => void;
