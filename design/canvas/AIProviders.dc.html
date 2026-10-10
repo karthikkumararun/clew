@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew AI settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.nav{display:flex;align-items:center;gap:10px;width:100%;height:32px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:#C9CED6;font-size:13px;text-align:left}
+.h{margin:0;font-size:11px;font-weight:600;letter-spacing:0.08em;color:#9AA3AE}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld label,.lbl{font-size:12px;color:#9AA3AE}
+.in{height:34px;border-radius:6px;border:1px solid #2E343D;background:#0E1014;color:#E6E8EB;padding:0 10px;font-size:13px;width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:6px;border:1px solid #2E343D;background:#1A1E25;font-size:13px;white-space:nowrap}
+.pri{background:#E3A64F;border-color:#E3A64F;color:#0E1014;font-weight:600}
+.prov{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:8px;text-align:left;font-size:13px}
+.prov small{display:block;color:#9AA3AE;font-size:11.5px;margin-top:2px}
+.logo{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;font:600 11px/1 'JetBrains Mono',monospace;color:#0E1014;flex:none}
+.chk{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#E6E8EB}
+.chk input{margin:2px 0 0;accent-color:#E3A64F;width:14px;height:14px}
+.chk small{display:block;color:#9AA3AE;font-size:12px;margin-top:2px}
+.route{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #1F242B;font-size:13px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: #090A0D; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <div role="dialog" aria-modal="true" aria-labelledby="st" style="width: 100%; max-width: 1120px; border-radius: 12px; border: 1px solid #2E343D; background: #14171C; box-shadow: 0 24px 64px rgba(0,0,0,0.55); display: flex; flex-direction: column; overflow: hidden">
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 20px; border-bottom: 1px solid #262B33">
+      <h1 id="st" style="margin: 0; font-size: 15px; font-weight: 600">Settings</h1>
+      <button type="button" aria-label="Close" style="width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; min-height: 780px">
+      <!-- Settings nav -->
+      <nav aria-label="Settings sections" style="flex: 1 1 200px; max-width: 210px; padding: 12px 8px; background: #111419; border-right: 1px solid #262B33; display: flex; flex-direction: column; gap: 2px">
+        <button type="button" class="nav">General</button>
+        <button type="button" class="nav">Editor</button>
+        <button type="button" class="nav">Data grid</button>
+        <button type="button" class="nav">Keymap</button>
+        <button type="button" class="nav" aria-current="page" style="background: #1E242C; color: #E6E8EB; box-shadow: inset 2px 0 0 #E3A64F">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#E3A64F" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7l-3.7 2.4 1.1-4.3L2 6l4.4-.3z"/></svg>AI assistant
+        </button>
+        <button type="button" class="nav">Updates</button>
+      </nav>
+
+      <div style="flex: 999 1 560px; min-width: 0; padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 22px">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+          <div>
+            <h2 style="margin: 0; font-size: 18px; font-weight: 600">AI assistant</h2>
+            <p style="margin: 4px 0 0; color: #9AA3AE; max-width: 560px; line-height: 1.5">Bring your own model. Sign in to GitHub Copilot, or point Clew at Claude, OpenAI or any compatible endpoint. Keys stay in your system keychain.</p>
+          </div>
+          <label class="chk" style="align-items: center"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Enable AI features</span></label>
+        </div>
+
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start">
+          <!-- Provider list -->
+          <div style="flex: 1 1 280px; max-width: 320px; display: flex; flex-direction: column; gap: 6px">
+            <h3 class="h" style="margin-bottom: 4px">PROVIDERS</h3>
+            <sc-for list="{{providers}}" as="p" hint-placeholder-count="5">
+              <button type="button" class="prov" onClick="{{p.pick}}" aria-pressed="{{p.selected}}" style="border: 1px solid {{p.border}}; background: {{p.bg}}; color: #E6E8EB">
+                <span class="logo" style="background: {{p.color}}">{{p.mark}}</span>
+                <span style="flex: 1; min-width: 0">{{p.name}}<small>{{p.sub}}</small></span>
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: {{p.statusColor}}"><span style="width: 7px; height: 7px; border-radius: 50%; background: {{p.statusColor}}"></span>{{p.status}}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <!-- Provider detail -->
+          <div style="flex: 999 1 380px; min-width: 0; border: 1px solid #262B33; border-radius: 10px; background: #111419; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+
+            <sc-if value="{{isCopilot}}" hint-placeholder-val="{{true}}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; align-items: center; gap: 10px"><span class="logo" style="background: #C9CED6">GH</span><div><div style="font-weight: 600">GitHub Copilot</div><div style="color: #9AA3AE; font-size: 12px">Inline completions and chat with your Copilot subscription</div></div></div>
+                <sc-if value="{{cpOut}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start">
+                    <p style="margin: 0; color: #C9CED6; line-height: 1.5">Sign in with the GitHub account that has Copilot. Clew opens github.com in your browser and never sees your password.</p>
+                    <button type="button" class="btn pri" onClick="{{cpStart}}">Sign in with GitHub</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{cpPending}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: 8px; border: 1px dashed #4A3A22; background: #1E1A12">
+                    <div style="color: #C9B48F; font-size: 12px">Enter this code at <a href="#">github.com/login/device</a></div>
+                    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+                      <span class="mono" style="font-size: 26px; font-weight: 600; letter-spacing: 0.18em; color: #F2C27F">8F2K-Q7MD</span>
+                      <button type="button" class="btn">Copy &amp; open browser</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; color: #9AA3AE; font-size: 12px">Waiting for authorization… expires in 14:32
+                      <button type="button" class="btn" onClick="{{cpDone}}" style="height: 28px; font-size: 12px">Check now</button>
+                      <button type="button" class="btn" onClick="{{cpCancel}}" style="height: 28px; font-size: 12px; background: transparent">Cancel</button>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{cpIn}}" hint-placeholder-val="{{true}}">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 1px solid #23463A; background: #13221C; flex-wrap: wrap">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6CC4A1" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>
+                    <span style="flex: 1">Signed in as <span class="mono">@your-handle</span> · Copilot plan detected</span>
+                    <button type="button" class="btn" onClick="{{cpCancel}}" style="height: 28px; font-size: 12px; background: transparent">Sign out</button>
+                  </div>
+                </sc-if>
+                <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Inline completions in the SQL editor<small>Ghost text as you type; Tab accepts, Esc dismisses.</small></span></label>
+                <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Use Copilot for chat too<small>Uses the chat models your Copilot plan allows.</small></span></label>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{isKeyed}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; align-items: center; gap: 10px"><span class="logo" style="background: {{cur.color}}">{{cur.mark}}</span><div><div style="font-weight: 600">{{cur.name}}</div><div style="color: #9AA3AE; font-size: 12px">{{cur.blurb}}</div></div></div>
+                <div class="fld"><label for="k-key">API key</label>
+                  <div style="display: flex; gap: 8px"><input id="k-key" class="in mono" type="password" value="placeholder-key-value" onChange="{{noop}}"><button type="button" class="btn">Paste</button></div>
+                  <span style="color: #7D8794; font-size: 11.5px">Saved in the system keychain. <a href="#" style="text-decoration: none">Where do I get a key?</a></span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+                  <div class="fld"><label for="k-model">Chat model</label><select id="k-model" class="in"><sc-for list="{{cur.models}}" as="m" hint-placeholder-count="3"><option>{{m}}</option></sc-for></select></div>
+                  <div class="fld"><label for="k-base">Base URL</label><input id="k-base" class="in mono" value="{{cur.base}}" onChange="{{noop}}"></div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{isCustom}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; align-items: center; gap: 10px"><span class="logo" style="background: #9AA3AE">{ }</span><div><div style="font-weight: 600">Custom endpoint</div><div style="color: #9AA3AE; font-size: 12px">Azure OpenAI, OpenRouter, LiteLLM, vLLM, a company gateway…</div></div></div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+                  <div class="fld"><label for="c-name">Display name</label><input id="c-name" class="in" value="Team gateway" onChange="{{noop}}"></div>
+                  <div class="fld"><label for="c-api">API style</label><select id="c-api" class="in"><option>OpenAI-compatible (chat/completions)</option><option>Anthropic-compatible (messages)</option></select></div>
+                </div>
+                <div class="fld"><label for="c-url">Base URL</label><input id="c-url" class="in mono" value="https://llm.internal.example.com/v1" onChange="{{noop}}"></div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+                  <div class="fld"><label for="c-auth">Authentication</label><select id="c-auth" class="in"><option>Bearer token</option><option>Custom header</option><option>None</option></select></div>
+                  <div class="fld"><label for="c-tok">Token</label><input id="c-tok" class="in mono" type="password" value="placeholder-token" onChange="{{noop}}"></div>
+                </div>
+                <div class="fld"><label for="c-model">Model ID</label><input id="c-model" class="in mono" placeholder="as your endpoint names it" onChange="{{noop}}"></div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{isLocal}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; flex-direction: column; gap: 14px">
+                <div style="display: flex; align-items: center; gap: 10px"><span class="logo" style="background: #E8D27A">LO</span><div><div style="font-weight: 600">Local model</div><div style="color: #9AA3AE; font-size: 12px">Ollama or LM Studio on this machine. Nothing leaves your computer.</div></div></div>
+                <div class="fld"><label for="l-url">Endpoint</label><input id="l-url" class="in mono" value="http://localhost:11434" onChange="{{noop}}"></div>
+                <div class="fld"><label for="l-model">Model</label><select id="l-model" class="in"><option>Detected on test…</option></select></div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{showTest}}" hint-placeholder-val="{{false}}">
+              <div style="display: flex; align-items: center; gap: 12px; padding-top: 6px; border-top: 1px solid #262B33; flex-wrap: wrap">
+                <button type="button" class="btn" onClick="{{test}}">Test connection</button>
+                <sc-if value="{{tested}}" hint-placeholder-val="{{false}}">
+                  <span role="status" style="display: inline-flex; align-items: center; gap: 6px; color: #6CC4A1; font-size: 12.5px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>Reachable · model responded in 640 ms</span>
+                </sc-if>
+                <div style="flex: 1"></div>
+                <button type="button" class="btn pri">Save</button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <!-- Routing + privacy -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px">
+          <div>
+            <h3 class="h" style="margin-bottom: 6px">USE FOR</h3>
+            <div class="route"><span>Inline completions</span><select class="in" aria-label="Inline completions provider" style="height: 30px"><option>GitHub Copilot</option><option>Off</option></select></div>
+            <div class="route"><span>Chat panel</span><select class="in" aria-label="Chat provider" style="height: 30px"><option>Claude · Sonnet 5.5</option><option>OpenAI</option><option>Team gateway</option><option>Local model</option></select></div>
+            <div class="route"><span>Fix / explain errors</span><select class="in" aria-label="Error assistant provider" style="height: 30px"><option>Same as chat</option></select></div>
+            <div class="route" style="border-bottom: 0"><span>Natural language → SQL</span><select class="in" aria-label="SQL generation provider" style="height: 30px"><option>Same as chat</option></select></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <h3 class="h">WHAT THE AI CAN SEE</h3>
+            <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Schema: table, column and index names and types</span></label>
+            <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>The SQL in the editor and error messages</span></label>
+            <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Sample rows from results<small>Up to 20 rows, only when you attach them to a message.</small></span></label>
+            <div class="fld" style="max-width: 360px"><label for="p-prod">On Production connections</label><select id="p-prod" class="in"><option>Schema only, never row data</option><option>Disable AI entirely</option><option>Same as other connections</option></select></div>
+            <p style="margin: 0; color: #7D8794; font-size: 12px">Hostnames, usernames and passwords are never sent. AI-written SQL is never run without you pressing Run.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { provider: 'copilot', copilot: 'in', tested: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const cpStatus = { out: ['Not signed in', '#7D8794'], pending: ['Waiting…', '#E3A64F'], in: ['Signed in', '#6CC4A1'] }[s.copilot];
+    const P = [
+      { id: 'copilot', name: 'GitHub Copilot', sub: 'Sign in with GitHub', mark: 'GH', color: '#C9CED6', status: cpStatus[0], statusColor: cpStatus[1] },
+      { id: 'anthropic', name: 'Anthropic Claude', sub: 'API key', mark: 'AN', color: '#D97757', status: 'Connected', statusColor: '#6CC4A1',
+        blurb: 'Claude models through the Anthropic API', base: 'https://api.anthropic.com', models: ['Claude Sonnet 5.5', 'Claude Opus 5.5', 'Claude Haiku 5.5'] },
+      { id: 'openai', name: 'OpenAI', sub: 'API key · GPT and Codex models', mark: 'OA', color: '#6CC4A1', status: 'Not set up', statusColor: '#7D8794',
+        blurb: 'GPT and Codex models through the OpenAI API', base: 'https://api.openai.com/v1', models: ['Choose after adding a key'] },
+      { id: 'custom', name: 'Custom endpoint', sub: 'OpenAI- or Anthropic-compatible', mark: '{ }', color: '#9AA3AE', status: 'Team gateway', statusColor: '#9AA3AE' },
+      { id: 'local', name: 'Local model', sub: 'Ollama · LM Studio', mark: 'LO', color: '#E8D27A', status: 'Not set up', statusColor: '#7D8794' }
+    ];
+    const providers = P.map((p) => {
+      const sel = p.id === s.provider;
+      return { ...p, selected: sel ? 'true' : 'false', bg: sel ? '#1E242C' : '#111419', border: sel ? '#E3A64F' : '#262B33',
+        pick: () => this.setState({ provider: p.id, tested: false }) };
+    });
+    const cur = P.find((p) => p.id === s.provider) || P[0];
+    return {
+      providers, cur,
+      isCopilot: s.provider === 'copilot',
+      isKeyed: s.provider === 'anthropic' || s.provider === 'openai',
+      isCustom: s.provider === 'custom',
+      isLocal: s.provider === 'local',
+      showTest: s.provider !== 'copilot',
+      cpOut: s.copilot === 'out', cpPending: s.copilot === 'pending', cpIn: s.copilot === 'in',
+      cpStart: () => this.setState({ copilot: 'pending' }),
+      cpDone: () => this.setState({ copilot: 'in' }),
+      cpCancel: () => this.setState({ copilot: 'out' }),
+      tested: s.tested,
+      test: () => this.setState({ tested: true }),
+      noop: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

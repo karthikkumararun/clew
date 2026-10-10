@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew new connection</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld label,.lbl{font-size:12px;color:#9AA3AE}
+.in{height:34px;border-radius:6px;border:1px solid #2E343D;background:#0E1014;color:#E6E8EB;padding:0 10px;font-size:13px;width:100%}
+.in.mono{font-size:12.5px}
+.drv{display:flex;align-items:center;gap:10px;width:100%;height:36px;padding:0 10px;border:0;border-radius:6px;font-size:13px;text-align:left}
+.tab{height:36px;padding:0 2px;border:0;background:transparent;font-size:13px}
+.chk{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#E6E8EB}
+.chk input{margin:2px 0 0;accent-color:#E3A64F;width:14px;height:14px}
+.chk small{display:block;color:#9AA3AE;font-size:12px;margin-top:2px}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; align-items: center; justify-content: center; padding: 32px 16px; background: #090A0D; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <div role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width: 100%; max-width: 960px; border-radius: 12px; border: 1px solid #2E343D; background: #14171C; box-shadow: 0 24px 64px rgba(0,0,0,0.55); display: flex; flex-direction: column; overflow: hidden">
+
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 20px; border-bottom: 1px solid #262B33">
+      <h1 id="dlg-title" style="margin: 0; font-size: 15px; font-weight: 600">New connection</h1>
+      <button type="button" aria-label="Close" style="width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; min-height: 600px">
+      <!-- Driver list -->
+      <div style="flex: 1 1 220px; max-width: 240px; border-right: 1px solid #262B33; background: #111419; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px">
+        <label for="drv-search" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search drivers</label>
+        <input id="drv-search" class="in" placeholder="Search drivers…" style="height: 30px; font-size: 12px; margin: 0 2px 8px; width: auto">
+        <div style="padding: 6px 10px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #7D8794">SQL</div>
+        <sc-for list="{{sqlDrivers}}" as="d" hint-placeholder-count="7">
+          <button type="button" class="drv" onClick="{{d.pick}}" aria-pressed="{{d.selected}}" style="background: {{d.bg}}; color: {{d.fg}}; box-shadow: {{d.ring}}">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: {{d.color}}; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">{{d.badge}}</span>{{d.name}}
+          </button>
+        </sc-for>
+        <div style="padding: 10px 10px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #7D8794">NOSQL</div>
+        <sc-for list="{{noDrivers}}" as="d" hint-placeholder-count="2">
+          <button type="button" class="drv" onClick="{{d.pick}}" aria-pressed="{{d.selected}}" style="background: {{d.bg}}; color: {{d.fg}}; box-shadow: {{d.ring}}">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: {{d.color}}; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">{{d.badge}}</span>{{d.name}}
+          </button>
+        </sc-for>
+        <div style="flex: 1"></div>
+        <p style="margin: 8px 10px 0; color: #7D8794; font-size: 11.5px; line-height: 1.45">Drivers are plugins. Missing one? <a href="#" style="text-decoration: none">Browse drivers</a></p>
+      </div>
+
+      <!-- Form -->
+      <div style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column">
+        <div style="padding: 20px 24px 0; display: flex; flex-direction: column; gap: 16px">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+            <div class="fld"><label for="c-name">Name</label><input id="c-name" class="in" value="{{connName}}" onChange="{{noop}}"></div>
+            <div class="fld"><label for="c-group">Group</label><select id="c-group" class="in"><option>{{groupName}}</option><option>Local</option><option>Staging</option><option>New group…</option></select></div>
+          </div>
+          <div class="fld">
+            <span class="lbl">Environment</span>
+            <div role="radiogroup" aria-label="Environment" style="display: flex; gap: 8px; flex-wrap: wrap">
+              <sc-for list="{{envs}}" as="e" hint-placeholder-count="4">
+                <button type="button" role="radio" aria-checked="{{e.selected}}" onClick="{{e.pick}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid {{e.border}}; background: {{e.bg}}; font-size: 12.5px">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: {{e.color}}"></span>{{e.name}}
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div role="tablist" aria-label="Connection settings" style="display: flex; gap: 24px; padding: 0 24px; margin-top: 18px; border-bottom: 1px solid #262B33">
+          <sc-for list="{{tabs}}" as="t" hint-placeholder-count="4">
+            <button type="button" role="tab" class="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="color: {{t.fg}}; box-shadow: {{t.ring}}">{{t.name}}</button>
+          </sc-for>
+        </div>
+
+        <div style="flex: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+          <!-- GENERAL -->
+          <sc-if value="{{tabGeneral}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <sc-if value="{{isNet}}" hint-placeholder-val="{{true}}">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px">
+                    <div class="fld"><label for="c-host">Host</label><input id="c-host" class="in mono" value="db.internal" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="c-port">Port</label><input id="c-port" class="in mono" value="{{port}}" onChange="{{noop}}"></div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+                    <div class="fld"><label for="c-user">User</label><input id="c-user" class="in mono" value="karthik" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="c-pass">Password</label><input id="c-pass" class="in mono" type="password" value="placeholder-pw" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="c-store">Save password</label><select id="c-store" class="in"><option>In system keychain</option><option>Ask every time</option><option>Don’t save</option></select></div>
+                  </div>
+                  <div class="fld"><label for="c-db">Database</label><input id="c-db" class="in mono" value="analytics" onChange="{{noop}}"></div>
+                </div>
+              </sc-if>
+              <sc-if value="{{isFile}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div class="fld"><label for="c-file">Database file</label>
+                    <div style="display: flex; gap: 8px"><input id="c-file" class="in mono" value="~/Projects/notes/notes.sqlite" onChange="{{noop}}"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 6px; border: 1px solid #2E343D; background: #1A1E25; white-space: nowrap">Choose…</button></div>
+                  </div>
+                  <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Create the file if it doesn’t exist</span></label>
+                </div>
+              </sc-if>
+              <sc-if value="{{isMongo}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div class="fld"><label for="c-uri">Connection string</label><input id="c-uri" class="in mono" value="mongodb+srv://karthik@cluster0.example.net/shop?retryWrites=true" onChange="{{noop}}"></div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+                    <div class="fld"><label for="c-authdb">Auth database</label><input id="c-authdb" class="in mono" value="admin" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="c-mech">Auth mechanism</label><select id="c-mech" class="in"><option>SCRAM-SHA-256</option><option>X.509</option><option>None</option></select></div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{isRedis}}" hint-placeholder-val="{{false}}">
+                <div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px 110px; gap: 12px">
+                  <div class="fld"><label for="r-host">Host</label><input id="r-host" class="in mono" value="localhost" onChange="{{noop}}"></div>
+                  <div class="fld"><label for="r-port">Port</label><input id="r-port" class="in mono" value="{{port}}" onChange="{{noop}}"></div>
+                  <div class="fld"><label for="r-db">DB index</label><input id="r-db" class="in mono" value="0" onChange="{{noop}}"></div>
+                </div>
+              </sc-if>
+              <div class="fld"><span class="lbl">URL</span>
+                <div class="mono" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; padding: 6px 10px; border-radius: 6px; background: #0E1014; border: 1px dashed #2E343D; color: #9AA3AE; font-size: 12px; overflow-wrap: anywhere">{{urlPreview}}<button type="button" style="flex: none; border: 0; background: transparent; color: #E3A64F; font-size: 12px">Copy</button></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- SSH -->
+          <sc-if value="{{tabSsh}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Connect through an SSH tunnel<small>Clew opens a local forward and connects through it.</small></span></label>
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 12px">
+                <div class="fld"><label for="s-host">SSH host</label><input id="s-host" class="in mono" value="bastion.example.net" onChange="{{noop}}"></div>
+                <div class="fld"><label for="s-port">Port</label><input id="s-port" class="in mono" value="22" onChange="{{noop}}"></div>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+                <div class="fld"><label for="s-user">User</label><input id="s-user" class="in mono" value="karthik" onChange="{{noop}}"></div>
+                <div class="fld"><label for="s-auth">Authentication</label><select id="s-auth" class="in"><option>SSH agent</option><option>Key file</option><option>Password</option></select></div>
+              </div>
+              <div class="fld"><label for="s-key">Key file (when not using the agent)</label><input id="s-key" class="in mono" value="~/.ssh/id_ed25519" onChange="{{noop}}"></div>
+              <p style="margin: 0; color: #9AA3AE; font-size: 12px">Hosts from <span class="mono">~/.ssh/config</span> are suggested as you type.</p>
+            </div>
+          </sc-if>
+
+          <!-- SSL -->
+          <sc-if value="{{tabSsl}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <div class="fld"><label for="t-mode">SSL mode</label><select id="t-mode" class="in"><option>verify-full</option><option>verify-ca</option><option>require</option><option>prefer</option><option>disable</option></select></div>
+              <div class="fld"><label for="t-ca">CA certificate</label><input id="t-ca" class="in mono" value="~/certs/rds-ca-2026.pem" onChange="{{noop}}"></div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+                <div class="fld"><label for="t-cert">Client certificate</label><input id="t-cert" class="in mono" placeholder="optional" onChange="{{noop}}"></div>
+                <div class="fld"><label for="t-key">Client key</label><input id="t-key" class="in mono" placeholder="optional" onChange="{{noop}}"></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ADVANCED -->
+          <sc-if value="{{tabAdv}}" hint-placeholder-val="{{false}}">
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+                <div class="fld"><label for="a-ct">Connect timeout (s)</label><input id="a-ct" class="in mono" value="10" onChange="{{noop}}"></div>
+                <div class="fld"><label for="a-qt">Query timeout (s)</label><input id="a-qt" class="in mono" value="0 = none" onChange="{{noop}}"></div>
+                <div class="fld"><label for="a-ka">Keep-alive (s)</label><input id="a-ka" class="in mono" value="60" onChange="{{noop}}"></div>
+              </div>
+              <div class="fld"><label for="a-init">Run on connect</label><textarea id="a-init" class="mono" rows="3" style="border-radius: 6px; border: 1px solid #2E343D; background: #0E1014; color: #E6E8EB; padding: 8px 10px; font-size: 12.5px; resize: vertical">SET search_path TO public, analytics;
+SET statement_timeout = '60s';</textarea></div>
+              <div class="fld"><span class="lbl">Driver properties</span>
+                <div class="mono" style="border: 1px solid #2E343D; border-radius: 6px; font-size: 12px">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; padding: 7px 10px; border-bottom: 1px solid #262B33"><span>application_name</span><span style="color: #9CD08B">clew</span></div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; padding: 7px 10px"><span style="color: #7D8794">+ add property</span><span></span></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Production safeguards -->
+          <sc-if value="{{isProd}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 8px; border: 1px solid #5A2A26; background: #1F1416">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #F7A39B"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2l6 11H2z"/><path d="M8 6.5v3M8 11.5v.5"/></svg>Production safeguards</div>
+              <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Open read-only by default<small>Switch to read-write per session from the toolbar.</small></span></label>
+              <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Confirm every write, and block UPDATE / DELETE without WHERE</span></label>
+              <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Manual commit (no auto-commit)</span></label>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- Footer -->
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid #262B33; flex-wrap: wrap">
+          <button type="button" onClick="{{test}}" style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 6px; border: 1px solid #2E343D; background: #1A1E25; font-size: 13px">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 2v4M10 2v4M4 6h8v2a4 4 0 0 1-8 0zM8 12v2"/></svg>Test connection
+          </button>
+          <sc-if value="{{tested}}" hint-placeholder-val="{{false}}">
+            <span role="status" style="display: inline-flex; align-items: center; gap: 6px; color: #6CC4A1; font-size: 12.5px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg>{{testResult}}</span>
+          </sc-if>
+          <div style="flex: 1"></div>
+          <button type="button" style="height: 34px; padding: 0 16px; border-radius: 6px; border: 1px solid #2E343D; background: transparent; font-size: 13px">Cancel</button>
+          <button type="button" style="height: 34px; padding: 0 16px; border-radius: 6px; border: 1px solid #E3A64F; background: #E3A64F; color: #0E1014; font-weight: 600; font-size: 13px">Save &amp; connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { driver: 'postgres', env: 'prod', tab: 'general', tested: false };
+  }
+  renderVals() {
+    const s = this.state;
+    const ALL = [
+      { id: 'postgres', name: 'PostgreSQL', badge: 'PG', color: '#6EA8FE', kind: 'net', port: '5432', ver: 'PostgreSQL 16.2', scheme: 'postgresql' },
+      { id: 'mysql', name: 'MySQL', badge: 'MY', color: '#F0A35E', kind: 'net', port: '3306', ver: 'MySQL 8.4', scheme: 'mysql' },
+      { id: 'mariadb', name: 'MariaDB', badge: 'MA', color: '#C9A0FF', kind: 'net', port: '3306', ver: 'MariaDB 11.4', scheme: 'mariadb' },
+      { id: 'mssql', name: 'SQL Server', badge: 'MS', color: '#7FC8F8', kind: 'net', port: '1433', ver: 'SQL Server 2022', scheme: 'sqlserver' },
+      { id: 'clickhouse', name: 'ClickHouse', badge: 'CH', color: '#F2D06B', kind: 'net', port: '8123', ver: 'ClickHouse 24.8', scheme: 'clickhouse' },
+      { id: 'sqlite', name: 'SQLite', badge: 'SQ', color: '#B8C0CC', kind: 'file', ver: 'SQLite 3.46', scheme: 'sqlite' },
+      { id: 'duckdb', name: 'DuckDB', badge: 'DK', color: '#E8D27A', kind: 'file', ver: 'DuckDB 1.1', scheme: 'duckdb' },
+      { id: 'mongodb', name: 'MongoDB', badge: 'MG', color: '#6CC48A', kind: 'mongo', port: '27017', ver: 'MongoDB 8.0', scheme: 'mongodb+srv' },
+      { id: 'redis', name: 'Redis', badge: 'RD', color: '#F2766B', kind: 'redis', port: '6379', ver: 'Redis 7.4', scheme: 'redis' }
+    ];
+    const cur = ALL.find((d) => d.id === s.driver) || ALL[0];
+    const mk = (d) => {
+      const sel = d.id === s.driver;
+      return { ...d, selected: sel ? 'true' : 'false', bg: sel ? '#1E242C' : 'transparent', fg: sel ? '#E6E8EB' : '#C9CED6',
+        ring: sel ? 'inset 2px 0 0 #E3A64F' : 'none', pick: () => this.setState({ driver: d.id, tested: false }) };
+    };
+    const ENV = [
+      { id: 'local', name: 'Local', color: '#6CC4A1' },
+      { id: 'dev', name: 'Development', color: '#7FC8F8' },
+      { id: 'staging', name: 'Staging', color: '#E3A64F' },
+      { id: 'prod', name: 'Production', color: '#F2766B' }
+    ];
+    const envs = ENV.map((e) => {
+      const sel = e.id === s.env;
+      return { ...e, selected: sel ? 'true' : 'false', bg: sel ? '#1E242C' : 'transparent', border: sel ? e.color : '#2E343D',
+        pick: () => this.setState({ env: e.id }) };
+    });
+    const TABS = [['general', 'General'], ['ssh', 'SSH tunnel'], ['ssl', 'SSL / TLS'], ['advanced', 'Advanced']];
+    const tabs = TABS.map(([id, name]) => {
+      const sel = id === s.tab;
+      return { name, selected: sel ? 'true' : 'false', fg: sel ? '#E6E8EB' : '#9AA3AE', ring: sel ? 'inset 0 -2px 0 #E3A64F' : 'none',
+        pick: () => this.setState({ tab: id }) };
+    });
+    let urlPreview;
+    if (cur.kind === 'net') urlPreview = cur.scheme + '://karthik@db.internal:' + cur.port + '/analytics?sslmode=verify-full';
+    else if (cur.kind === 'file') urlPreview = cur.scheme + ':///Users/karthik/Projects/notes/notes.sqlite';
+    else if (cur.kind === 'mongo') urlPreview = 'mongodb+srv://karthik@cluster0.example.net/shop?authSource=admin';
+    else urlPreview = 'redis://localhost:' + cur.port + '/0';
+    const envName = (ENV.find((e) => e.id === s.env) || ENV[3]).id;
+    return {
+      sqlDrivers: ALL.slice(0, 7).map(mk),
+      noDrivers: ALL.slice(7).map(mk),
+      envs, tabs,
+      tabGeneral: s.tab === 'general', tabSsh: s.tab === 'ssh', tabSsl: s.tab === 'ssl', tabAdv: s.tab === 'advanced',
+      isNet: cur.kind === 'net', isFile: cur.kind === 'file', isMongo: cur.kind === 'mongo', isRedis: cur.kind === 'redis',
+      isProd: s.env === 'prod',
+      port: cur.port || '',
+      connName: envName + '-' + cur.id,
+      groupName: s.env === 'prod' ? 'Production' : (s.env === 'staging' ? 'Staging' : 'Local'),
+      urlPreview,
+      tested: s.tested,
+      testResult: 'Connected · ' + cur.ver + ' · 42 ms' + (s.tab === 'ssh' || s.env === 'prod' ? ' via bastion' : ''),
+      test: () => this.setState({ tested: true }),
+      noop: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

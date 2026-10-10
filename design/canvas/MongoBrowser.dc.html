@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew document browser</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.tb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #262B33;background:#1A1E25;color:#E6E8EB;font-size:12px;white-space:nowrap}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:#9AA3AE}
+.col{display:flex;align-items:center;justify-content:space-between;height:28px;padding:0 10px 0 14px;font-size:12.5px;color:#C9CED6;border-radius:6px;margin:0 6px}
+.g{border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;width:100%}
+.g th{position:sticky;top:0;background:#1A1E25;text-align:left;font-weight:500;color:#C9CED6;padding:6px 12px;border-right:1px solid #262B33;border-bottom:1px solid #262B33;white-space:nowrap}
+.g td{padding:0 12px;height:26px;border-right:1px solid #1F242B;border-bottom:1px solid #1F242B;white-space:nowrap;color:#E6E8EB}
+.qf{display:flex;align-items:center;gap:8px;height:32px;border-radius:6px;border:1px solid #262B33;background:#0E1014;padding:0 10px}
+.qf label{font-size:11px;font-weight:600;letter-spacing:0.06em;color:#9AA3AE}
+.qf input{flex:1;min-width:0;border:0;background:transparent;color:#E6E8EB;font-family:'JetBrains Mono',monospace;font-size:12.5px;outline:none}
+</style>
+</helmet>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #0E1014; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <header style="min-height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+    <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #9AA3AE">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #6CC4A1"></span>
+      <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 14px; border-radius: 3px; background: #6CC48A; color: #0E1014; font: 600 8.5px/1 'JetBrains Mono', monospace">MG</span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">dev-mongo</a><span>›</span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">shop</a><span>›</span>
+      <span style="color: #E6E8EB; font-weight: 600">events</span>
+    </nav>
+    <div role="tablist" aria-label="Collection views" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #0E1014; border: 1px solid #262B33">
+      <button role="tab" aria-selected="true" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: #262D36; font-size: 12px">Documents</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Inferred schema</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Indexes</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Aggregation</button>
+    </div>
+    <div style="flex: 1"></div>
+    <button class="tb" type="button"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg>Open in shell console</button>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+    <!-- Collections -->
+    <aside aria-label="Collections" style="flex: 1 1 220px; max-width: 240px; height: 100%; background: #14171C; border-right: 1px solid #262B33; padding-top: 10px; display: flex; flex-direction: column; gap: 2px">
+      <div style="padding: 0 14px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE">SHOP · COLLECTIONS</div>
+      <a href="#" class="col" style="text-decoration: none">carts<span style="color: #7D8794; font-size: 11px">1.2k</span></a>
+      <a href="#" class="col" style="text-decoration: none; background: #1E242C; color: #E6E8EB; box-shadow: inset 2px 0 0 #E3A64F">events<span style="color: #9AA3AE; font-size: 11px">418k</span></a>
+      <a href="#" class="col" style="text-decoration: none">inventory<span style="color: #7D8794; font-size: 11px">3.9k</span></a>
+      <a href="#" class="col" style="text-decoration: none">sessions<span style="color: #7D8794; font-size: 11px">22k</span></a>
+      <a href="#" class="col" style="text-decoration: none">users<span style="color: #7D8794; font-size: 11px">8.1k</span></a>
+      <div style="padding: 14px 14px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE">CACHE-REDIS · KEYS</div>
+      <a href="#" class="col mono" style="text-decoration: none; font-size: 12px">session:*<span style="color: #7D8794; font-size: 11px">hash</span></a>
+      <a href="#" class="col mono" style="text-decoration: none; font-size: 12px">rate:ip:*<span style="color: #7D8794; font-size: 11px">string</span></a>
+      <a href="#" class="col mono" style="text-decoration: none; font-size: 12px">queue:emails<span style="color: #7D8794; font-size: 11px">list</span></a>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; height: 100%; display: flex; flex-direction: column">
+      <!-- Query bar -->
+      <div style="flex: none; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid #262B33; background: #111419">
+        <div class="qf"><label for="mf">FILTER</label><input id="mf" value="{ type: &quot;checkout&quot;, ts: { $gte: ISODate(&quot;2026-10-01&quot;) } }"></div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <div class="qf" style="flex: 2 1 260px"><label for="mp">PROJECT</label><input id="mp" value="{ _id: 1, type: 1, user: 1, items: 1, ts: 1 }"></div>
+          <div class="qf" style="flex: 1 1 160px"><label for="ms">SORT</label><input id="ms" value="{ ts: -1 }"></div>
+          <div class="qf" style="flex: 0 1 110px"><label for="ml">LIMIT</label><input id="ml" value="50"></div>
+          <button class="tb" type="button" style="height: 32px; background: #E3A64F; border-color: #E3A64F; color: #0E1014; font-weight: 600"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5l9 5.5-9 5.5z" fill="currentColor"/></svg>Find <span class="mono" style="font-weight: 500; opacity: 0.75">⌘↵</span></button>
+        </div>
+      </div>
+
+      <!-- Result toolbar -->
+      <div style="height: 40px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+        <div role="tablist" aria-label="Document view mode" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #0E1014; border: 1px solid #262B33">
+          <button role="tab" aria-selected="true" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: #262D36; font-size: 12px">Tree</button>
+          <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Table</button>
+          <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">JSON</button>
+        </div>
+        <button class="ib" type="button" aria-label="Insert document"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+        <button class="ib" type="button" aria-label="Expand all"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+        <div style="flex: 1"></div>
+        <span style="color: #9AA3AE; font-size: 12px">50 of 1,936 matched · 12 ms · index ts_-1_type_1</span>
+        <button class="tb" type="button">Export JSON<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+      </div>
+
+      <!-- Tree grid -->
+      <div style="flex: 1; min-height: 0; overflow: auto">
+        <table class="g">
+          <thead>
+            <tr>
+              <th scope="col" style="width: 40%">Key</th>
+              <th scope="col">Value</th>
+              <th scope="col" style="width: 140px">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{nodes}}" as="nd" hint-placeholder-count="20">
+              <tr style="background: {{nd.bg}}">
+                <td style="padding-left: {{nd.pad}}; color: {{nd.keyColor}}"><span style="display: inline-block; width: 14px; color: #7D8794">{{nd.caret}}</span>{{nd.key}}</td>
+                <td style="color: {{nd.valColor}}">{{nd.val}}</td>
+                <td style="color: #7D8794">{{nd.type}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <footer style="height: 26px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px; border-top: 1px solid #262B33; background: #14171C; color: #9AA3AE; font-size: 11.5px; white-space: nowrap; overflow: hidden">
+    <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC4A1"></span>Connected · dev-mongo</span>
+    <span>MongoDB 8.0 · replica set rs0</span>
+    <span style="flex: 1"></span>
+    <span>Double-click a value to edit · ⌘S saves the document</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { oid: '#C9A0FF', str: '#9CD08B', num: '#F0B37E', date: '#7FC8F8', obj: '#9AA3AE', bool: '#E58FB5' };
+    const raw = [
+      [0, '▾', '(1) ObjectId("6703f1c2a9e4…b812")', '{ 5 fields }', 'Document', C.obj, true],
+      [1, '', '_id', 'ObjectId("6703f1c2a9e41d7c2e0fb812")', 'ObjectId', C.oid],
+      [1, '', 'type', '"checkout"', 'String', C.str],
+      [1, '▾', 'user', '{ 3 fields }', 'Object', C.obj],
+      [2, '', 'id', '1042', 'Int32', C.num],
+      [2, '', 'plan', '"pro"', 'String', C.str],
+      [2, '', 'beta', 'true', 'Boolean', C.bool],
+      [1, '▾', 'items', '[ 2 elements ]', 'Array', C.obj],
+      [2, '▸', '0', '{ sku: "TBL-OAK", qty: 1, price: 249 }', 'Object', C.obj],
+      [2, '▸', '1', '{ sku: "LMP-BRS", qty: 2, price: 64.5 }', 'Object', C.obj],
+      [1, '', 'ts', '2026-10-09T06:31:40.118Z', 'Date', C.date],
+      [0, '▸', '(2) ObjectId("6703ee09a9e4…a771")', '{ 5 fields }', 'Document', C.obj],
+      [0, '▸', '(3) ObjectId("6703ebd4a9e4…a6f0")', '{ 5 fields }', 'Document', C.obj],
+      [0, '▾', '(4) ObjectId("6703e811a9e4…a52c")', '{ 6 fields }', 'Document', C.obj, true],
+      [1, '', '_id', 'ObjectId("6703e811a9e41d7c2e0fa52c")', 'ObjectId', C.oid],
+      [1, '', 'type', '"checkout"', 'String', C.str],
+      [1, '▸', 'user', '{ 2 fields }', 'Object', C.obj],
+      [1, '▸', 'items', '[ 1 element ]', 'Array', C.obj],
+      [1, '', 'coupon', '"FALL26"', 'String', C.str],
+      [1, '', 'ts', '2026-10-09T05:02:11.904Z', 'Date', C.date],
+      [0, '▸', '(5) ObjectId("6703e5a0a9e4…a3e9")', '{ 5 fields }', 'Document', C.obj],
+      [0, '▸', '(6) ObjectId("6703e2f7a9e4…a20b")', '{ 5 fields }', 'Document', C.obj],
+      [0, '▸', '(7) ObjectId("6703df15a9e4…a0c4")', '{ 5 fields }', 'Document', C.obj],
+      [0, '▸', '(8) ObjectId("6703dc88a9e4…9f71")', '{ 5 fields }', 'Document', C.obj]
+    ];
+    const nodes = raw.map((r) => ({
+      pad: (12 + r[0] * 20) + 'px', caret: r[1], key: r[2], val: r[3], type: r[4], valColor: r[5],
+      keyColor: r[0] === 0 ? '#E6E8EB' : '#C9CED6', bg: r[6] ? '#14181E' : 'transparent'
+    }));
+    return { nodes };
+  }
+}
+</script>
+</body>
+</html>

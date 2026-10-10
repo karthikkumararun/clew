@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew welcome</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.act{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:8px;border:1px solid #262B33;background:#14171C;color:#E6E8EB;text-align:left}
+.act small{display:block;color:#9AA3AE;font-size:12px;margin-top:2px}
+.rc{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;text-decoration:none;color:#E6E8EB}
+.rc:hover{background:#171B21}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;border:1px solid #2E343D;background:#1A1E25;font:500 11px/1 'JetBrains Mono',monospace;color:#C9CED6}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; background: #0E1014; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px; position: relative; overflow: hidden">
+
+  <!-- The thread: a single gold line wandering across the ground -->
+  <svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="none" style="position: absolute; inset: 0; opacity: 0.35">
+    <path d="M-20 760 C 180 700, 220 560, 380 600 S 560 820, 700 700 S 820 420, 980 470 S 1200 640, 1300 520 S 1400 260, 1470 300" fill="none" stroke="#E3A64F" stroke-width="1.2"/>
+  </svg>
+
+  <div style="position: relative; width: 100%; max-width: 980px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 56px; align-items: start">
+    <!-- Left: identity + actions -->
+    <div style="display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#E3A64F" stroke-width="1.1" stroke-linecap="round" role="img" aria-label="Clew logo: a ball of thread"><circle cx="10" cy="10" r="7"/><path d="M4 8c4 1 8 1 12-2M3.5 12c4 1.5 9 1.5 13-2M6 16c3-1 6-3 8-7M7 4.5c2 2 3 6 2 11"/><path d="M15.5 15.5c2 2 4 3 7 3"/></svg>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h1 style="margin: 0; font-size: 40px; font-weight: 600; letter-spacing: -0.01em">Clew</h1>
+          <span style="color: #E3A64F; font-size: 13px; font-weight: 500; letter-spacing: 0.08em">by ADK</span>
+        </div>
+        <p style="margin: 0; max-width: 380px; color: #9AA3AE; font-size: 15px; line-height: 1.5">An open-source database IDE. One window for Postgres, MySQL, SQLite, MongoDB and Redis — and a thread back out of every labyrinth.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <button class="act" type="button" style="background: #E3A64F; border-color: #E3A64F; color: #0E1014">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+          <span style="flex: 1; font-weight: 600">New connection</span>
+          <span class="mono" style="font-size: 11px; opacity: 0.8">⌘N</span>
+        </button>
+        <button class="act" type="button">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M2 5h12v8H2zM5 5V3h6v2"/></svg>
+          <span style="flex: 1">Import connections<small>From DataGrip, DBeaver, TablePlus, ~/.pgpass or a JSON file</small></span>
+        </button>
+        <button class="act" type="button">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>
+          <span style="flex: 1">Open a database file<small>SQLite, DuckDB — or drag one onto this window</small></span>
+          <span class="mono" style="font-size: 11px; color: #7D8794">⌘O</span>
+        </button>
+      </div>
+      <div>
+        <label for="url" style="display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE; margin-bottom: 8px">OR PASTE A CONNECTION URL</label>
+        <div style="display: flex; gap: 8px">
+          <input id="url" class="mono" placeholder="postgres://user@host:5432/db" style="flex: 1; min-width: 0; height: 40px; border-radius: 8px; border: 1px solid #262B33; background: #14171C; color: #E6E8EB; padding: 0 12px; font-size: 12.5px">
+          <button type="button" style="height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid #262B33; background: #1A1E25; font-size: 13px">Connect</button>
+        </div>
+        <p style="margin: 8px 0 0; color: #7D8794; font-size: 12px">Driver, host and database are detected from the URL; you'll confirm before anything is saved.</p>
+      </div>
+    </div>
+
+    <!-- Right: recents -->
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <h2 style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE">RECENT</h2>
+        <a href="#" style="font-size: 12px; text-decoration: none">All connections</a>
+      </div>
+      <div style="border: 1px solid #262B33; border-radius: 10px; background: #111419; padding: 6px">
+        <a href="#" class="rc"><span style="width: 3px; height: 32px; border-radius: 2px; background: #F2766B"></span><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: #6EA8FE; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">PG</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">prod-postgres</span><span class="mono" style="color: #9AA3AE; font-size: 11.5px">db.internal:5432/analytics · via bastion</span></span><span style="color: #7D8794; font-size: 12px">2 min ago</span></a>
+        <a href="#" class="rc"><span style="width: 3px; height: 32px; border-radius: 2px; background: #6CC4A1"></span><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: #6CC48A; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">MG</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">dev-mongo</span><span class="mono" style="color: #9AA3AE; font-size: 11.5px">localhost:27017/shop</span></span><span style="color: #7D8794; font-size: 12px">yesterday</span></a>
+        <a href="#" class="rc"><span style="width: 3px; height: 32px; border-radius: 2px; background: #E3A64F"></span><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: #F0A35E; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">MY</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">staging-mysql</span><span class="mono" style="color: #9AA3AE; font-size: 11.5px">staging-db:3306/app</span></span><span style="color: #7D8794; font-size: 12px">3 days ago</span></a>
+        <a href="#" class="rc"><span style="width: 3px; height: 32px; border-radius: 2px; background: #6CC4A1"></span><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: #F2766B; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">RD</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">cache-redis</span><span class="mono" style="color: #9AA3AE; font-size: 11.5px">localhost:6379 · db 0</span></span><span style="color: #7D8794; font-size: 12px">last week</span></a>
+        <a href="#" class="rc"><span style="width: 3px; height: 32px; border-radius: 2px; background: #6CC4A1"></span><span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: #B8C0CC; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">SQ</span><span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">notes.sqlite</span><span class="mono" style="color: #9AA3AE; font-size: 11.5px">~/Projects/notes/notes.sqlite</span></span><span style="color: #7D8794; font-size: 12px">Sep 28</span></a>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; color: #9AA3AE; font-size: 12px">
+        <span><span class="kbd">⌘K</span> Go to anything</span>
+        <span><span class="kbd">⌘↵</span> Run statement</span>
+        <span><span class="kbd">⌘E</span> Recent files</span>
+        <span><span class="kbd">⌘,</span> Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <p style="position: relative; margin: 56px 0 0; color: #7D8794; font-size: 12px; text-align: center">Connections live in <span class="mono">~/.config/clew/connections.json</span> · passwords stay in your system keychain · v0.1.0 · <a href="#" style="text-decoration: none">GitHub</a></p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

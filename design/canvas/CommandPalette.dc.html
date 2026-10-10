@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew command palette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.grp{padding:10px 16px 4px;font-size:10.5px;font-weight:600;letter-spacing:0.08em;color:#7D8794}
+.it{display:flex;align-items:center;gap:12px;width:100%;height:36px;padding:0 16px;border:0;background:transparent;color:#E6E8EB;font-size:13px;text-align:left}
+.it .meta{margin-left:auto;color:#7D8794;font-size:12px}
+.hl{color:#E3A64F;font-weight:600}
+.kbd{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:4px;border:1px solid #2E343D;background:#1A1E25;font:500 11px/1 'JetBrains Mono',monospace;color:#C9CED6}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; justify-content: center; align-items: flex-start; padding: 120px 16px 32px; background: #090A0D; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <div role="dialog" aria-modal="true" aria-label="Command palette" style="width: 100%; max-width: 680px; border-radius: 12px; border: 1px solid #2E343D; background: #14171C; box-shadow: 0 24px 64px rgba(0,0,0,0.55); overflow: hidden">
+
+    <div style="display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; border-bottom: 1px solid #262B33">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
+      <label for="cp" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search</label>
+      <input id="cp" value="ord" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #E6E8EB; font-size: 16px; outline: none">
+      <div role="tablist" aria-label="Scope" style="display: flex; gap: 2px; font-size: 11.5px">
+        <button role="tab" aria-selected="true" type="button" style="height: 24px; padding: 0 8px; border: 0; border-radius: 4px; background: #262D36">All</button>
+        <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #9AA3AE">Objects</button>
+        <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #9AA3AE">Queries</button>
+        <button role="tab" aria-selected="false" type="button" style="height: 24px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: #9AA3AE">Actions</button>
+      </div>
+    </div>
+
+    <div role="listbox" aria-label="Results" style="padding: 4px 0 8px">
+      <div class="grp">TABLES &amp; COLLECTIONS</div>
+      <button class="it" type="button" role="option" aria-selected="true" style="background: #1E242C; box-shadow: inset 2px 0 0 #E3A64F">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>
+        <span class="mono"><span class="hl">ord</span>ers</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: #9AA3AE; font-size: 12px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #F2766B"></span>prod-postgres · analytics.public</span>
+        <span class="meta">↵ open data · ⌥↵ console</span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>
+        <span class="mono"><span class="hl">ord</span>er_items</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: #9AA3AE; font-size: 12px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #F2766B"></span>prod-postgres · analytics.public</span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>
+        <span class="mono"><span class="hl">ord</span>ers</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: #9AA3AE; font-size: 12px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #E3A64F"></span>staging-mysql · app</span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <span class="mono" style="width: 14px; color: #6CC48A; font-size: 12px">{ }</span>
+        <span class="mono">carts.<span class="hl">ord</span>erRef</span>
+        <span style="display: inline-flex; align-items: center; gap: 6px; color: #9AA3AE; font-size: 12px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #6CC4A1"></span>dev-mongo · shop</span>
+        <span class="meta">field</span>
+      </button>
+
+      <div class="grp">SAVED &amp; RECENT QUERIES</div>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 1.5"/></svg>
+        <span class="mono" style="font-size: 12px; color: #C9CED6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px">SELECT u.id, u.name … FROM <span class="hl">ord</span>ers o JOIN users u …</span>
+        <span class="meta">12 min ago</span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>
+        <span>weekly_report.sql</span>
+        <span style="color: #9AA3AE; font-size: 12px">matches “<span class="hl">ord</span>ers” on line 4</span>
+        <span class="meta">saved</span>
+      </button>
+
+      <div class="grp">ACTIONS</div>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#E3A64F" stroke-width="1.5" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg>
+        <span>New console on <span class="hl">…</span></span>
+        <span class="meta"><span class="kbd">⌘T</span></span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#E3A64F" stroke-width="1.5" aria-hidden="true"><path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13h10"/></svg>
+        <span>Export <span class="hl">ord</span>ers to CSV…</span>
+      </button>
+      <button class="it" type="button" role="option" aria-selected="false">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#E3A64F" stroke-width="1.5" aria-hidden="true"><path d="M2 4h12M2 8h8M2 12h5"/></svg>
+        <span>Generate DDL for <span class="hl">ord</span>ers</span>
+      </button>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-top: 1px solid #262B33; background: #111419; color: #9AA3AE; font-size: 12px; flex-wrap: wrap">
+      <span><span class="kbd">↑↓</span> move</span>
+      <span><span class="kbd">↵</span> open</span>
+      <span><span class="kbd">⌥↵</span> query in console</span>
+      <span><span class="kbd">⇥</span> scope</span>
+      <span style="flex: 1"></span>
+      <span>Searching 5 connections · 1,204 objects indexed</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

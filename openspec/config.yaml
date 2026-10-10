@@ -1,0 +1,89 @@
+schema: spec-driven
+
+context: |
+  # Clew — project context
+
+  Clew ("by ADK") is an open-source, cross-platform database IDE in the spirit of JetBrains DataGrip.
+  The name is an old English word for a ball of thread that guides someone out of a labyrinth;
+  the gold "thread" accent runs through the UI. Primary user: a working programmer (the author),
+  then friends and the open-source community. License: MIT.
+
+  ## Product scope (v1)
+  - Connect to SQL databases (PostgreSQL, MySQL, MariaDB, SQLite, SQL Server, ClickHouse, DuckDB)
+    and NoSQL databases (MongoDB, Redis).
+  - Manage and persist connections (groups, environment color coding, SSH tunnels, TLS, keychain secrets).
+  - Database explorer tree with lazy schema introspection.
+  - SQL console: multi-tab editor, run statement / script, autocomplete from live schema, history.
+  - Data grid: virtualized results, table editor with filter/sort/paging, inline edits staged as
+    pending changes and submitted in a transaction, record panel with FK navigation, export.
+  - Document browser (MongoDB) and key browser (Redis).
+  - Command palette (Cmd/Ctrl+K) across all connections.
+  - Production safeguards: read-only by default, write confirmation, unsafe-statement blocking.
+  - AI assistant side panel (bring your own model: GitHub Copilot, Claude, OpenAI/Codex, custom
+    OpenAI/Anthropic-compatible endpoints, local Ollama): chat, direct edits reviewed as inline diffs,
+    fix-with-AI, ghost-text completions. AI never executes SQL; production is schema-only by default.
+  - Target platforms: macOS (Apple Silicon + Intel) and Windows 10/11 x64. Linux is not a v1 target
+    but nothing may preclude it.
+
+  ## Tech stack (decided — do not substitute without a design.md decision)
+  - Shell: Tauri 2 (Rust backend, system WebView: WKWebView on macOS, WebView2 on Windows).
+  - Frontend: React 18 + TypeScript (strict) + Vite. State: Zustand. Styling: CSS Modules +
+    CSS custom properties from src/styles/tokens.css (copied from design/tokens.css). No Tailwind,
+    no component library. Icons: inline stroke SVG components (16px viewBox, 1.3–1.6 stroke).
+  - SQL editor: CodeMirror 6 (@codemirror/lang-sql with dialects, custom schema completion).
+  - Data grid: @glideapps/glide-data-grid (canvas-based, virtualized, editable), themed from tokens.
+  - Rust: tokio; sqlx (postgres, mysql/mariadb, sqlite); tiberius (SQL Server); clickhouse (HTTP);
+    duckdb (bundled); mongodb; redis; russh (SSH tunnels); rustls; keyring (macOS Keychain /
+    Windows Credential Manager); serde; thiserror; tracing; reqwest (rustls) for AI providers;
+    sqlparser for statement classification.
+  - IPC: Tauri commands for request/response; tauri::ipc::Channel for streaming result batches and events.
+  - App data store: local SQLite file (via sqlx) for history, saved queries and UI state.
+  - Tests: cargo test (unit) + integration tests against docker-compose databases;
+    Vitest + React Testing Library for the frontend.
+  - Package manager: pnpm. Node 20+. Rust stable (edition 2021).
+
+  ## Repository layout
+  - src-tauri/            Rust backend (crate `clew`)
+    - src/drivers/        driver trait, registry, one module per driver
+    - src/connections/    connection store, secrets, ssh tunnel, sessions
+    - src/commands/       Tauri command handlers (thin; delegate to services)
+  - src/                  React frontend
+    - src/styles/tokens.css, src/components/ (shared primitives), src/features/<feature>/
+  - design/               UX source of truth: tokens.css, README.md, canvas/*.dc.html screen sources
+  - openspec/             specs and changes
+
+  ## Design system (source of truth: design/README.md, design/tokens.css, design/canvas/*.dc.html)
+  - Single dark theme in v1. Fonts: IBM Plex Sans (UI) and JetBrains Mono (code, grid, identifiers),
+    bundled locally via @fontsource — the app MUST NOT fetch anything from the network at runtime
+    except database connections, user-configured AI provider endpoints (and the consented Copilot
+    component download), and the opt-in update check.
+  - Dense desktop layout like DataGrip: 44px title bar, 36px tab strips, 24px tree rows, 26px grid rows,
+    26px status bar, 28px buttons, radius 6px, dialogs radius 12px.
+  - Gold accent (--accent #E3A64F) for primary actions, selection indicator (2px inset bar), active tab underline.
+  - Environment colors: local green, dev blue, staging amber, production red. Production connections
+    show a red tab stripe and a "PRODUCTION · READ-ONLY" badge.
+  - Never hard-code hex colors in components; use tokens. Never use emoji as icons.
+
+  ## Conventions
+  - Platform-aware shortcuts: "Mod" = Cmd on macOS, Ctrl on Windows. Spec text writes Mod+Enter etc.
+  - Secrets (passwords, SSH passphrases, tokens) are NEVER written to disk in plain text or logged;
+    they live in the OS keychain keyed by connection id.
+  - Rust errors are typed (thiserror) and cross IPC as { code, message, detail? }; the UI shows message,
+    with detail expandable.
+  - All long-running work (connect, query, introspection, export) is cancellable and never blocks the UI thread.
+  - Every user-visible string lives in the component (no i18n framework in v1) but copy follows the canvas.
+  - Accessibility: real buttons/inputs/labels, visible focus rings (2px --accent), full keyboard operation.
+
+rules:
+  proposal:
+    - Name the design canvas screens (design/canvas/*.dc.html) that the change implements, if any.
+  specs:
+    - Write requirements from the user's point of view; put library choices in design.md, not specs.
+    - Include at least one failure / edge-case scenario per requirement where one exists (timeouts, cancellation, empty states, permission errors).
+  design:
+    - Reference concrete files under src-tauri/ and src/ that will be created or changed.
+    - For UI work, cite the exact canvas file and the tokens used; match spacing and sizes in the canvas source.
+  tasks:
+    - Each numbered group ends with a test task (Rust unit/integration or Vitest) that proves the group's scenarios.
+    - Tasks reference the spec requirement they satisfy, e.g. "(spec: sql-console › Run current statement)".
+    - Keep each task small enough for one focused session; never combine backend and frontend work in one task.

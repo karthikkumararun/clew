@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew table editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.tb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #262B33;background:#1A1E25;color:#E6E8EB;font-size:12px;white-space:nowrap}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:#9AA3AE}
+.g{border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;width:100%}
+.g th{position:sticky;top:0;background:#1A1E25;text-align:left;font-weight:500;color:#C9CED6;padding:5px 12px;border-right:1px solid #262B33;border-bottom:1px solid #262B33;white-space:nowrap;vertical-align:top}
+.g th small{display:block;font-weight:400;color:#7D8794;font-size:10.5px;margin-top:1px}
+.g td{padding:0 12px;height:26px;border-right:1px solid #1F242B;border-bottom:1px solid #1F242B;white-space:nowrap;color:#E6E8EB}
+.rn{color:#7D8794;text-align:right;width:52px;background:#14171C}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:4px 12px;align-items:baseline;font-size:12px}
+.kv dt{color:#9AA3AE;font-family:'JetBrains Mono',monospace;font-size:11.5px}
+.kv dd{margin:0;font-family:'JetBrains Mono',monospace;color:#E6E8EB;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #0E1014; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <!-- Breadcrumb + view switcher -->
+  <header style="min-height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+    <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #9AA3AE">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #F2766B"></span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">prod-postgres</a><span>›</span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">analytics</a><span>›</span>
+      <a href="#" style="color: #9AA3AE; text-decoration: none">public</a><span>›</span>
+      <span style="color: #E6E8EB; font-weight: 600">orders</span>
+    </nav>
+    <div role="tablist" aria-label="Table views" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #0E1014; border: 1px solid #262B33">
+      <button role="tab" aria-selected="true" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: #262D36; font-size: 12px">Data</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Structure</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Indexes</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">Relations</button>
+      <button role="tab" aria-selected="false" type="button" style="height: 26px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; font-size: 12px">DDL</button>
+    </div>
+    <div style="flex: 1"></div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 4px; background: #3A1D1B; color: #F7A39B; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">PRODUCTION · WRITES NEED CONFIRMATION</span>
+    <button class="tb" type="button"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg>Open in console</button>
+  </header>
+
+  <!-- Filter bar -->
+  <div style="flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #262B33; background: #111419; flex-wrap: wrap">
+    <label for="where" class="mono" style="color: #C9A0FF; font-size: 12px; font-weight: 600">WHERE</label>
+    <input id="where" class="mono" value="status = 'pending' AND total &gt; 100" style="flex: 3 1 320px; height: 30px; border-radius: 6px; border: 1px solid #3A4250; background: #0E1014; color: #E6E8EB; padding: 0 10px; font-size: 12.5px">
+    <label for="orderby" class="mono" style="color: #C9A0FF; font-size: 12px; font-weight: 600">ORDER BY</label>
+    <input id="orderby" class="mono" value="created_at DESC" style="flex: 1 1 180px; height: 30px; border-radius: 6px; border: 1px solid #262B33; background: #0E1014; color: #E6E8EB; padding: 0 10px; font-size: 12.5px">
+    <button class="ib" type="button" aria-label="Clear filter"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+  </div>
+
+  <!-- Grid toolbar -->
+  <div style="height: 40px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 12px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+    <button class="ib" type="button" aria-label="Add row"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+    <button class="ib" type="button" aria-label="Delete selected rows"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8h10"/></svg></button>
+    <button class="ib" type="button" aria-label="Duplicate row"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1"/><path d="M3 11V3h8"/></svg></button>
+    <div style="width: 1px; height: 18px; background: #262B33; margin: 0 6px"></div>
+    <button class="ib" type="button" aria-label="Refresh"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2.5v3h-3"/></svg></button>
+    <button class="tb" type="button" style="border: 0; background: transparent; color: #9AA3AE">Columns · 6 of 9</button>
+    <button class="tb" type="button" style="border: 0; background: transparent; color: #9AA3AE">Export…</button>
+    <div style="flex: 1"></div>
+    <span style="color: #9AA3AE; font-size: 12px">Rows 1–100 of 1,284 · 41 ms</span>
+    <button class="ib" type="button" aria-label="Previous page"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 4l-4 4 4 4"/></svg></button>
+    <button class="ib" type="button" aria-label="Next page"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></button>
+    <button class="tb" type="button">100 / page<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+  </div>
+
+  <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+    <!-- Grid -->
+    <div style="flex: 999 1 560px; min-width: 0; height: 100%; overflow: auto">
+      <table class="g">
+        <thead>
+          <tr>
+            <th class="rn" scope="col"></th>
+            <th scope="col"><span style="color: #E3A64F">⚿</span> id<small>int8 · PK</small></th>
+            <th scope="col">user_id<small>int8 → users.id</small></th>
+            <th scope="col">status<small>order_status</small></th>
+            <th scope="col" style="text-align: right">total<small>numeric(12,2)</small></th>
+            <th scope="col">created_at <span style="color: #E3A64F">↓</span><small>timestamptz</small></th>
+            <th scope="col">notes<small>text · nullable</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="14">
+            <tr style="background: {{r.rowBg}}; text-decoration: {{r.strike}}">
+              <td class="rn" style="color: {{r.markColor}}">{{r.mark}}</td>
+              <td style="color: #F0B37E">{{r.id}}</td>
+              <td><span style="color: #7FC8F8; text-decoration: underline; text-decoration-color: #3A4A5C; text-underline-offset: 3px">{{r.user}}</span></td>
+              <td style="background: {{r.statusBg}}; box-shadow: {{r.statusRing}}">{{r.status}}</td>
+              <td style="text-align: right; color: #F0B37E; background: {{r.totalBg}}">{{r.total}}</td>
+              <td style="color: #C9CED6">{{r.created}}</td>
+              <td>
+                <sc-if value="{{r.notesNull}}" hint-placeholder-val="{{true}}"><span style="color: #7D8794; font-style: italic">NULL</span></sc-if>
+                <sc-if value="{{r.notesSet}}" hint-placeholder-val="{{false}}">{{r.notes}}</sc-if>
+              </td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+      <!-- Inline enum editor on the focused cell -->
+      <div style="position: absolute; display: none"></div>
+    </div>
+
+    <!-- Record panel -->
+    <aside aria-label="Selected record" style="flex: 1 1 300px; max-width: 340px; height: 100%; display: flex; flex-direction: column; background: #14171C; border-left: 1px solid #262B33">
+      <div style="height: 40px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 14px; border-bottom: 1px solid #262B33">
+        <span style="font-weight: 600; font-size: 12.5px">Record <span class="mono" style="color: #F0B37E; font-weight: 500">#88213</span></span>
+        <div style="display: flex">
+          <button class="ib" type="button" aria-label="Copy as JSON"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="5" y="5" width="8" height="8" rx="1"/><path d="M3 11V3h8"/></svg></button>
+          <button class="ib" type="button" aria-label="Close record panel"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+        </div>
+      </div>
+      <div style="flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; gap: 18px">
+        <dl class="kv">
+          <dt>id</dt><dd style="color: #F0B37E">88213</dd>
+          <dt>user_id</dt><dd style="color: #7FC8F8">1042</dd>
+          <dt>status</dt><dd><span style="padding: 1px 6px; border-radius: 4px; background: #3A3020; color: #F2C27F">shipped</span> <span style="color: #7D8794">was pending</span></dd>
+          <dt>total</dt><dd style="color: #F0B37E">249.00</dd>
+          <dt>created_at</dt><dd>2026-10-09 06:31:40+00</dd>
+          <dt>notes</dt><dd style="color: #7D8794; font-style: italic">NULL</dd>
+        </dl>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE; margin-bottom: 8px">REFERENCES</div>
+          <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; border: 1px solid #262B33; background: #1A1E25; text-decoration: none; color: #E6E8EB">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#7FC8F8" stroke-width="1.4" aria-hidden="true"><path d="M3 8h8M8 5l3 3-3 3"/></svg>
+            <span style="display: flex; flex-direction: column"><span class="mono" style="font-size: 12px">users #1042</span><span style="font-size: 11.5px; color: #9AA3AE">Ada Lovelace · ada@example.com</span></span>
+          </a>
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE; margin-bottom: 8px">REFERENCED BY</div>
+          <a href="#" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; text-decoration: none; color: #E6E8EB"><span class="mono" style="font-size: 12px">order_items</span><span style="color: #9AA3AE; font-size: 12px">3 rows</span></a>
+          <a href="#" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; text-decoration: none; color: #E6E8EB"><span class="mono" style="font-size: 12px">payments</span><span style="color: #9AA3AE; font-size: 12px">1 row</span></a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Pending changes bar -->
+  <div role="status" style="flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid #4A3A22; background: #1E1A12; flex-wrap: wrap">
+    <span style="width: 8px; height: 8px; border-radius: 50%; background: #E3A64F"></span>
+    <span style="font-weight: 500">3 pending changes</span>
+    <span style="color: #C9B48F; font-size: 12px">1 edited · 1 inserted · 1 deleted — nothing is written until you submit</span>
+    <div style="flex: 1"></div>
+    <button class="tb" type="button" style="background: transparent">Preview SQL</button>
+    <button class="tb" type="button" style="background: transparent">Revert all</button>
+    <button class="tb" type="button" style="background: #E3A64F; border-color: #E3A64F; color: #0E1014; font-weight: 600">Submit <span class="mono" style="font-weight: 500; opacity: 0.75">⌘S</span></button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const raw = [
+      ['new', '—', 1042, 'pending', '120.00', 'now()', null],
+      ['', 88213, 1042, 'shipped', '249.00', '2026-10-09 06:31:40+00', null, 'edit'],
+      ['', 88207, 3381, 'pending', '1,180.40', '2026-10-09 05:58:02+00', 'gift wrap'],
+      ['', 88199, 2210, 'pending', '312.75', '2026-10-09 04:12:19+00', null],
+      ['del', 88190, 6012, 'pending', '104.99', '2026-10-09 02:57:08+00', 'duplicate of 88188'],
+      ['', 88188, 6012, 'pending', '104.99', '2026-10-09 02:56:51+00', null],
+      ['', 88174, 1177, 'pending', '860.00', '2026-10-08 23:40:33+00', null],
+      ['', 88160, 4520, 'pending', '215.10', '2026-10-08 22:05:47+00', 'call before delivery'],
+      ['', 88152, 2964, 'pending', '402.00', '2026-10-08 21:31:12+00', null],
+      ['', 88141, 3105, 'pending', '139.50', '2026-10-08 20:18:06+00', null],
+      ['', 88133, 5088, 'pending', '2,045.00', '2026-10-08 19:44:58+00', null],
+      ['', 88120, 1820, 'pending', '178.25', '2026-10-08 18:09:31+00', 'split shipment'],
+      ['', 88117, 2733, 'pending', '655.80', '2026-10-08 17:52:20+00', null],
+      ['', 88109, 3990, 'pending', '120.00', '2026-10-08 16:37:44+00', null],
+      ['', 88096, 4401, 'pending', '299.99', '2026-10-08 15:15:02+00', null],
+      ['', 88088, 5277, 'pending', '540.00', '2026-10-08 14:48:39+00', null],
+      ['', 88071, 1042, 'pending', '101.00', '2026-10-08 13:20:15+00', null],
+      ['', 88065, 2210, 'pending', '733.30', '2026-10-08 12:02:48+00', null],
+      ['', 88052, 3381, 'pending', '188.00', '2026-10-08 10:44:21+00', null],
+      ['', 88049, 1177, 'pending', '1,412.60', '2026-10-08 09:31:09+00', null],
+      ['', 88037, 4520, 'pending', '264.00', '2026-10-08 08:18:57+00', null],
+      ['', 88024, 2964, 'pending', '119.95', '2026-10-08 07:06:33+00', null]
+    ];
+    let n = 0;
+    const rows = raw.map((r) => {
+      const kind = r[0] || r[7] || '';
+      if (kind !== 'new') n += 1;
+      return {
+        mark: kind === 'new' ? '+' : (kind === 'del' ? '−' : String(n)),
+        markColor: kind === 'new' ? '#6CC4A1' : (kind === 'del' ? '#F2766B' : (kind === 'edit' ? '#E3A64F' : '#7D8794')),
+        rowBg: kind === 'new' ? '#132219' : (kind === 'del' ? '#241517' : (kind === 'edit' ? '#1A1F27' : 'transparent')),
+        strike: kind === 'del' ? 'line-through' : 'none',
+        id: r[1], user: r[2], status: r[3], total: r[4], created: r[5],
+        notes: r[6], notesNull: r[6] === null, notesSet: r[6] !== null,
+        statusBg: kind === 'edit' ? '#3A3020' : 'transparent',
+        statusRing: kind === 'edit' ? 'inset 0 0 0 1.5px #E3A64F' : 'none',
+        totalBg: 'transparent'
+      };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>
