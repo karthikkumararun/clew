@@ -84,6 +84,8 @@ export interface RuntimeState {
   /** Where the last run's errors are, for the squiggles in the editor. */
   marks: ErrorMark[];
   explain: ExplainState | null;
+  /** The statement behind each result (by result key), so a result can be exported in full. */
+  resultSql: Record<string, string>;
   /** A manual transaction is open on the session. */
   txOpen: boolean;
   /** Statements run in the open manual transaction. */
@@ -103,6 +105,7 @@ const INITIAL: RuntimeState = {
   lastRun: null,
   marks: [],
   explain: null,
+  resultSql: {},
   txOpen: false,
   txPending: 0,
 };
@@ -223,6 +226,7 @@ export class ConsoleRuntime {
       lastRun: req,
       tab: "result",
       marks: [],
+      resultSql: {},
     });
     this.results.begin();
     const started = Date.now();
@@ -279,11 +283,13 @@ export class ConsoleRuntime {
       : [req.sql];
     let sawRows = false;
     let sawProblem = false;
+    const resultSql: Record<string, string> = {};
     let schemaChanged = false;
     const marks: ErrorMark[] = [];
     const ranges = req.script ? splitStatements(req.sql, splitDialect(this.driver())) : [];
     for (const r of snap.results) {
       const full = statements[r.statement] ?? req.sql;
+      resultSql[r.key] = full;
       const text = preview(full);
       const ms = r.summary?.elapsed_ms;
       if (r.error) {
@@ -338,6 +344,7 @@ export class ConsoleRuntime {
     }
     this.store.setState({
       marks,
+      resultSql,
       tab: sawRows && !sawProblem ? "result" : "output",
       activeResult: snap.results.find((r) => r.columns.length > 0)?.key ?? null,
     });

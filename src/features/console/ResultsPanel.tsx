@@ -1,18 +1,22 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { IconButton } from "../../components/Button";
-import { Menu } from "../../components/Menu";
-import type { MenuItem } from "../../components/Menu";
-import { ChevronDown, Download, Filter, Refresh } from "../../components/icons";
-import { useNotices } from "../../stores/noticesStore";
+import { Download, Filter, Refresh } from "../../components/icons";
+import { useConnections } from "../../connections/connectionsStore";
 import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
-import { ResultTable } from "./ResultTable";
+import { CopyAsMenu, ColumnsMenu } from "../grid/GridMenus";
+import { ResultGrid } from "../grid/ResultGrid";
+import type { GridHandle } from "../grid/ResultGrid";
+import { RowsSource } from "../grid/source";
+import { useGridView } from "../grid/useGridView";
+import { quoteIdent, flavorOf } from "../grid/sqlLiteral";
+import { ExportDialog } from "../grid/ExportDialog";
+import type { ExportSource } from "../grid/ExportDialog";
+import { visibleColumns } from "../grid/views";
+import { askChoice } from "./prompts";
 import { formatRows } from "./runtime";
 import type { ConsoleRuntime, ResultTab } from "./runtime";
-import { toCsv, toJson, toTsv } from "./valueFormat";
-import { valueText } from "./valueFormat";
-import type { ResultView } from "../../lib/ipc/queryRun";
 import styles from "./Console.module.css";
 
 const TABS: { id: ResultTab; label: string }[] = [
@@ -36,38 +40,17 @@ export function useElapsed(startedAt: number | null): number {
 
 export const formatElapsed = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
 
-/** Rows of a result, narrowed by the filter text (substring over every cell). */
-export function filterRows(result: ResultView, filter: string) {
-  const needle = filter.trim().toLowerCase();
-  if (!needle) return { rows: result.rows, numbers: undefined };
-  const rows: ResultView["rows"] = [];
-  const numbers: number[] = [];
-  result.rows.forEach((row, i) => {
-    if (row.some((v) => valueText(v)?.toLowerCase().includes(needle))) {
-      rows.push(row);
-      numbers.push(i + 1);
-    }
-  });
-  return { rows, numbers };
-}
-
-/** Columns become rows: one line per column, one column per (first) row. */
-export function transpose(result: ResultView, limit = 50) {
-  const shown = result.rows.slice(0, limit);
-  const columns = [
-    { name: "column", type_name: "", kind: "text" as const, nullable: false },
-    ...shown.map((_, i) => ({
-      name: `#${i + 1}`,
-      type_name: "",
-      kind: "text" as const,
-      nullable: null,
-    })),
-  ];
-  const rows = result.columns.map((c, ci) => [
-    { kind: "text" as const, value: c.name },
-    ...shown.map((r) => r[ci]),
-  ]);
-  return { columns, rows };
+/** The statement wrapped so the database sorts it (the client only sorted what was loaded). */
+export function orderedSql(
+  sql: string,
+  driver: string,
+  column: string,
+  dir: "asc" | "desc",
+): string {
+  const flavor = flavorOf(driver);
+  const inner = sql.trim().replace(/;+\s*$/, "");
+  const alias = flavor === "oracle" ? "clew_sorted" : "AS clew_sorted";
+  return `SELECT * FROM (${inner}) ${alias} ORDER BY ${quoteIdent(flavor, column)} ${dir.toUpperCase()}`;
 }
 
 export interface ResultsPanelProps {
@@ -85,6 +68,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const output = useStore(runtime.store, (s) => s.output);
   const activeKey = useStore(runtime.store, (s) => s.activeResult);
   const lastRun = useStore(runtime.store, (s) => s.lastRun);
+  const resultSql = useStore(runtime.store, (s) => s.resultSql);
   const explainState = useStore(runtime.store, (s) => s.explain);
   const run = useSyncExternalStore(runtime.results.subscribe, runtime.results.getSnapshot);
   const elapsed = useElapsed(busy ? startedAt : null);
@@ -92,53 +76,78 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [transposed, setTransposed] = useState(false);
-  const [exportMenu, setExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const sets = useMemo(() => run.results.filter((r) => r.columns.length > 0), [run.results]);
   const active = sets.find((r) => r.key === activeKey) ?? sets[0];
 
-  const filtered = useMemo(
-    () => (active ? filterRows(active, filter) : { rows: [], numbers: undefined }),
-    [active, filter],
+  // The grid reads the streamed rows in place; a fresh source per result keeps views from mixing.
+  const base = useMemo(
+    () => new RowsSource(active?.columns ?? [], active?.rows ?? [], 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [active?.key],
   );
-  const view = useMemo(() => {
-    if (!active) return null;
-    return transposed
-      ? { ...transpose(active), numbers: undefined }
-      : { columns: active.columns, rows: filtered.rows, numbers: filtered.numbers };
-  }, [active, transposed, filtered]);
+  if (active) base.update(active.columns, active.rows, active.rowCount);
+  const grid = useRef<GridHandle>(null);
+  const gv = useGridView(base, { filter, transposed, resetKey: active?.key ?? "" });
+  const driver =
+    useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.driver ??
+    "";
+  const matches = gv.view.rowCount;
 
   const fetchMore = useCallback(() => void runtime.fetchMore(active?.key), [runtime, active?.key]);
 
   const range = active
     ? filter.trim()
-      ? `${filtered.rows.length.toLocaleString()} of ${formatRows(active.rowCount, active.hasMore)} match`
+      ? `${matches.toLocaleString()} of ${formatRows(active.rowCount, active.hasMore)} match`
       : active.rowCount === 0
         ? "0 rows"
         : `1–${active.rowCount.toLocaleString()} of ${formatRows(active.rowCount, active.hasMore)}`
     : "";
 
-  const say = (m: string) => useNotices.getState().push(m);
-  const exportItems: MenuItem[] = [
-    { id: "csv", label: "Copy as CSV", disabled: !active },
-    { id: "tsv", label: "Copy as TSV", disabled: !active },
-    { id: "json", label: "Copy as JSON", disabled: !active },
-  ];
-  const exportAs = async (id: string) => {
-    setExportMenu(false);
-    if (!active) return;
-    const names = active.columns.map((c) => c.name);
-    const text =
-      id === "csv"
-        ? toCsv(names, filtered.rows)
-        : id === "tsv"
-          ? toTsv(names, filtered.rows)
-          : toJson(names, filtered.rows);
-    try {
-      await navigator.clipboard.writeText(text);
-      say(`Copied ${filtered.rows.length.toLocaleString()} rows as ${id.toUpperCase()}`);
-    } catch {
-      say("Couldn't copy to the clipboard");
+  const exportSource = (): ExportSource | null => {
+    if (!active) return null;
+    const v = gv.view;
+    const cols = visibleColumns(v.columns.length, gv.order, gv.hidden);
+    return {
+      loaded: () => ({
+        columns: cols.map((c) => v.columns[c]),
+        rows: Array.from({ length: v.rowCount }, (_, r) => cols.map((c) => v.get(c, r))),
+      }),
+      loadedCount: v.rowCount,
+      hasMore: active.hasMore,
+      sql: resultSql[active.key],
+      connectionId: runtime.connectionId,
+      driver,
+      tableName: sourceTable(active.columns, driver),
+      name: "result",
+    };
+  };
+
+  const reorderInDatabase = async () => {
+    if (!gv.sort || !lastRun || !active) return;
+    const column = active.columns[gv.sort.column]?.name;
+    if (!column) return;
+    const answer = await askChoice({
+      title: "Re-run with ORDER BY",
+      body: (
+        <p>
+          Run the statement again so the database sorts all rows by <strong>{column}</strong>{" "}
+          {gv.sort.dir === "asc" ? "ascending" : "descending"}? The statement is wrapped in a
+          subquery.
+        </p>
+      ),
+      choices: [
+        { id: "cancel", label: "Cancel" },
+        { id: "run", label: "Re-run", variant: "primary" },
+      ],
+    });
+    if (answer === "run") {
+      await runtime.run({
+        sql: orderedSql(lastRun.sql, driver, column, gv.sort.dir),
+        script: false,
+        offset: lastRun.offset,
+      });
     }
   };
 
@@ -198,36 +207,21 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             >
               <TransposeIcon />
             </IconButton>
-            <span className={styles.exportWrap}>
-              <button
-                type="button"
-                className={styles.exportButton}
-                aria-haspopup="menu"
-                aria-expanded={exportMenu}
-                onClick={() => setExportMenu((o) => !o)}
-              >
-                <Download size={13} />
-                Export
-                <ChevronDown size={12} />
-              </button>
-              {exportMenu ? (
-                <>
-                  <div
-                    className={styles.menuScrim}
-                    onMouseDown={() => setExportMenu(false)}
-                    aria-hidden="true"
-                  />
-                  <div className={styles.exportMenu}>
-                    <Menu
-                      aria-label="Export results"
-                      items={exportItems}
-                      onClose={() => setExportMenu(false)}
-                      onSelect={(id) => void exportAs(id)}
-                    />
-                  </div>
-                </>
-              ) : null}
-            </span>
+            <ColumnsMenu
+              columns={active.columns}
+              hidden={gv.hidden}
+              onToggle={gv.toggleColumn}
+              onShowAll={gv.showAll}
+            />
+            <CopyAsMenu grid={grid} />
+            <button
+              type="button"
+              className={styles.exportButton}
+              onClick={() => setExporting(true)}
+            >
+              <Download size={13} />
+              Export…
+            </button>
           </>
         ) : null}
       </div>
@@ -264,15 +258,35 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
 
       <div className={styles.resultsBody}>
         {tab === "result" ? (
-          view && active ? (
-            <ResultTable
-              columns={view.columns}
-              rows={view.rows}
-              rowNumbers={view.numbers}
-              hasMore={active.hasMore && !transposed}
-              fetching={run.fetching}
-              onNearEnd={fetchMore}
-            />
+          active ? (
+            <>
+              {gv.sort && active.hasMore && !transposed ? (
+                <div className={styles.sortNotice} role="status">
+                  Sorted {active.rowCount.toLocaleString()} loaded rows —{" "}
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() => void reorderInDatabase()}
+                  >
+                    Re-run with ORDER BY
+                  </button>
+                </div>
+              ) : null}
+              <ResultGrid
+                ref={grid}
+                source={gv.view}
+                driver={driver}
+                tableName={sourceTable(active.columns, driver)}
+                sort={gv.sort}
+                onSort={gv.onSort}
+                hidden={gv.hidden}
+                order={gv.order}
+                onOrderChange={gv.setOrder}
+                widths={gv.widths}
+                onWidthsChange={gv.setWidths}
+                onNearEnd={fetchMore}
+              />
+            </>
           ) : (
             <p className={styles.emptyPane}>
               {busy
@@ -289,8 +303,22 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)
           : null}
       </div>
+      {exporting && exportSource() ? (
+        <ExportDialog source={exportSource()!} onClose={() => setExporting(false)} />
+      ) : null}
     </section>
   );
+}
+
+/** The table a result came from, when every column names the same one. */
+function sourceTable(columns: { source_table?: string }[], driver: string): string | undefined {
+  const names = new Set(columns.map((c) => c.source_table).filter(Boolean));
+  if (names.size !== 1) return undefined;
+  const flavor = flavorOf(driver);
+  return [...names][0]!
+    .split(".")
+    .map((part) => quoteIdent(flavor, part))
+    .join(".");
 }
 
 function TransposeIcon() {

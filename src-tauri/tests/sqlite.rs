@@ -695,6 +695,161 @@ async fn manual_mode_commit_keeps_the_transaction_open_until_commit() {
     assert_eq!(count(c.session.clone()).await, 2);
 }
 
+// ---- table editor changes ---------------------------------------------------------------------
+
+fn change_request(edit_old: &str) -> clew_lib::changes::ChangeRequest {
+    let path = NodePath::root()
+        .child(NodeKind::Database, "main")
+        .child(NodeKind::Table, "t");
+    let mut req: clew_lib::changes::ChangeRequest = serde_json::from_value(serde_json::json!({
+        "path": path,
+        "columns": [
+            {"name": "id", "type_name": "INTEGER"},
+            {"name": "name", "type_name": "TEXT"},
+        ],
+        "keyColumns": ["id"],
+        "edits": [{
+            "key": [{"kind": "int", "value": 1}],
+            "changes": [{
+                "column": "name",
+                "old": {"kind": "text", "value": edit_old, "truncated": false},
+                "new": {"kind": "value", "value": {"kind": "text", "value": "it's new", "truncated": false}},
+            }],
+        }],
+        "inserts": [{"values": [
+            {"column": "id", "value": {"kind": "value", "value": {"kind": "int", "value": 3}}},
+            {"column": "name", "value": {"kind": "value", "value": {"kind": "null"}}},
+        ]}],
+        "deletes": [{"key": [{"kind": "int", "value": 2}]}],
+    }))
+    .unwrap();
+    req.key_columns = vec!["id".into()];
+    req
+}
+
+#[tokio::test]
+async fn staged_changes_apply_in_one_transaction() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    assert_eq!(out.applied, 3);
+    assert!(out.failure.is_none());
+
+    let rows = run(&c.mgr, &c.session, "SELECT id, name FROM t ORDER BY id")
+        .await
+        .rows();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(
+        rows[0][1],
+        Value::Text {
+            value: "it's new".into(),
+            truncated: false
+        }
+    );
+    assert_eq!(rows[1][0], Value::Int { value: 3 });
+    assert_eq!(rows[1][1], Value::Null);
+}
+
+#[tokio::test]
+async fn a_changed_row_rolls_the_whole_batch_back() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'changed by someone'), (2, 'keep')")
+        .await;
+
+    // The edit expects 'old', so its optimistic check matches nothing.
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    let failure = out.failure.expect("conflict reported");
+    assert!(failure.conflict);
+    assert_eq!(failure.target.index, 0);
+    assert_eq!(out.applied, 0);
+
+    let n = run(&c.mgr, &c.session, "SELECT count(*) FROM t")
+        .await
+        .scalar_int();
+    assert_eq!(n, 2, "the delete and insert were rolled back too");
+    let name = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        name[0][0],
+        Value::Text {
+            value: "changed by someone".into(),
+            truncated: false
+        }
+    );
+}
+
+#[tokio::test]
+async fn a_database_error_rolls_back_and_names_the_statement() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone'), (3, 'dup')")
+        .await;
+
+    // Inserting id 3 violates the primary key.
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    let failure = out.failure.expect("insert fails");
+    assert!(!failure.conflict);
+    assert_eq!(failure.target.index, 0);
+    assert!(failure.message.to_lowercase().contains("unique"));
+    let name = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        name[0][0],
+        Value::Text {
+            value: "old".into(),
+            truncated: false
+        },
+        "the earlier update was undone"
+    );
+    // The session is usable afterwards.
+    c.must("SELECT 1").await;
+}
+
+#[tokio::test]
+async fn changes_inside_a_user_transaction_use_a_savepoint() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    c.must("BEGIN").await;
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let out = c.mgr.apply_changes(&c.session, &statements).await.unwrap();
+    assert!(out.failure.is_none());
+    assert_eq!(
+        c.mgr.sessions_in_transaction("conf"),
+        vec![c.session.clone()],
+        "still the user's transaction"
+    );
+    c.must("ROLLBACK").await;
+    let n = run(&c.mgr, &c.session, "SELECT name FROM t WHERE id = 1")
+        .await
+        .rows();
+    assert_eq!(
+        n[0][0],
+        Value::Text {
+            value: "old".into(),
+            truncated: false
+        },
+        "the user can still roll the edits back"
+    );
+}
+
 // ---- query history ----------------------------------------------------------------------------
 
 use clew_lib::history::{self, Outcome};
@@ -797,4 +952,248 @@ async fn statements_the_app_runs_itself_are_not_recorded() {
     assert_eq!(entries[0].sql, "CREATE TABLE t (id INTEGER)");
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
     assert_eq!(store.history_count("conf").await.unwrap(), 1);
+}
+
+// ---- export -----------------------------------------------------------------------------------
+
+use clew_lib::exporter::{self, FileExportOptions, FileFormat, QueryExport};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+
+fn series(n: u64) -> String {
+    format!(
+        "WITH RECURSIVE s(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM s WHERE n < {n}) \
+         SELECT n AS id, 'row ' || n AS label, n * 1.5 AS ratio FROM s"
+    )
+}
+
+#[tokio::test]
+async fn exporting_100k_rows_streams_to_disk_page_by_page() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let out = dir.path().join("big.csv");
+    let seen: Arc<Mutex<Vec<(u64, u64)>>> = Arc::default();
+    let log = seen.clone();
+    let on_disk = out.clone();
+    let summary = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(100_000),
+            format: FileFormat::Csv,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(move |rows, bytes| {
+                // Rows reach the file while the query is still producing them.
+                let flushed = std::fs::metadata(&on_disk).map(|m| m.len()).unwrap_or(0);
+                log.lock().unwrap().push((rows, bytes.max(flushed)));
+            }),
+        },
+    )
+    .await
+    .expect("export");
+
+    assert_eq!(summary.rows, 100_000);
+    assert!(!summary.cancelled);
+    let text = std::fs::read_to_string(&out).unwrap();
+    assert_eq!(text.lines().count(), 100_001, "header + rows");
+    assert!(text.starts_with("id,label,ratio\r\n1,row 1,1.5\r\n"));
+    assert!(
+        text.ends_with("100000,row 100000,150000\r\n")
+            || text.ends_with("100000,row 100000,150000.0\r\n")
+    );
+    assert_eq!(summary.bytes, text.len() as u64);
+
+    let seen = seen.lock().unwrap();
+    // 100k rows arrive in pages of 5,000, and the file grows with them.
+    assert!(seen.len() >= 20, "{} progress calls", seen.len());
+    assert!(
+        seen.windows(2).all(|w| w[0].0 < w[1].0),
+        "progress only moves forward"
+    );
+    let first_half = seen[seen.len() / 2];
+    assert!(
+        first_half.0 < 100_000 && first_half.1 > 0,
+        "bytes exist before the end: {first_half:?}"
+    );
+}
+
+#[tokio::test]
+async fn cancelling_an_export_deletes_the_partial_file() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let out = dir.path().join("cancelled.csv");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let flag = cancel.clone();
+    let rows_seen = Arc::new(AtomicU64::new(0));
+    let seen = rows_seen.clone();
+    let started = std::time::Instant::now();
+    let summary = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(5_000_000),
+            format: FileFormat::Jsonl,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel,
+            progress: Arc::new(move |rows, _| {
+                seen.store(rows, Ordering::Relaxed);
+                if rows >= 10_000 {
+                    flag.store(true, Ordering::Relaxed);
+                }
+            }),
+        },
+    )
+    .await
+    .expect("a cancelled export is not an error");
+    assert!(summary.cancelled);
+    assert!(!out.exists(), "the partial file is gone");
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(10),
+        "stopped promptly"
+    );
+    assert!(rows_seen.load(Ordering::Relaxed) < 5_000_000);
+}
+
+#[tokio::test]
+async fn an_export_that_returns_no_rows_is_an_error_and_leaves_no_file() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER)").await;
+    let out = dir.path().join("none.csv");
+    let err = exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: "INSERT INTO t VALUES (1)".into(),
+            format: FileFormat::Csv,
+            options: FileExportOptions::default(),
+            path: out.clone(),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(|_, _| {}),
+        },
+    )
+    .await
+    .unwrap_err();
+    assert!(err.message.contains("didn't return any rows"), "{err:?}");
+    assert!(!out.exists());
+}
+
+#[tokio::test]
+async fn export_does_not_pollute_the_query_history() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let store = Store::open_in_memory().await.unwrap();
+    c.mgr.set_history_sink(history::sink(store.clone()));
+    exporter::export_query(
+        &c.mgr,
+        QueryExport {
+            connection_id: "conf".into(),
+            sql: series(10),
+            format: FileFormat::Json,
+            options: FileExportOptions::default(),
+            path: dir.path().join("x.json"),
+            cancel: Arc::new(AtomicBool::new(false)),
+            progress: Arc::new(|_, _| {}),
+        },
+    )
+    .await
+    .unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    assert_eq!(store.history_count("conf").await.unwrap(), 0);
+}
+
+// ---- table metadata ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn table_meta_reports_columns_keys_indexes_and_relations() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE)")
+        .await;
+    c.must(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE, \
+         status TEXT DEFAULT 'new', note TEXT)",
+    )
+    .await;
+    c.must("CREATE INDEX orders_status_idx ON orders (status, note)")
+        .await;
+    c.must("CREATE TABLE order_items (order_id INTEGER REFERENCES orders (id), n INTEGER)")
+        .await;
+
+    let db = NodePath::root().child(NodeKind::Database, "main");
+    let orders = c
+        .mgr
+        .table_meta("conf", &db.child(NodeKind::Table, "orders"))
+        .await
+        .unwrap();
+
+    let col = |n: &str| orders.columns.iter().find(|c| c.name == n).unwrap();
+    assert_eq!(
+        orders
+            .columns
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect::<Vec<_>>(),
+        ["id", "user_id", "status", "note"]
+    );
+    assert!(col("id").primary_key);
+    assert!(!col("user_id").nullable && !col("user_id").primary_key);
+    assert!(col("note").nullable);
+    assert_eq!(col("status").default.as_deref(), Some("'new'"));
+    assert_eq!(col("status").type_name, "TEXT");
+
+    let idx = orders
+        .indexes
+        .iter()
+        .find(|i| i.name == "orders_status_idx")
+        .unwrap();
+    assert_eq!(idx.columns, ["status", "note"]);
+    assert!(!idx.unique && !idx.primary);
+
+    assert_eq!(orders.foreign_keys.len(), 1);
+    let fk = &orders.foreign_keys[0];
+    assert_eq!(
+        (
+            fk.ref_table.as_str(),
+            fk.columns.as_slice(),
+            fk.ref_columns.as_slice()
+        ),
+        (
+            "users",
+            &["user_id".to_string()][..],
+            &["id".to_string()][..]
+        )
+    );
+    assert_eq!(fk.on_delete.as_deref(), Some("CASCADE"));
+
+    assert_eq!(orders.referenced_by.len(), 1);
+    assert_eq!(orders.referenced_by[0].table, "order_items");
+    assert_eq!(orders.referenced_by[0].columns, ["order_id"]);
+    assert_eq!(orders.referenced_by[0].ref_columns, ["id"]);
+
+    let users = c
+        .mgr
+        .table_meta("conf", &db.child(NodeKind::Table, "users"))
+        .await
+        .unwrap();
+    assert!(
+        users
+            .indexes
+            .iter()
+            .any(|i| i.unique && i.columns == ["email"]),
+        "{:?}",
+        users.indexes
+    );
+    assert_eq!(
+        users
+            .referenced_by
+            .iter()
+            .map(|r| r.table.as_str())
+            .collect::<Vec<_>>(),
+        ["orders"]
+    );
+    assert!(users.foreign_keys.is_empty());
 }

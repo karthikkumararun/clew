@@ -417,6 +417,96 @@ both! {
         c.must("DROP DATABASE conf_ddl").await;
     };
 
+    staged_changes_apply_and_roll_back_on_conflict => |f| async move {
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_chg").await;
+        c.must("CREATE DATABASE conf_chg").await;
+        c.must("CREATE TABLE conf_chg.t (id BIGINT PRIMARY KEY, name VARCHAR(40), n DECIMAL(10,2), note TEXT)").await;
+        c.must("INSERT INTO conf_chg.t VALUES (1, 'old', 1.50, NULL), (2, 'gone', 2.00, 'x')").await;
+        let path = NodePath::root()
+            .child(NodeKind::Database, "conf_chg")
+            .child(NodeKind::Group, "tables")
+            .child(NodeKind::Table, "t");
+        let request = |old: &str| -> clew_lib::changes::ChangeRequest {
+            serde_json::from_value(serde_json::json!({
+                "path": path,
+                "columns": [
+                    {"name": "id", "type_name": "BIGINT"},
+                    {"name": "name", "type_name": "VARCHAR"},
+                    {"name": "n", "type_name": "DECIMAL"},
+                    {"name": "note", "type_name": "TEXT"},
+                ],
+                "keyColumns": ["id"],
+                "edits": [{
+                    "key": [{"kind": "int", "value": 1}],
+                    "changes": [
+                        {"column": "name",
+                         "old": {"kind": "text", "value": old, "truncated": false},
+                         "new": {"kind": "value", "value": {"kind": "text", "value": "it's new", "truncated": false}}},
+                        {"column": "n",
+                         "old": {"kind": "decimal", "value": "1.50"},
+                         "new": {"kind": "value", "value": {"kind": "decimal", "value": "9.25"}}},
+                        {"column": "note",
+                         "old": {"kind": "null"},
+                         "new": {"kind": "value", "value": {"kind": "text", "value": "hi", "truncated": false}}},
+                    ],
+                }],
+                "inserts": [{"values": [
+                    {"column": "id", "value": {"kind": "value", "value": {"kind": "int", "value": 3}}},
+                    {"column": "name", "value": {"kind": "value", "value": {"kind": "null"}}},
+                ]}],
+                "deletes": [{"key": [{"kind": "int", "value": 2}]}],
+            }))
+            .unwrap()
+        };
+        let driver = f.driver;
+        let stale = clew_lib::changes::build(driver, &request("someone else's")).unwrap();
+        let out = c.mgr.apply_changes(&c.session, &stale).await.expect("apply");
+        assert!(out.failure.expect("conflict").conflict);
+        let n = run(&c.mgr, &c.session, "SELECT count(*) FROM conf_chg.t").await.scalar_int();
+        assert_eq!(n, 2, "rolled back");
+
+        let ok = clew_lib::changes::build(driver, &request("old")).unwrap();
+        let out = c.mgr.apply_changes(&c.session, &ok).await.expect("apply");
+        assert!(out.failure.is_none(), "{:?}", out.failure);
+        let rows = run(&c.mgr, &c.session, "SELECT id, name, CAST(n AS CHAR), note FROM conf_chg.t ORDER BY id").await.rows();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0][1], Value::Text { value: "it's new".into(), truncated: false });
+        assert_eq!(rows[0][3], Value::Text { value: "hi".into(), truncated: false });
+        assert_eq!(rows[1][0], Value::Int { value: 3 });
+        c.must("DROP DATABASE conf_chg").await;
+    };
+
+    table_meta_reports_structure => |f| async move {
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_meta").await;
+        c.must("CREATE DATABASE conf_meta").await;
+        c.must("CREATE TABLE conf_meta.users (id BIGINT PRIMARY KEY, email VARCHAR(100) NOT NULL, UNIQUE KEY users_email (email))").await;
+        c.must("CREATE TABLE conf_meta.orders (id BIGINT PRIMARY KEY, user_id BIGINT NOT NULL, status VARCHAR(20) DEFAULT 'new' COMMENT 'Order state', note TEXT, KEY orders_status_idx (status), CONSTRAINT orders_user_fk FOREIGN KEY (user_id) REFERENCES conf_meta.users (id) ON DELETE CASCADE)").await;
+        c.must("CREATE TABLE conf_meta.items (order_id BIGINT, n INT, CONSTRAINT items_order_fk FOREIGN KEY (order_id) REFERENCES conf_meta.orders (id))").await;
+        let db = NodePath::root().child(NodeKind::Database, "conf_meta");
+        let orders = c.mgr.table_meta("conf", &db.child(NodeKind::Table, "orders")).await.expect("meta");
+        let col = |n: &str| orders.columns.iter().find(|c| c.name == n).unwrap();
+        assert!(col("id").primary_key);
+        assert!(!col("user_id").nullable && col("note").nullable);
+        assert_eq!(col("status").comment.as_deref(), Some("Order state"));
+        // MariaDB reports string defaults quoted, MySQL does not.
+        assert_eq!(col("status").default.as_deref().map(|d| d.trim_matches('\'')), Some("new"));
+        let idx = orders.indexes.iter().find(|i| i.name == "orders_status_idx").unwrap();
+        assert_eq!(idx.columns, ["status"]);
+        assert!(!idx.unique);
+        assert!(orders.indexes.iter().any(|i| i.primary && i.unique));
+        let fk = &orders.foreign_keys[0];
+        assert_eq!((fk.name.as_str(), fk.ref_table.as_str()), ("orders_user_fk", "users"));
+        assert_eq!(fk.on_delete.as_deref(), Some("CASCADE"));
+        assert_eq!(orders.referenced_by.len(), 1);
+        assert_eq!(orders.referenced_by[0].table, "items");
+        assert_eq!(orders.referenced_by[0].columns, ["order_id"]);
+        let users = c.mgr.table_meta("conf", &db.child(NodeKind::Table, "users")).await.unwrap();
+        assert!(users.indexes.iter().any(|i| i.name == "users_email" && i.unique));
+        c.must("DROP DATABASE conf_meta").await;
+    };
+
     count_rows_is_exact => |f| async move {
         let c = connect(&root(f)).await;
         c.must("DROP DATABASE IF EXISTS conf_count").await;

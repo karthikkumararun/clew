@@ -40,6 +40,10 @@ vi.mock("../../lib/ipc/drivers", () => ({
   introspectChildren: vi.fn(),
   isAppError: () => false,
 }));
+vi.mock("../grid/ResultGrid", async () => {
+  const { FakeResultGrid } = await import("../grid/testing");
+  return { ResultGrid: FakeResultGrid, autoWidth: () => 100 };
+});
 vi.mock("../../connections/api", () => ({ sessionSwitchNamespace: vi.fn() }));
 
 const int = (n: number): Value => ({ kind: "int", value: n });
@@ -387,21 +391,6 @@ describe("results", () => {
     fireEvent.click(screen.getByRole("button", { name: "Transpose" }));
     expect(screen.getByRole("columnheader", { name: /column/ })).toBeInTheDocument();
     expect(screen.getByRole("gridcell", { name: "name" })).toBeInTheDocument();
-  });
-
-  it("copies the results as CSV", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-    api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
-      rowsResult(send, 1, 0, [[int(1), text('say "hi", ok')]]);
-      return null;
-    });
-    await mountConsole("select 1", 3);
-    await act(async () => void (await runCommand("console.run")));
-    await screen.findByRole("grid");
-    fireEvent.click(screen.getByRole("button", { name: /Export/ }));
-    await act(async () => fireEvent.click(screen.getByRole("menuitem", { name: "Copy as CSV" })));
-    expect(writeText).toHaveBeenCalledWith('id,name\r\n1,"say ""hi"", ok"\r\n');
   });
 
   it("re-runs the last query", async () => {

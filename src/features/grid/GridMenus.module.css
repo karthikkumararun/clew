@@ -1,0 +1,35 @@
+.wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.button {
+  height: var(--h-button);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 41;
+}

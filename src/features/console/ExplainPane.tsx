@@ -1,4 +1,5 @@
-import { ResultTable } from "./ResultTable";
+import { ResultGrid } from "../grid/ResultGrid";
+import { sourceOf } from "../grid/source";
 import type { ExplainState } from "./runtime";
 import type { PlanNode } from "./explain";
 import styles from "./Console.module.css";
@@ -73,15 +74,7 @@ export function ExplainPane({ explain }: { explain: ExplainState | null }) {
     );
   }
   if (explain.raw) {
-    return (
-      <ResultTable
-        columns={explain.raw.columns}
-        rows={explain.raw.rows}
-        hasMore={false}
-        fetching={false}
-        onNearEnd={() => {}}
-      />
-    );
+    return <ResultGrid source={sourceOf(explain.raw.columns, explain.raw.rows)} driver="" />;
   }
   return null;
 }

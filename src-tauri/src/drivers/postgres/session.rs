@@ -87,6 +87,15 @@ pub struct PgSession {
     target: String,
 }
 
+/// A value as the text PostgreSQL parses for its column type (`None` is NULL).
+fn param_text(v: &Value) -> Option<String> {
+    match v {
+        Value::Bytes { value, .. } => Some(format!("\\x{value}")),
+        Value::Bool { value } => Some(if *value { "true" } else { "false" }.to_string()),
+        other => other.sql_text(),
+    }
+}
+
 impl PgSession {
     pub async fn connect(
         opts: PgConnectOptions,
@@ -408,6 +417,31 @@ impl Session for PgSession {
         self.stream = Some(OpenStream::new(result_id, rx, task));
         self.page(result_id, req.page_size.max(1), &sink, started)
             .await
+    }
+
+    async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        self.cancel.running.store(true, Ordering::SeqCst);
+        // Everything is sent as text; the generated SQL casts each placeholder to its column type.
+        let mut query = sqlx::query(AssertSqlSafe(sql.to_string())).persistent(false);
+        for p in params {
+            query = query.bind(param_text(p));
+        }
+        let result = query.execute(&mut *conn).await;
+        self.cancel.running.store(false, Ordering::SeqCst);
+        match result {
+            Ok(done) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(done.rows_affected())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target))
+            }
+        }
     }
 
     async fn fetch_more(

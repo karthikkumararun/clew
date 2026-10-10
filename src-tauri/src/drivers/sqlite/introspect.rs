@@ -16,11 +16,11 @@ use crate::drivers::postgres::introspect::format_count;
 use crate::drivers::{DriverError, DriverResult, ErrorCode};
 
 pub struct SqliteMeta {
-    pool: SqlitePool,
+    pub(super) pool: SqlitePool,
     path: String,
 }
 
-fn q(name: &str) -> String {
+pub(super) fn q(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
@@ -48,12 +48,12 @@ impl SqliteMeta {
         Ok(Self { pool, path })
     }
 
-    fn err(&self, e: sqlx::Error) -> DriverError {
+    pub(super) fn err(&self, e: sqlx::Error) -> DriverError {
         map_error(e, &self.path, None)
     }
 
     /// Run an identifier-quoted statement (PRAGMA arguments cannot be bound).
-    async fn rows(&self, sql: String) -> DriverResult<Vec<sqlx::sqlite::SqliteRow>> {
+    pub(super) async fn rows(&self, sql: String) -> DriverResult<Vec<sqlx::sqlite::SqliteRow>> {
         sqlx::query(AssertSqlSafe(sql))
             .persistent(false)
             .fetch_all(&self.pool)

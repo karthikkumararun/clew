@@ -527,6 +527,16 @@ impl SessionManager {
         self.execute_inner(session_id, req, emit, true).await
     }
 
+    /// Like [`Self::execute`] but not recorded in the query history (exports re-run queries).
+    pub async fn execute_unrecorded(
+        &self,
+        session_id: &str,
+        req: ExecRequest,
+        emit: Emit,
+    ) -> DriverResult<Option<ExecSummary>> {
+        self.execute_inner(session_id, req, emit, false).await
+    }
+
     async fn execute_inner(
         &self,
         session_id: &str,
@@ -733,6 +743,41 @@ impl SessionManager {
     pub async fn ddl(&self, connection_id: &str, path: &NodePath) -> DriverResult<String> {
         let c = self.connection(connection_id)?;
         c.driver.ddl(&c.pool, path).await
+    }
+
+    /// The driver id (`postgres`, …) of a connected connection.
+    /// Run staged table edits on the tab's session as one unit (see [`crate::changes::apply`]).
+    pub async fn apply_changes(
+        &self,
+        session_id: &str,
+        statements: &[crate::changes::Statement],
+    ) -> DriverResult<crate::changes::ApplyOutcome> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let in_txn = st.in_transaction;
+        let driver = entry.connection.driver.meta().id.to_string();
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(
+                ErrorCode::ConnectionLost,
+                "The connection was lost. Run the query again to reconnect, then retry.",
+            )
+        })?;
+        crate::changes::apply(session.as_mut(), &driver, in_txn, statements).await
+    }
+
+    pub fn driver_id(&self, connection_id: &str) -> DriverResult<String> {
+        Ok(self.connection(connection_id)?.driver.meta().id.to_string())
+    }
+
+    /// Columns, indexes, foreign keys and statistics of a table, through the metadata pool.
+    pub async fn table_meta(
+        &self,
+        connection_id: &str,
+        path: &NodePath,
+    ) -> DriverResult<crate::drivers::table_meta::TableMeta> {
+        let c = self.connection(connection_id)?;
+        c.driver.table_meta(&c.pool, path).await
     }
 
     /// Exact row count of a table or view, through the metadata pool.

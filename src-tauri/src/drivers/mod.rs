@@ -10,6 +10,7 @@ pub mod postgres;
 pub mod registry;
 pub mod split;
 pub mod sqlite;
+pub mod table_meta;
 pub mod value;
 
 use std::any::Any;
@@ -460,6 +461,15 @@ pub trait Driver: Send + Sync {
         Err(DriverError::unsupported("showing DDL"))
     }
 
+    /// Columns, indexes, foreign keys and statistics of the table at `path`.
+    async fn table_meta(
+        &self,
+        _pool: &MetaPool,
+        _path: &NodePath,
+    ) -> DriverResult<table_meta::TableMeta> {
+        Err(DriverError::unsupported("showing table structure"))
+    }
+
     /// Exact `SELECT count(*)` of the table or view at `path`, on the metadata pool.
     async fn count_rows(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<i64> {
         Err(DriverError::unsupported("counting rows"))
@@ -474,6 +484,13 @@ pub trait Session: Send {
     /// `Error` / `Cancelled` events, so drivers must not send those themselves. Result ids must
     /// increase over the session's lifetime so they stay unique across statements.
     async fn execute(&mut self, req: ExecRequest, sink: ResultSink) -> DriverResult<ExecSummary>;
+
+    /// Run one statement with bound parameters (`$n` on PostgreSQL, `?` elsewhere) and return how
+    /// many rows it changed. Used for the table editor's generated INSERT / UPDATE / DELETE, so
+    /// edited values are never spliced into SQL text.
+    async fn execute_params(&mut self, _sql: &str, _params: &[Value]) -> DriverResult<u64> {
+        Err(DriverError::unsupported("editing rows"))
+    }
 
     /// Pull up to `n` more rows of an open result. Returns whether more rows remain.
     async fn fetch_more(

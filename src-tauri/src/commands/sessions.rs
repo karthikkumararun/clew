@@ -140,6 +140,27 @@ pub async fn introspect_ddl(
     Ok(state.sessions.ddl(&connection_id, &path).await?)
 }
 
+/// The SELECT (and count) behind a table's Data view, for the connection's dialect.
+#[tauri::command]
+pub fn table_query_sql(
+    state: State<'_, AppState>,
+    connection_id: String,
+    request: crate::table_query::TableQueryRequest,
+) -> AppResult<crate::table_query::TableQuery> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    Ok(crate::table_query::build(&driver, &request))
+}
+
+/// Structure, indexes, foreign keys and statistics of a table.
+#[tauri::command]
+pub async fn table_meta(
+    state: State<'_, AppState>,
+    connection_id: String,
+    path: NodePath,
+) -> AppResult<crate::drivers::table_meta::TableMeta> {
+    Ok(state.sessions.table_meta(&connection_id, &path).await?)
+}
+
 /// Exact `SELECT count(*)` of a table or view, to replace the explorer's estimate.
 #[tauri::command]
 pub async fn explorer_count_rows(
@@ -211,4 +232,33 @@ pub async fn history_clear(
     connection_id: Option<String>,
 ) -> AppResult<u64> {
     state.store.history_clear(connection_id.as_deref()).await
+}
+
+/// The SQL a set of staged edits would run, values written out, for the pending bar's preview.
+#[tauri::command]
+pub fn changes_preview(
+    state: State<'_, AppState>,
+    connection_id: String,
+    request: crate::changes::ChangeRequest,
+) -> AppResult<Vec<crate::changes::PreviewStatement>> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    let statements = crate::changes::build(&driver, &request)?;
+    Ok(crate::changes::preview(&statements))
+}
+
+/// Apply staged edits on the tab's session in one transaction. Statement failures come back in
+/// the outcome (nothing is changed then); only infrastructure failures are errors.
+#[tauri::command]
+pub async fn changes_apply(
+    state: State<'_, AppState>,
+    connection_id: String,
+    session_id: String,
+    request: crate::changes::ChangeRequest,
+) -> AppResult<crate::changes::ApplyOutcome> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    let statements = crate::changes::build(&driver, &request)?;
+    Ok(state
+        .sessions
+        .apply_changes(&session_id, &statements)
+        .await?)
 }
