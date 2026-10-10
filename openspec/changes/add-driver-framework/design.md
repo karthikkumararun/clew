@@ -82,6 +82,14 @@ One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequen
 - `information_schema_stats_expiry` is set to 0 on metadata connections so row estimates are fresh (ignored on MariaDB). `Driver::ddl` / `introspect_ddl` exposes `SHOW CREATE` output.
 - MariaDB 11 enables TLS by default, like MySQL 8.
 
+### SQLite driver notes (implementation)
+- Built on sqlx-sqlite (not a hand-rolled `spawn_blocking` loop): each connection already runs on its own worker thread. Cancellation installs SQLite's progress handler (every 1000 VM instructions) that aborts the statement with `SQLITE_INTERRUPT` when the session's interrupt flag is set.
+- SQLite is dynamically typed, so values decode by their own storage class; declared types only feed column kinds and the `BOOLEAN` 0/1 mapping. A NULL reports its column's declared type in sqlx, so NULL is checked explicitly.
+- `attach:<name>` options attach extra databases on every session and metadata connection (ATTACH is per connection); they appear next to `main` in the tree.
+- The busy timeout defaults to 5 s and can be shortened with the `busy_timeout_ms` option (the locked-database test uses 300 ms).
+- `rows_affected` is only reported for INSERT/UPDATE/DELETE/REPLACE; for other statements SQLite's `changes()` would be the previous statement's count.
+- In-memory databases are not supported by introspection (each connection would see a different database).
+
 ### Errors
 `DriverError { code: ErrorCode, message, detail: Option<String>, position: Option<u32>, hint: Option<String> }` where `ErrorCode` covers `auth_failed | timeout | connection_lost | query_failed | cancelled | tls_failed | host_key_mismatch | file_not_found | database_locked | access_denied | driver_unavailable | unsupported`.
 

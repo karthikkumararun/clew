@@ -48,10 +48,10 @@
 
 ## 7. SQLite driver
 
-- [ ] 7.1 Implement open (file path, create-if-missing, busy timeout 5s, read-only flag) (spec: driver-framework › SQLite driver)
-- [ ] 7.2 Implement execute/fetch_more on a blocking thread with interrupt-based cancel
-- [ ] 7.3 Implement introspection (main + attached, tables, views, indexes, triggers, columns, PK, FKs) and the completion snapshot
-- [ ] 7.4 Test: conformance suite against a temp file DB; locked-database scenario
+- [x] 7.1 Implement open (file path, create-if-missing, busy timeout 5s, read-only flag) (spec: driver-framework › SQLite driver)
+- [x] 7.2 Implement execute/fetch_more on a blocking thread with interrupt-based cancel
+- [x] 7.3 Implement introspection (main + attached, tables, views, indexes, triggers, columns, PK, FKs) and the completion snapshot
+- [x] 7.4 Test: conformance suite against a temp file DB; locked-database scenario
 
 ## 8. Frontend IPC layer
 
