@@ -22,6 +22,8 @@ const api = vi.hoisted(() => ({
   openTx: vi.fn(),
   del: vi.fn(),
   save: vi.fn(),
+  rename: vi.fn(),
+  finishRename: vi.fn(),
   duplicate: vi.fn(),
   groupsSave: vi.fn(),
   groupsDelete: vi.fn(),
@@ -42,6 +44,8 @@ vi.mock("./api", () => ({
   connectionsDelete: (id: string) => api.del(id),
   connectionsSave: (r: unknown) => api.save(r),
   connectionsDuplicate: (id: string) => api.duplicate(id),
+  connectionsRename: (id: string, n: string) => api.rename(id, n),
+  connectionsFinishFolderRename: (id: string, o: unknown, r: boolean) => api.finishRename(id, o, r),
   groupsSave: (g: unknown) => api.groupsSave(g),
   groupsDelete: (id: string) => api.groupsDelete(id),
   sessionSwitchNamespace: (s: string, t: unknown) => api.switchNs(s, t),
@@ -246,15 +250,27 @@ describe("organising connections", () => {
     expect(dialog.initial.name).toBe("prod-postgres (copy)");
   });
 
-  it("moves a connection to a group and renames without touching secrets", async () => {
+  it("moves a connection to a group without touching secrets", async () => {
     setFile({ groups: [{ id: "g1", name: "Work", order: 0 }], connections: [prod, dev] });
     await act(async () => useConnections.getState().move("c1", "g1"));
     expect(api.save.mock.calls[0][0]).toMatchObject({
       connection: { id: "c1", groupId: "g1" },
       password: { action: "keep" },
     });
+  });
+
+  it("renames through the backend and offers to rename the Scripts folder", async () => {
+    const offer = { from: "/s/prod-postgres", to: "/s/renamed" };
+    api.rename.mockResolvedValueOnce(null).mockResolvedValueOnce(offer);
     await act(async () => useConnections.getState().rename("c1", "  renamed "));
-    expect(api.save.mock.calls[1][0].connection.name).toBe("renamed");
+    expect(api.rename).toHaveBeenCalledWith("c1", "renamed");
+    expect(useConnections.getState().modal).toBeNull();
+
+    await act(async () => useConnections.getState().rename("c1", "again"));
+    expect(useConnections.getState().modal).toEqual({ kind: "folderRename", id: "c1", offer });
+    await act(async () => useConnections.getState().finishFolderRename("c1", offer, true));
+    expect(api.finishRename).toHaveBeenCalledWith("c1", offer, true);
+    expect(useConnections.getState().modal).toBeNull();
   });
 
   it("resets safeguards with the environment only when they were still the defaults", async () => {

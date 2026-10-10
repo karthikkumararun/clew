@@ -170,6 +170,8 @@ impl Overrides {
 pub struct ConnectionService {
     store: Mutex<ConnectionsStore>,
     pub(crate) secrets: Arc<dyn SecretStore>,
+    /// Scans waiting for the user to review them (secrets stay in memory, never in the WebView).
+    pub(crate) scans: Mutex<HashMap<String, super::import::Scan>>,
     prompter: Arc<dyn PasswordPrompter>,
     /// Passwords typed for "ask every time" connections, kept until the connection is closed.
     session_secrets: Mutex<HashMap<(String, SecretKind), Secret>>,
@@ -217,6 +219,7 @@ impl ConnectionService {
             Self {
                 store: Mutex::new(store),
                 secrets,
+                scans: Mutex::new(HashMap::new()),
                 prompter,
                 session_secrets: Mutex::new(HashMap::new()),
             },
@@ -385,7 +388,7 @@ impl ConnectionService {
         })
     }
 
-    fn unique_name(&self, wanted: &str) -> AppResult<String> {
+    pub(crate) fn unique_name(&self, wanted: &str) -> AppResult<String> {
         let existing: Vec<String> = self
             .list()?
             .connections

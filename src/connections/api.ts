@@ -4,11 +4,21 @@ import { invoke } from "../lib/ipc";
 import type { ConnectedInfo } from "../lib/ipc/generated/ConnectedInfo";
 import type { ConnectionsFile } from "../lib/ipc/generated/ConnectionsFile";
 import type { ExportOptions } from "../lib/ipc/generated/ExportOptions";
+import type { CommitOptions } from "../lib/ipc/generated/CommitOptions";
+import type { DataGripInstall } from "../lib/ipc/generated/DataGripInstall";
 import type { ExportSummary } from "../lib/ipc/generated/ExportSummary";
+import type { FileInfo } from "../lib/ipc/generated/FileInfo";
+import type { FolderRename } from "../lib/ipc/generated/FolderRename";
+import type { ImportResult } from "../lib/ipc/generated/ImportResult";
+import type { ImportSource } from "../lib/ipc/generated/ImportSource";
+import type { PasswordSafeInfo } from "../lib/ipc/generated/PasswordSafeInfo";
+import type { ScanView } from "../lib/ipc/generated/ScanView";
+import type { Selection } from "../lib/ipc/generated/Selection";
 import type { Group } from "../lib/ipc/generated/Group";
 import type { HostKeyPrompt } from "../lib/ipc/generated/HostKeyPrompt";
 import type { ParsedUrl } from "../lib/ipc/generated/ParsedUrl";
 import type { PasswordPrompt } from "../lib/ipc/generated/PasswordPrompt";
+import type { ScriptsInfo } from "../lib/ipc/generated/ScriptsInfo";
 import type { SaveOutcome } from "../lib/ipc/generated/SaveOutcome";
 import type { SaveRequest } from "../lib/ipc/generated/SaveRequest";
 import type { SecretStatus } from "../lib/ipc/generated/SecretStatus";
@@ -85,3 +95,36 @@ export const connectionsExport = (
   passphrase: string | null,
   path: string,
 ) => invoke<ExportSummary>("connections_export", { connectionIds, options, passphrase, path });
+
+export type { CandidateView } from "../lib/ipc/generated/CandidateView";
+export type { CommitOptions } from "../lib/ipc/generated/CommitOptions";
+export type { DataGripInstall } from "../lib/ipc/generated/DataGripInstall";
+export type { FileInfo } from "../lib/ipc/generated/FileInfo";
+export type { ImportResult } from "../lib/ipc/generated/ImportResult";
+export type { ImportSource } from "../lib/ipc/generated/ImportSource";
+export type { PasswordSafeInfo } from "../lib/ipc/generated/PasswordSafeInfo";
+export type { ScanView } from "../lib/ipc/generated/ScanView";
+export type { Selection } from "../lib/ipc/generated/Selection";
+
+export const importDatagripDiscover = () => invoke<DataGripInstall[]>("import_datagrip_discover");
+export const importDatagripPasswordSafe = (dir: string) =>
+  invoke<PasswordSafeInfo>("import_datagrip_password_safe", { dir });
+export const importClewInspect = (path: string) =>
+  invoke<FileInfo>("import_clew_inspect", { path });
+export const importScan = (source: ImportSource) => invoke<ScanView>("import_scan", { source });
+export const importCommit = (scanId: string, selections: Selection[], options: CommitOptions) =>
+  invoke<ImportResult>("import_commit", { scanId, selections, options });
+
+export type { FolderRename } from "../lib/ipc/generated/FolderRename";
+export type { ScriptsInfo } from "../lib/ipc/generated/ScriptsInfo";
+
+export const connectionsScriptsInfo = (connectionId: string) =>
+  invoke<ScriptsInfo>("connections_scripts_info", { connectionId });
+/** Rename; returns an offer to rename the Scripts folder too when it follows the name. */
+export const connectionsRename = (connectionId: string, name: string) =>
+  invoke<FolderRename | null>("connections_rename", { connectionId, name });
+export const connectionsFinishFolderRename = (
+  connectionId: string,
+  offer: FolderRename,
+  renameFolder: boolean,
+) => invoke<void>("connections_finish_folder_rename", { connectionId, offer, renameFolder });

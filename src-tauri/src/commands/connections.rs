@@ -1,8 +1,13 @@
 use tauri::State;
 
-use crate::connections::exchange::KdfParams;
+use crate::connections::exchange::{inspect, FileInfo, KdfParams};
 use crate::connections::export::{write_atomic, ExportOptions, ExportSummary};
+use crate::connections::import::datagrip::{self, DataGripInstall};
+use crate::connections::import::{
+    CommitOptions, ImportEnv, ImportResult, ImportSource, PasswordSafeInfo, ScanView, Selection,
+};
 use crate::connections::model::{ConnectionsFile, Group};
+use crate::connections::scripts::{FolderRename, ScriptsInfo};
 use crate::connections::service::{SaveOutcome, SaveRequest, SecretStatus};
 use crate::connections::url::{parse_url, ParsedUrl};
 use crate::drivers::{DriverError, ErrorCode, Secret, ServerInfo};
@@ -208,4 +213,90 @@ pub async fn connections_export(
     })
     .await
     .map_err(|e| crate::error::AppError::new("internal", e.to_string()))?
+}
+
+fn import_env(state: &AppState) -> AppResult<ImportEnv> {
+    let scripts_root = crate::connections::scripts::scripts_root().ok_or_else(|| {
+        crate::error::AppError::new("not_found", "Couldn't find your Documents folder")
+    })?;
+    Ok(ImportEnv {
+        scripts_root,
+        ssh_keys_dir: state.data_dir.join("ssh-keys"),
+    })
+}
+
+/// DataGrip settings folders on this machine, newest first.
+#[tauri::command]
+pub fn import_datagrip_discover() -> Vec<DataGripInstall> {
+    datagrip::discover()
+}
+
+/// How a DataGrip folder keeps its passwords (native keychain, KeePass or nowhere).
+#[tauri::command]
+pub fn import_datagrip_password_safe(state: State<'_, AppState>, dir: String) -> PasswordSafeInfo {
+    state
+        .connections
+        .password_safe_info(std::path::Path::new(&dir))
+}
+
+/// Header of a `.clew` / `.json` export, readable without the passphrase.
+#[tauri::command]
+pub fn import_clew_inspect(path: String) -> AppResult<FileInfo> {
+    let text = std::fs::read_to_string(&path).map_err(|e| {
+        crate::error::AppError::new("io", "Couldn't read the file").with_detail(e.to_string())
+    })?;
+    Ok(inspect(&text)?)
+}
+
+/// Read a source into a review list. Nothing is saved yet.
+#[tauri::command]
+pub async fn import_scan(state: State<'_, AppState>, source: ImportSource) -> AppResult<ScanView> {
+    let connections = state.connections.clone();
+    // Argon2 and keychain reads are slow; keep them off the async workers.
+    tokio::task::spawn_blocking(move || connections.import_scan(source))
+        .await
+        .map_err(|e| crate::error::AppError::new("internal", e.to_string()))?
+}
+
+/// Save the checked rows of a scan.
+#[tauri::command]
+pub fn import_commit(
+    state: State<'_, AppState>,
+    scan_id: String,
+    selections: Vec<Selection>,
+    options: CommitOptions,
+) -> AppResult<ImportResult> {
+    state
+        .connections
+        .import_commit(&scan_id, &selections, &options, &import_env(&state)?)
+}
+
+#[tauri::command]
+pub fn connections_scripts_info(
+    state: State<'_, AppState>,
+    connection_id: String,
+) -> AppResult<ScriptsInfo> {
+    state.connections.scripts_info(&connection_id)
+}
+
+/// Rename; returns an offer to rename the Scripts folder too when it follows the name.
+#[tauri::command]
+pub fn connections_rename(
+    state: State<'_, AppState>,
+    connection_id: String,
+    name: String,
+) -> AppResult<Option<FolderRename>> {
+    state.connections.rename(&connection_id, &name)
+}
+
+#[tauri::command]
+pub fn connections_finish_folder_rename(
+    state: State<'_, AppState>,
+    connection_id: String,
+    offer: FolderRename,
+    rename_folder: bool,
+) -> AppResult<()> {
+    state
+        .connections
+        .finish_folder_rename(&connection_id, &offer, rename_folder)
 }

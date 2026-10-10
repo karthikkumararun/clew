@@ -7,13 +7,15 @@ import {
   connectionsDelete,
   connectionsDisconnect,
   connectionsDuplicate,
+  connectionsFinishFolderRename,
   connectionsList,
   connectionsOpenTransactions,
+  connectionsRename,
   connectionsSave,
   groupsDelete,
   groupsSave,
 } from "./api";
-import type { ConnectedInfo, Connection, ConnectionsFile, Environment } from "./api";
+import type { ConnectedInfo, Connection, ConnectionsFile, Environment, FolderRename } from "./api";
 import { defaultSafeguards, draftFromConnection, newDraft, toSaveRequest } from "./draft";
 import type { Draft } from "./draft";
 
@@ -28,6 +30,7 @@ export type Modal =
   | { kind: "delete"; id: string }
   | { kind: "transactions"; id: string; sessions: number }
   | { kind: "rename"; id: string }
+  | { kind: "folderRename"; id: string; offer: FolderRename }
   | { kind: "newGroup"; moveConnectionId?: string }
   | { kind: "renameGroup"; id: string }
   | { kind: "deleteGroup"; id: string };
@@ -63,6 +66,8 @@ interface ConnectionsState {
   disconnect: (id: string, endTransactions?: "commit" | "rollback") => Promise<void>;
   confirmDelete: (id: string) => Promise<void>;
   rename: (id: string, name: string) => Promise<void>;
+  /** Answer the "rename the Scripts folder too?" offer after a rename. */
+  finishFolderRename: (id: string, offer: FolderRename, renameFolder: boolean) => Promise<void>;
   duplicate: (id: string) => Promise<void>;
   move: (id: string, groupId: string | null) => Promise<void>;
   setEnvironment: (id: string, environment: Environment) => Promise<void>;
@@ -235,11 +240,21 @@ export const useConnections = create<ConnectionsState>((set, get) => {
       const c = find(id);
       if (!c || !name.trim()) return;
       try {
-        await saveKeepingSecrets({ ...c, name: name.trim() });
-        set({ modal: null });
+        const offer = await connectionsRename(id, name.trim());
+        set({ modal: offer ? { kind: "folderRename", id, offer } : null });
         await get().load();
       } catch (e) {
         fail("Couldn't rename the connection", e);
+      }
+    },
+
+    finishFolderRename: async (id, offer, renameFolder) => {
+      set({ modal: null });
+      try {
+        await connectionsFinishFolderRename(id, offer, renameFolder);
+        await get().load();
+      } catch (e) {
+        fail("Couldn't rename the Scripts folder", e);
       }
     },
 

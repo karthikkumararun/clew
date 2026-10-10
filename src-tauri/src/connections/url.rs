@@ -31,6 +31,13 @@ pub struct ParsedUrl {
     pub suggested_name: String,
 }
 
+impl ParsedUrl {
+    /// The user name carried in the settings, if the driver has one.
+    pub fn settings_user(&self) -> Option<&str> {
+        self.settings.user()
+    }
+}
+
 fn bad_scheme() -> AppError {
     AppError::new(
         "unknown_url_scheme",

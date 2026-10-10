@@ -138,6 +138,29 @@ export function ConnectionModals() {
           onSubmit={(name) => void s.rename(conn.id, name)}
         />
       ) : null;
+    case "folderRename":
+      return conn ? (
+        <Confirm
+          title="Rename Scripts folder?"
+          body={
+            <p>
+              Also rename <code>{modal.offer.from}</code> to <code>{modal.offer.to}</code>? Linked
+              SQL files stay linked either way.
+            </p>
+          }
+          actions={[
+            {
+              label: "Keep folder",
+              onClick: () => void s.finishFolderRename(conn.id, modal.offer, false),
+            },
+            {
+              label: "Rename folder",
+              variant: "primary",
+              onClick: () => void s.finishFolderRename(conn.id, modal.offer, true),
+            },
+          ]}
+        />
+      ) : null;
     case "newGroup":
       return (
         <NamePrompt

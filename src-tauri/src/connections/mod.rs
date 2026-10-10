@@ -1,6 +1,7 @@
 //! Saved connections: model, storage, secrets and resolution.
 pub mod exchange;
 pub mod export;
+pub mod import;
 pub mod model;
 pub mod scripts;
 pub mod secrets;

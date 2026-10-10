@@ -2,6 +2,7 @@ import { Dialog } from "../../components/Dialog";
 import { Close } from "../../components/icons";
 import { useConnections } from "../connectionsStore";
 import { ExportPanel } from "./ExportPanel";
+import { ImportPanel } from "./ImportPanel";
 import styles from "./ImportExport.module.css";
 
 export type ExchangeTab = "export" | "import";
@@ -39,11 +40,7 @@ export function ImportExportDialog() {
           <Close size={14} />
         </button>
       </div>
-      {exchange.tab === "export" ? (
-        <ExportPanel onDone={close} />
-      ) : (
-        <div style={{ padding: 24 }}>Import is not available yet.</div>
-      )}
+      {exchange.tab === "export" ? <ExportPanel onDone={close} /> : <ImportPanel onDone={close} />}
     </Dialog>
   );
 }

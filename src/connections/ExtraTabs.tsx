@@ -4,6 +4,7 @@ import type { SshAuthKind } from "../lib/ipc/generated/SshAuthKind";
 import type { TlsMode } from "../lib/ipc/generated/TlsMode";
 import type { Draft, Errors } from "./draft";
 import { Field } from "./Field";
+import { pickFolder } from "./files";
 import styles from "./ConnectionDialog.module.css";
 
 interface TabProps {
@@ -301,16 +302,28 @@ export function AdvancedTab({ draft, patch }: TabProps) {
           </div>
         </div>
       </div>
-      <Field label="SQL scripts folder (optional)">
+      <Field label="SQL scripts folder">
         {(p) => (
-          <Input
-            {...p}
-            dialog
-            mono
-            placeholder="~/sql/my-database"
-            value={draft.scriptsDir}
-            onChange={(e) => patch({ scriptsDir: e.target.value })}
-          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Input
+              {...p}
+              dialog
+              mono
+              placeholder={`~/Documents/Clew/Scripts/${draft.name.trim() || "<connection name>"}/`}
+              value={draft.scriptsDir}
+              onChange={(e) => patch({ scriptsDir: e.target.value })}
+            />
+            <Button
+              variant="default"
+              onClick={() =>
+                void pickFolder({ title: "Scripts folder" }).then(
+                  (dir) => dir && patch({ scriptsDir: dir }),
+                )
+              }
+            >
+              Browse…
+            </Button>
+          </div>
         )}
       </Field>
     </div>
