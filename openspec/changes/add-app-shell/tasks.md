@@ -1,10 +1,10 @@
 ## 1. Project scaffold
 
-- [ ] 1.1 Create the Tauri 2 + React 18 + TypeScript + Vite app with pnpm (`pnpm create tauri-app`), product name "Clew", identifier `dev.adk.clew`; enable TypeScript strict mode
-- [ ] 1.2 Add scripts: `dev`, `build`, `typecheck`, `lint` (eslint + prettier), `test` (vitest); add `rustfmt.toml` and clippy config
-- [ ] 1.3 Set up the Rust crate layout: `src-tauri/src/{main.rs,lib.rs,error.rs,commands/mod.rs,state.rs}` with a typed `AppError { code, message, detail }` serialized across IPC
-- [ ] 1.4 Configure the CSP and Tauri capabilities (own commands only, no shell/http plugins) (spec: app-shell › Offline by default)
-- [ ] 1.5 Add `.github/workflows/ci.yml` with a macos-14 + windows-latest matrix running typecheck, vitest, fmt, clippy, cargo test and a debug build
+- [x] 1.1 Create the Tauri 2 + React 18 + TypeScript + Vite app with pnpm (`pnpm create tauri-app`), product name "Clew", identifier `dev.adk.clew`; enable TypeScript strict mode
+- [x] 1.2 Add scripts: `dev`, `build`, `typecheck`, `lint` (eslint + prettier), `test` (vitest); add `rustfmt.toml` and clippy config
+- [x] 1.3 Set up the Rust crate layout: `src-tauri/src/{main.rs,lib.rs,error.rs,commands/mod.rs,state.rs}` with a typed `AppError { code, message, detail }` serialized across IPC
+- [x] 1.4 Configure the CSP and Tauri capabilities (own commands only, no shell/http plugins) (spec: app-shell › Offline by default)
+- [x] 1.5 Add `.github/workflows/ci.yml` with a macos-14 + windows-latest matrix running typecheck, vitest, fmt, clippy, cargo test and a debug build
 - [ ] 1.6 Test: CI passes on both OSes with a placeholder window
 
 ## 2. Design system primitives
