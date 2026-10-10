@@ -13,19 +13,19 @@
 
 ## 3. Completion
 
-- [ ] 3.1 Fetch and cache the completion snapshot per connection/database; refresh after successful DDL (spec: sql-console › Schema-aware completion)
+- [x] 3.1 Fetch and cache the completion snapshot per connection/database; refresh after successful DDL (spec: sql-console › Schema-aware completion)
 - [x] 3.2 Completion source: keywords, schemas, tables, columns with types, aliases, functions with signatures
 - [x] 3.3 Popup styling per canvas (icons, dim signature, right-aligned kind, footer hint)
 - [x] 3.4 Test: alias `o.` lists orders columns; keyword completion before snapshot arrives
 
 ## 4. Running
 
-- [ ] 4.1 Run current statement / selection / script; toolbar Run ↔ Cancel; elapsed timer (spec: sql-console › Run modes)
-- [ ] 4.2 Cancel via Mod+. / Esc; busy-session prompt
-- [ ] 4.3 Results panel with splitter (height per tab), tabs Result / Output / Explain plan / History, range label, re-run, filter, transpose, Export menu placeholder (spec: sql-console › Results panel)
-- [ ] 4.4 Multiple result sets as sub-tabs; fetch-more on scroll
-- [ ] 4.5 Output log entries (statement, timing, rows affected, cancelled)
-- [ ] 4.6 Test: run modes with mocked IPC; cancel; multiple results
+- [x] 4.1 Run current statement / selection / script; toolbar Run ↔ Cancel; elapsed timer (spec: sql-console › Run modes)
+- [x] 4.2 Cancel via Mod+. / Esc; busy-session prompt
+- [x] 4.3 Results panel with splitter (height per tab), tabs Result / Output / Explain plan / History, range label, re-run, filter, transpose, Export menu placeholder (spec: sql-console › Results panel)
+- [x] 4.4 Multiple result sets as sub-tabs; fetch-more on scroll
+- [x] 4.5 Output log entries (statement, timing, rows affected, cancelled)
+- [x] 4.6 Test: run modes with mocked IPC; cancel; multiple results
 
 ## 5. Errors and explain
 
