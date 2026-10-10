@@ -1,5 +1,7 @@
 use tauri::State;
 
+use crate::connections::exchange::KdfParams;
+use crate::connections::export::{write_atomic, ExportOptions, ExportSummary};
 use crate::connections::model::{ConnectionsFile, Group};
 use crate::connections::service::{SaveOutcome, SaveRequest, SecretStatus};
 use crate::connections::url::{parse_url, ParsedUrl};
@@ -168,4 +170,42 @@ pub async fn connections_disconnect(
     state.sessions.disconnect(&connection_id).await;
     state.connections.forget_session_secrets(&connection_id);
     Ok(())
+}
+
+/// Counts and warnings for the Export tab; writes nothing.
+#[tauri::command]
+pub fn connections_export_summary(
+    state: State<'_, AppState>,
+    connection_ids: Vec<String>,
+    options: ExportOptions,
+) -> AppResult<ExportSummary> {
+    state.connections.export_summary(&connection_ids, options)
+}
+
+/// Write the selected connections to `path`. With secrets the file is encrypted with the
+/// passphrase (never stored or logged); otherwise it is plain JSON.
+#[tauri::command]
+pub async fn connections_export(
+    state: State<'_, AppState>,
+    connection_ids: Vec<String>,
+    options: ExportOptions,
+    passphrase: Option<Secret>,
+    path: String,
+) -> AppResult<ExportSummary> {
+    let connections = state.connections.clone();
+    // Argon2 takes a moment; keep it off the async workers.
+    tokio::task::spawn_blocking(move || {
+        let created = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        let (text, summary) = connections.export_text(
+            &connection_ids,
+            options,
+            passphrase.as_ref().map(Secret::expose),
+            &created,
+            KdfParams::default(),
+        )?;
+        write_atomic(std::path::Path::new(&path), &text)?;
+        Ok(summary)
+    })
+    .await
+    .map_err(|e| crate::error::AppError::new("internal", e.to_string()))?
 }

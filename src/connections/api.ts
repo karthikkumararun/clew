@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "../lib/ipc";
 import type { ConnectedInfo } from "../lib/ipc/generated/ConnectedInfo";
 import type { ConnectionsFile } from "../lib/ipc/generated/ConnectionsFile";
+import type { ExportOptions } from "../lib/ipc/generated/ExportOptions";
+import type { ExportSummary } from "../lib/ipc/generated/ExportSummary";
 import type { Group } from "../lib/ipc/generated/Group";
 import type { HostKeyPrompt } from "../lib/ipc/generated/HostKeyPrompt";
 import type { ParsedUrl } from "../lib/ipc/generated/ParsedUrl";
@@ -71,3 +73,15 @@ export const sessionSwitchNamespace = (
 export function onHostKeyPromptEvent(handler: (p: HostKeyPrompt) => void): Promise<() => void> {
   return listen<HostKeyPrompt>("host_key_prompt", (e) => handler(e.payload));
 }
+
+export type { ExportOptions } from "../lib/ipc/generated/ExportOptions";
+export type { ExportSummary } from "../lib/ipc/generated/ExportSummary";
+
+export const connectionsExportSummary = (connectionIds: string[], options: ExportOptions) =>
+  invoke<ExportSummary>("connections_export_summary", { connectionIds, options });
+export const connectionsExport = (
+  connectionIds: string[],
+  options: ExportOptions,
+  passphrase: string | null,
+  path: string,
+) => invoke<ExportSummary>("connections_export", { connectionIds, options, passphrase, path });

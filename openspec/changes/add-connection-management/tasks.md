@@ -41,9 +41,9 @@
 ## 6. Export
 
 - [ ] 6.1 Rust: `.clew` format writer — header, Argon2id KDF, AES-256-GCM with header as associated data, zeroized buffers; plain JSON when no secrets (spec: connection-management › Export connections)
-- [ ] 6.2 Collect secrets from the keychain, SSH key files and linked SQL files; per-item warnings (password not included, key not found)
-- [ ] 6.3 Export tab UI per `ImportExport.dc.html`: connection checklist by group, Include options, passphrase + confirm with strength meter (min 12), file summary, Export…
-- [ ] 6.4 Test: round-trip export/import; header tamper and wrong passphrase fail; no secret in plain export
+- [x] 6.2 Collect secrets from the keychain, SSH key files and linked SQL files; per-item warnings (password not included, key not found)
+- [x] 6.3 Export tab UI per `ImportExport.dc.html`: connection checklist by group, Include options, passphrase + confirm with strength meter (min 12), file summary, Export…
+- [x] 6.4 Test: round-trip export/import; header tamper and wrong passphrase fail; no secret in plain export
 
 ## 7. Import
 

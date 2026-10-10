@@ -41,6 +41,9 @@ interface ConnectionsState {
   connected: Record<string, ConnectedInfo>;
   busy: Record<string, "connecting" | "disconnecting">;
   selectedId: string | null;
+  /** The Import / Export dialog, when open. */
+  exchange: { tab: "export" | "import" } | null;
+  setExchange: (exchange: { tab: "export" | "import" } | null) => void;
   /** Shown under the Welcome URL field when a pasted URL can't be used. */
   urlError: string | null;
   setUrlError: (message: string | null) => void;
@@ -108,6 +111,8 @@ export const useConnections = create<ConnectionsState>((set, get) => {
     connected: {},
     busy: {},
     selectedId: null,
+    exchange: null,
+    setExchange: (exchange) => set({ exchange }),
     urlError: null,
     setUrlError: (urlError) => set({ urlError }),
 

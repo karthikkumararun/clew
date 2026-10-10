@@ -158,6 +158,8 @@ pub fn run() {
             commands::connections::connections_connect,
             commands::connections::connections_open_transactions,
             commands::connections::connections_disconnect,
+            commands::connections::connections_export_summary,
+            commands::connections::connections_export,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

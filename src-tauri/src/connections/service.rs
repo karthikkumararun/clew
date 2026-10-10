@@ -169,7 +169,7 @@ impl Overrides {
 
 pub struct ConnectionService {
     store: Mutex<ConnectionsStore>,
-    secrets: Arc<dyn SecretStore>,
+    pub(crate) secrets: Arc<dyn SecretStore>,
     prompter: Arc<dyn PasswordPrompter>,
     /// Passwords typed for "ask every time" connections, kept until the connection is closed.
     session_secrets: Mutex<HashMap<(String, SecretKind), Secret>>,

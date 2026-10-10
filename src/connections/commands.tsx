@@ -113,6 +113,18 @@ export function registerConnectionCommands(): () => void {
       },
     }),
     registerCommand({
+      id: "connection.import",
+      title: "Import connections",
+      category: "Connection",
+      run: () => store().setExchange({ tab: "import" }),
+    }),
+    registerCommand({
+      id: "connection.export",
+      title: "Export connections",
+      category: "Connection",
+      run: () => store().setExchange({ tab: "export" }),
+    }),
+    registerCommand({
       id: "connection.manage",
       title: "All connections",
       category: "Connection",

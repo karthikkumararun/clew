@@ -104,6 +104,12 @@ pub struct DriverMeta {
 #[serde(transparent)]
 pub struct Secret(String);
 
+impl Drop for Secret {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.0);
+    }
+}
+
 impl Secret {
     pub fn new(s: impl Into<String>) -> Self {
         Self(s.into())
