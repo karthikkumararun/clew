@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NodeKind {
@@ -21,6 +23,8 @@ pub enum NodeKind {
     Index,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PathSegment {
     pub kind: NodeKind,
@@ -28,6 +32,8 @@ pub struct PathSegment {
 }
 
 /// Address of a node in the introspection tree. The empty path is the connection root.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct NodePath(pub Vec<PathSegment>);
 
@@ -59,6 +65,8 @@ impl NodePath {
     }
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TreeNode {
     pub path: NodePath,
@@ -66,10 +74,12 @@ pub struct TreeNode {
     pub name: String,
     /// e.g. a column type or `~12.4k rows`; `access_denied` when the user may not look inside.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub detail: Option<String>,
     pub has_children: bool,
     /// Column details; only set for `Column` nodes.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub column: Option<ColumnInfo>,
 }
 
@@ -97,6 +107,8 @@ impl TreeNode {
     }
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ColumnInfo {
     pub type_name: String,
@@ -108,11 +120,15 @@ pub struct ColumnInfo {
 }
 
 /// Everything the SQL console needs for completion, in one call.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SchemaSnapshot {
     pub schemas: Vec<SnapshotSchema>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SnapshotSchema {
     pub name: String,
@@ -120,6 +136,8 @@ pub struct SnapshotSchema {
     pub functions: Vec<String>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SnapshotTable {
     pub name: String,
@@ -128,6 +146,8 @@ pub struct SnapshotTable {
     pub columns: Vec<SnapshotColumn>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SnapshotColumn {
     pub name: String,

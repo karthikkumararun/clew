@@ -31,6 +31,7 @@ rustls = { version = "0.23.45", default-features = false, features = ["ring", "s
 tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring", "tls12"] }
 rustls-native-certs = "0.8.4"
 rustls-pemfile = "2.2.0"
+ts-rs = { version = "12.0.1", features = ["serde-json-impl", "no-serde-warnings"] }
 
 [profile.release]
 codegen-units = 1

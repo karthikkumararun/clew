@@ -29,6 +29,8 @@ pub use value::{Value, ValueKind};
 // Metadata
 // ---------------------------------------------------------------------------------------------
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DriverFamily {
@@ -39,6 +41,8 @@ pub enum DriverFamily {
 }
 
 /// Which connection form the UI shows for the driver.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FormKind {
@@ -48,6 +52,8 @@ pub enum FormKind {
     Keyvalue,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Dialect {
@@ -57,6 +63,8 @@ pub enum Dialect {
     Sqlite,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Capabilities {
     pub transactions: bool,
@@ -67,6 +75,8 @@ pub struct Capabilities {
     pub multiple_databases: bool,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DriverMeta {
     pub id: &'static str,
@@ -88,6 +98,8 @@ pub struct DriverMeta {
 
 /// A secret string. Redacted in `Debug`, never serialized: it can come in over IPC but never
 /// goes back out, and never appears in logs or error messages.
+#[derive(ts_rs::TS)]
+#[ts(type = "string")]
 #[derive(Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(transparent)]
 pub struct Secret(String);
@@ -108,6 +120,8 @@ impl fmt::Debug for Secret {
     }
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Target {
@@ -128,6 +142,8 @@ pub enum Target {
     },
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "method", rename_all = "snake_case")]
 pub enum SshAuth {
@@ -141,6 +157,8 @@ pub enum SshAuth {
     },
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct SshConfig {
     pub host: String,
@@ -154,6 +172,8 @@ fn default_ssh_port() -> u16 {
     22
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TlsMode {
@@ -165,6 +185,8 @@ pub enum TlsMode {
     VerifyFull,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 pub struct TlsConfig {
     #[serde(default)]
@@ -175,6 +197,8 @@ pub struct TlsConfig {
     pub client_key: Option<String>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ResolvedConfig {
     pub driver: String,
@@ -187,8 +211,10 @@ pub struct ResolvedConfig {
     #[serde(default)]
     pub tls: TlsConfig,
     #[serde(default = "default_connect_timeout")]
+    #[ts(type = "number")]
     pub connect_timeout_secs: u64,
     /// Cancel statements running longer than this. `None` = no timeout.
+    #[ts(type = "number | null")]
     pub query_timeout_secs: Option<u64>,
     /// Open sessions read-only (production connections default to this).
     #[serde(default)]
@@ -223,6 +249,8 @@ pub const BATCH_BYTE_CAP: usize = 2 * 1024 * 1024;
 
 pub type ResultId = u64;
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ExecRequest {
     pub sql: String,
@@ -239,6 +267,8 @@ fn default_page_size() -> usize {
     DEFAULT_PAGE_SIZE
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ColumnMeta {
     pub name: String,
@@ -247,49 +277,60 @@ pub struct ColumnMeta {
     pub kind: ValueKind,
     pub nullable: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub source_table: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub source_column: Option<String>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ExecSummary {
     /// `None` for statements that return a result set.
+    #[ts(type = "number | null")]
     pub rows_affected: Option<u64>,
+    #[ts(type = "number")]
     pub elapsed_ms: u64,
     pub has_more: bool,
 }
 
 /// Streamed to the frontend over a Tauri `Channel`.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum ResultEvent {
     /// A statement started producing a result. `statement` is the 0-based index in script mode.
     Columns {
+        #[ts(type = "number")]
         result_id: ResultId,
         statement: usize,
         columns: Vec<ColumnMeta>,
     },
     Rows {
+        #[ts(type = "number")]
         result_id: ResultId,
         rows: Vec<Vec<Value>>,
     },
     Done {
+        #[ts(type = "number")]
         result_id: ResultId,
         summary: ExecSummary,
     },
     Error {
+        #[ts(type = "number | null")]
         result_id: Option<ResultId>,
         statement: usize,
         error: DriverError,
     },
     Cancelled {
+        #[ts(type = "number | null")]
         result_id: Option<ResultId>,
     },
     /// Informational message about the session itself (e.g. it was re-established).
-    Notice {
-        message: String,
-    },
+    Notice { message: String },
 }
 
 /// Where a session sends result events. Dropping the receiver (window closed) makes sends fail,
@@ -309,6 +350,8 @@ impl ResultSink {
     }
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ServerInfo {
     /// e.g. `PostgreSQL`
@@ -316,6 +359,7 @@ pub struct ServerInfo {
     /// e.g. `16.2`
     pub version: String,
     /// Round-trip time of the trivial test query.
+    #[ts(type = "number")]
     pub round_trip_ms: u64,
 }
 
@@ -351,6 +395,8 @@ impl fmt::Debug for CancelHandle {
 }
 
 /// Identifies one cell for fetching its untruncated value.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct FullValueRequest {
     pub table: NodePath,

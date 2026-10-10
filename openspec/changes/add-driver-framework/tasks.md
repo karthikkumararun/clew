@@ -55,6 +55,6 @@
 
 ## 8. Frontend IPC layer
 
-- [ ] 8.1 Add typed TS bindings in `src/lib/ipc/drivers.ts` for every command and the `ResultEvent` union (generate types with `ts-rs` or `specta`)
-- [ ] 8.2 Add a `useQueryRun()` hook that manages a channel, accumulates batches and exposes fetchMore/cancel
-- [ ] 8.3 Test: Vitest with a mocked channel covers batches, done, error and cancel
+- [x] 8.1 Add typed TS bindings in `src/lib/ipc/drivers.ts` for every command and the `ResultEvent` union (generate types with `ts-rs` or `specta`)
+- [x] 8.2 Add a `useQueryRun()` hook that manages a channel, accumulates batches and exposes fetchMore/cancel
+- [x] 8.3 Test: Vitest with a mocked channel covers batches, done, error and cancel

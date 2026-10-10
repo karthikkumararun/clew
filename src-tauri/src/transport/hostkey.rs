@@ -15,6 +15,8 @@ use tokio::sync::oneshot;
 use crate::drivers::{DriverError, DriverResult, ErrorCode};
 
 /// What the user is shown when a bastion's key is not known yet.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HostKeyPrompt {

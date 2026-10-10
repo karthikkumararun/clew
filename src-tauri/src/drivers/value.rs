@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 ///
 /// Serialized as `{ "kind": "...", ... }`. Integers outside ±2^53 would lose precision in
 /// JavaScript, so constructors (`Value::from_i64`) emit `bigint` strings for those.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Value {
@@ -13,6 +15,7 @@ pub enum Value {
         value: bool,
     },
     Int {
+        #[ts(type = "number")]
         value: i64,
     },
     /// Decimal string; used for integers beyond the JS-safe range and beyond i64.
@@ -34,6 +37,7 @@ pub enum Value {
     /// Hex string (no prefix). `len` is the full byte length.
     Bytes {
         value: String,
+        #[ts(type = "number")]
         len: u64,
         #[serde(default, skip_serializing_if = "is_false")]
         truncated: bool,
@@ -74,6 +78,8 @@ fn is_false(b: &bool) -> bool {
 }
 
 /// Coarse kind of a column's values, for grid rendering and editing decisions.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ValueKind {

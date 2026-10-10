@@ -12,6 +12,8 @@ pub struct Registry {
     drivers: HashMap<&'static str, Arc<dyn Driver>>,
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct DriverGroup {
     pub family: DriverFamily,

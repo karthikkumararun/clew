@@ -2,6 +2,8 @@ use serde::Serialize;
 
 use crate::error::AppError;
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ErrorCode {
@@ -42,17 +44,22 @@ impl ErrorCode {
 }
 
 /// Error returned by drivers. Never carries secrets (passwords, passphrases, tokens).
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, thiserror::Error)]
 #[error("{}: {message}", code.as_str())]
 pub struct DriverError {
     pub code: ErrorCode,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub detail: Option<String>,
     /// 1-based character offset into the statement text, when the server reports one.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub position: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub hint: Option<String>,
 }
 

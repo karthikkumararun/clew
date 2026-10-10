@@ -44,6 +44,8 @@ pub async fn connection_disconnect(
     Ok(())
 }
 
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenedSession {

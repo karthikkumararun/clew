@@ -1,9 +1,9 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
-import { APP_VERSION } from "./appInfo";
-import { getPlatform } from "./platform";
-import { DEFAULT_SETTINGS } from "../stores/settingsDefaults";
-import type { Settings } from "../stores/settingsDefaults";
-import type { UiStateBackend } from "./uiState";
+import { APP_VERSION } from "../appInfo";
+import { getPlatform } from "../platform";
+import { DEFAULT_SETTINGS } from "../../stores/settingsDefaults";
+import type { Settings } from "../../stores/settingsDefaults";
+import type { UiStateBackend } from "../uiState";
 
 /** Shape of errors crossing IPC from the Rust `AppError`. */
 export interface AppError {
