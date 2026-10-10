@@ -48,7 +48,7 @@ input,select{font:inherit}
           </button>
         </sc-for>
         <div style="padding: 10px 10px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; color: #7D8794">NOSQL</div>
-        <sc-for list="{{noDrivers}}" as="d" hint-placeholder-count="2">
+        <sc-for list="{{noDrivers}}" as="d" hint-placeholder-count="3">
           <button type="button" class="drv" onClick="{{d.pick}}" aria-pressed="{{d.selected}}" style="background: {{d.bg}}; color: {{d.fg}}; box-shadow: {{d.ring}}">
             <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 18px; border-radius: 4px; background: {{d.color}}; color: #0E1014; font: 600 9.5px/1 'JetBrains Mono', monospace">{{d.badge}}</span>{{d.name}}
           </button>
@@ -139,6 +139,21 @@ input,select{font:inherit}
                     <div class="fld"><label for="c-authdb">Auth database</label><input id="c-authdb" class="in mono" value="admin" onChange="{{noop}}"></div>
                     <div class="fld"><label for="c-mech">Auth mechanism</label><select id="c-mech" class="in"><option>SCRAM-SHA-256</option><option>X.509</option><option>None</option></select></div>
                   </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{isGraph}}" hint-placeholder-val="{{false}}">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) 110px; gap: 12px">
+                    <div class="fld"><label for="g-scheme">Protocol</label><select id="g-scheme" class="in"><option>neo4j://</option><option>neo4j+s://</option><option>bolt://</option><option>bolt+s://</option></select></div>
+                    <div class="fld"><label for="g-host">Host</label><input id="g-host" class="in mono" value="graph.internal" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="g-port">Port</label><input id="g-port" class="in mono" value="{{port}}" onChange="{{noop}}"></div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+                    <div class="fld"><label for="g-user">User</label><input id="g-user" class="in mono" value="neo4j" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="g-pass">Password</label><input id="g-pass" class="in mono" type="password" value="placeholder-pw" onChange="{{noop}}"></div>
+                    <div class="fld"><label for="g-db">Database</label><input id="g-db" class="in mono" value="neo4j" onChange="{{noop}}"></div>
+                  </div>
+                  <p style="margin: 0; color: #7D8794; font-size: 12px">Use <span class="mono">neo4j+s://</span> for AuraDB. <span class="mono">neo4j://</span> routes reads and writes across a cluster; <span class="mono">bolt://</span> talks to a single server.</p>
                 </div>
               </sc-if>
               <sc-if value="{{isRedis}}" hint-placeholder-val="{{false}}">
@@ -248,7 +263,8 @@ class Component extends DCLogic {
       { id: 'sqlite', name: 'SQLite', badge: 'SQ', color: '#B8C0CC', kind: 'file', ver: 'SQLite 3.46', scheme: 'sqlite' },
       { id: 'duckdb', name: 'DuckDB', badge: 'DK', color: '#E8D27A', kind: 'file', ver: 'DuckDB 1.1', scheme: 'duckdb' },
       { id: 'mongodb', name: 'MongoDB', badge: 'MG', color: '#6CC48A', kind: 'mongo', port: '27017', ver: 'MongoDB 8.0', scheme: 'mongodb+srv' },
-      { id: 'redis', name: 'Redis', badge: 'RD', color: '#F2766B', kind: 'redis', port: '6379', ver: 'Redis 7.4', scheme: 'redis' }
+      { id: 'redis', name: 'Redis', badge: 'RD', color: '#F2766B', kind: 'redis', port: '6379', ver: 'Redis 7.4', scheme: 'redis' },
+      { id: 'neo4j', name: 'Neo4j', badge: 'N4', color: '#66D1D6', kind: 'graph', port: '7687', ver: 'Neo4j 5.24 Enterprise', scheme: 'neo4j' }
     ];
     const cur = ALL.find((d) => d.id === s.driver) || ALL[0];
     const mk = (d) => {
@@ -277,6 +293,7 @@ class Component extends DCLogic {
     if (cur.kind === 'net') urlPreview = cur.scheme + '://karthik@db.internal:' + cur.port + '/analytics?sslmode=verify-full';
     else if (cur.kind === 'file') urlPreview = cur.scheme + ':///Users/karthik/Projects/notes/notes.sqlite';
     else if (cur.kind === 'oracle') urlPreview = 'oracle://karthik@db.internal:1521/ORCLPDB1 (service name)';
+    else if (cur.kind === 'graph') urlPreview = 'neo4j://karthik@graph.internal:7687?database=neo4j';
     else if (cur.kind === 'mongo') urlPreview = 'mongodb+srv://karthik@cluster0.example.net/shop?authSource=admin';
     else urlPreview = 'redis://localhost:' + cur.port + '/0';
     const envName = (ENV.find((e) => e.id === s.env) || ENV[3]).id;
@@ -285,7 +302,7 @@ class Component extends DCLogic {
       noDrivers: ALL.slice(8).map(mk),
       envs, tabs,
       tabGeneral: s.tab === 'general', tabSsh: s.tab === 'ssh', tabSsl: s.tab === 'ssl', tabAdv: s.tab === 'advanced',
-      isNet: cur.kind === 'net', isOracle: cur.kind === 'oracle', isFile: cur.kind === 'file', isMongo: cur.kind === 'mongo', isRedis: cur.kind === 'redis',
+      isNet: cur.kind === 'net', isOracle: cur.kind === 'oracle', isFile: cur.kind === 'file', isMongo: cur.kind === 'mongo', isGraph: cur.kind === 'graph', isRedis: cur.kind === 'redis',
       isProd: s.env === 'prod',
       port: cur.port || '',
       connName: envName + '-' + cur.id,

@@ -4,7 +4,7 @@ Every feature in Clew (explorer, console, grid, document browser, AI assistant) 
 
 ## What Changes
 
-- Add a Rust driver contract and a driver registry with per-driver metadata: id, display name, 2-letter badge, color token, family (`sql | document | keyvalue`), default port, connection-form kind (`network | file | uri | keyvalue`), SQL dialect and capability flags.
+- Add a Rust driver contract and a driver registry with per-driver metadata: id, display name, 2-letter badge, color token, family (`sql | document | keyvalue | graph`), default port, connection-form kind (`network | file | uri | keyvalue`), SQL dialect and capability flags.
 - Add live sessions: a small pool per connection for metadata, plus a dedicated session per editor tab, so transactions and session settings (search_path, temp tables) persist across statements.
 - Add query execution that streams typed result batches to the frontend over a Tauri Channel, with paging (fetch more), row limits, cancellation and timeouts.
 - Add one value model (null, bool, int, float, decimal, text, bytes, date/time types, json, uuid, array, unknown-as-text) so the grid can render and edit any driver's data.

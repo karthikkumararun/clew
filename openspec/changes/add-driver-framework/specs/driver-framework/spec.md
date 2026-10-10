@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Driver registry
-The system SHALL keep a registry of available drivers. Each driver SHALL declare: id, display name, 2-letter badge, color token, family (`sql`, `document` or `keyvalue`), default port (if any), connection-form kind (`network`, `file`, `uri` or `keyvalue`), SQL dialect (for `sql` drivers) and capability flags (`transactions`, `cancel`, `explain`, `editable_results`, `schemas`, `multiple_databases`).
+The system SHALL keep a registry of available drivers. Each driver SHALL declare: id, display name, 2-letter badge, color token, family (`sql`, `document`, `keyvalue` or `graph`), default port (if any), connection-form kind (`network`, `file`, `uri` or `keyvalue`), SQL dialect (for `sql` drivers) and capability flags (`transactions`, `cancel`, `explain`, `editable_results`, `schemas`, `multiple_databases`).
 
 #### Scenario: List drivers
 - **WHEN** the frontend requests the driver list

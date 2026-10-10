@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Connection model
-A connection SHALL have: a stable id, name, driver id, group, environment (`local`, `development`, `staging`, `production`), driver settings (host, port, database, user for network drivers; host, port, connect-by (service name / SID / TNS alias / Easy Connect), user, role and wallet folder for Oracle; file path for file drivers; URI for MongoDB; host, port, db index for Redis), password-storage mode (`keychain`, `ask`, `none`), optional SSH tunnel, TLS settings, advanced settings (connect timeout, query timeout, keep-alive, statements to run on connect, driver properties) and safeguard flags (read-only by default, confirm writes, manual commit).
+A connection SHALL have: a stable id, name, driver id, group, environment (`local`, `development`, `staging`, `production`), driver settings (host, port, database, user for network drivers; host, port, connect-by (service name / SID / TNS alias / Easy Connect), user, role and wallet folder for Oracle; file path for file drivers; URI for MongoDB; host, port, db index for Redis; protocol, host, port, user and database for Neo4j), password-storage mode (`keychain`, `ask`, `none`), optional SSH tunnel, TLS settings, advanced settings (connect timeout, query timeout, keep-alive, statements to run on connect, driver properties) and safeguard flags (read-only by default, confirm writes, manual commit).
 
 #### Scenario: Defaults by environment
 - **WHEN** the user creates a connection with environment Production
@@ -77,7 +77,7 @@ The dialog SHALL test the current, unsaved settings and show the result inline n
 - **THEN** the button turns into "Cancel test" and pressing it aborts the attempt
 
 ### Requirement: Paste a connection URL
-The system SHALL parse connection URLs (`postgres://`, `postgresql://`, `mysql://`, `mariadb://`, `sqlserver://`, `oracle://`, `clickhouse://`, `sqlite:`, `duckdb:`, `mongodb://`, `mongodb+srv://`, `redis://`, `rediss://`) into a prefilled connection dialog for the user to confirm.
+The system SHALL parse connection URLs (`postgres://`, `postgresql://`, `mysql://`, `mariadb://`, `sqlserver://`, `oracle://`, `clickhouse://`, `sqlite:`, `duckdb:`, `mongodb://`, `mongodb+srv://`, `redis://`, `rediss://`, `neo4j://`, `neo4j+s://`, `bolt://`, `bolt+s://`) into a prefilled connection dialog for the user to confirm.
 
 #### Scenario: Postgres URL with password
 - **WHEN** the user pastes `postgres://karthik:secret@db.internal:5432/analytics?sslmode=require` on the Welcome screen and presses Connect

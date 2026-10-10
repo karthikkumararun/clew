@@ -18,6 +18,7 @@ This folder is the source of truth for implementation:
 | Workspace: explorer + SQL console + results | `canvas/Main.dc.html` | `add-app-shell`, `add-database-explorer`, `add-sql-console`, `add-data-grid` |
 | Table editor (data grid, pending changes, record panel) | `canvas/DataGrid.dc.html` | `add-data-grid` |
 | Document browser (MongoDB) + Redis keys | `canvas/MongoBrowser.dc.html` | `add-nosql-browser` |
+| Graph browser (Neo4j): Cypher editor, graph view, schema sidebar, inspector | `canvas/GraphBrowser.dc.html` | `add-graph-browser` |
 | Welcome / first run | `canvas/Welcome.dc.html` | `add-app-shell`, `add-connection-management` |
 | New connection dialog | `canvas/ConnectionDialog.dc.html` | `add-connection-management` |
 | Command palette | `canvas/CommandPalette.dc.html` | `add-command-palette` |
@@ -29,7 +30,7 @@ This folder is the source of truth for implementation:
 - **Look:** dark, dense, quiet. A single gold accent (`--accent`) is the "thread": the primary button, the selected-row bar, the active tab underline, the sort arrow and the run marker. Nothing else is gold.
 - **Type:** IBM Plex Sans 13px for UI; JetBrains Mono for anything a database produced or will consume (identifiers, values, SQL, URLs, paths). Section labels: 11px, uppercase, weight 600, letter-spacing 0.08em, `--text-muted`.
 - **Environment colors:** every connection carries one (local green, dev blue, staging amber, production red). It shows as a dot in the tree, a 3px bar in recent lists, and a 2px top stripe on editor tabs. Production adds the red `PRODUCTION · READ-ONLY` badge in the toolbar.
-- **Driver badges:** 20×14 rounded tags with a 2-letter code (`PG`, `MY`, `MA`, `MS`, `OR`, `CH`, `SQ`, `DK`, `MG`, `RD`) on the driver color, dark text.
+- **Driver badges:** 20×14 rounded tags with a 2-letter code (`PG`, `MY`, `MA`, `MS`, `OR`, `CH`, `SQ`, `DK`, `MG`, `RD`, `N4`) on the driver color, dark text.
 - **Typed values:** numbers `--syn-number`, strings `--syn-string`, dates `--syn-date`, booleans `--syn-boolean`, ObjectIds `--syn-objectid`, foreign keys underlined `--syn-link`, NULL as italic `NULL` in `--syn-null`.
 - **Pending changes (grid):** edited cell = `--grid-edited-cell` + 1.5px inset accent ring; inserted row = `--grid-inserted-row`, `+` marker; deleted row = `--grid-deleted-row`, strikethrough, `−` marker; the amber pending bar sits at the bottom with Preview SQL / Revert all / Submit.
 - **AI:** the AI uses the same gold accent with a four-point star icon. AI edits appear as an inline diff in the editor (removed = `--grid-deleted-row` + strikethrough + red left bar; added = `--grid-inserted-row` + green left bar; changed words on a stronger green), with per-hunk Keep/Undo and a floating amber review bar. AI never runs SQL.

@@ -81,6 +81,7 @@
   --drv-duckdb: #E8D27A;
   --drv-mongodb: #6CC48A;
   --drv-redis: #F2766B;
+  --drv-neo4j: #66D1D6;
 
   /* Type (fonts are bundled locally, never fetched at runtime) */
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
