@@ -184,13 +184,21 @@ The Import tab SHALL import from DataGrip: it SHALL detect installed DataGrip co
 - **WHEN** "Detect from name" is selected and a data source is named `analytics-prod`
 - **THEN** it imports with environment Production (and its safeguard defaults); names containing `stag` map to Staging, `dev` to Development, otherwise Local
 
-#### Scenario: Passwords from DataGrip
-- **WHEN** "Try to import saved passwords" is checked on macOS
-- **THEN** Clew reads each data source's password from DataGrip's keychain entry (macOS asks the user to allow access once per entry) and stores it in Clew's own keychain entry; entries that can't be read are skipped and listed as "password not imported"
+#### Scenario: Passwords from DataGrip's native keychain
+- **WHEN** "Try to import saved passwords" is checked and DataGrip's Password Safe uses "In native Keychain" (macOS; Linux keyrings later)
+- **THEN** Clew reads each data source's password from DataGrip's keychain entry (macOS asks the user to allow access once per entry) and stores it in Clew's own keychain entry; entries that can't be read are listed as "password not imported"
 
-#### Scenario: Passwords on Windows
-- **WHEN** the user imports from DataGrip on Windows
-- **THEN** the password option is shown disabled with "Not available on Windows yet — you'll be asked when connecting"
+#### Scenario: Passwords from DataGrip's KeePass database
+- **WHEN** "Try to import saved passwords" is checked and DataGrip uses "In KeePass" (the only persistent option on Windows; possible on macOS)
+- **THEN** Clew opens DataGrip's `c.kdbx` read-only from its configured location, unlocks it with DataGrip's stored master key when that key is protected for the current OS user, or otherwise asks the user for DataGrip's master password (used once, never stored), and copies the matching passwords into Clew's keychain
+
+#### Scenario: DataGrip set to "Do not save"
+- **WHEN** DataGrip's Password Safe is "Do not save, forget passwords after restart"
+- **THEN** the password option is disabled with "DataGrip doesn't keep passwords — you'll be asked when connecting"
+
+#### Scenario: Credentials embedded in a URL
+- **WHEN** a DataGrip data source uses the URL-only connection type with the user and password inside the JDBC URL (which DataGrip stores in plain text)
+- **THEN** Clew moves the password into its keychain, strips it from the stored connection settings, and the review list notes "password moved out of the URL"
 
 ### Requirement: Import SQL files from DataGrip
 When "Import SQL consoles and scratch files" is checked, the system SHALL copy each imported data source's query consoles (from DataGrip's `consoles/db/<data-source-id>/` folder) into `~/Documents/Clew/Scripts/<connection name>/` and link them to the new connection, and SHALL copy DataGrip scratch files (`scratches/*.sql`) into `~/Documents/Clew/Scripts/Scratches/` unlinked. Original files SHALL never be modified or moved.

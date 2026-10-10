@@ -47,7 +47,11 @@ Writes are atomic (write temp + rename) and guarded by an mtime check with merge
 ### Imports
 `import/` has one module per source returning `Vec<ImportCandidate { connection, secrets?, sqlFiles[], status }>`; the review list shows them and nothing is written until Import.
 - **DataGrip:** discover `DataGrip*` config folders (macOS `~/Library/Application Support/JetBrains/`, Windows `%APPDATA%\JetBrains\`), newest version first; parse `options/dataSources.xml` (+ `.local.xml`) and project `.idea/dataSources.xml` (+ `.local.xml`) with `quick-xml`: `<data-source name uuid>`, `<driver-ref>`, `<jdbc-url>`, `<user-name>` (local file), SSH (`<ssh-properties>`), SSL. Map JDBC URLs to Clew drivers: postgresql, mysql, mariadb, sqlserver, oracle:thin (`/service` vs `:SID`), sqlite, clickhouse, duckdb, mongodb, redis, neo4j. Consoles: `consoles/db/<uuid>/*.sql`; scratches: `scratches/*.sql`.
-- **DataGrip passwords (macOS only):** DataGrip stores them as generic keychain items whose service names include the data source's uuid (verify the exact naming against current DataGrip during implementation); read them with `security-framework`, which triggers the macOS access prompt. Windows (KeePass store) is out of scope for v1.
+- **DataGrip passwords:** per JetBrains' Password Safe docs (https://www.jetbrains.com/help/datagrip/reference-ide-settings-password-safe.html), DataGrip has no store of its own: it uses "In native Keychain" (macOS Keychain Access; Linux GNOME Keyring/KWallet; not offered on Windows), "In KeePass" (a `c.kdbx` database unlocked by a master password, optionally PGP-protected; location configurable) or "Do not save". Read DataGrip's choice and KeePass path from its `options/security.xml`.
+  - Native keychain (macOS): read the generic items for each data source with `security-framework`; macOS prompts per item.
+  - KeePass: open `c.kdbx` read-only with the `keepass` crate. The master key comes from DataGrip's stored master-password file when it is protected for the current OS user (Windows DPAPI via `windows` crate `CryptUnprotectData`; macOS keychain) — otherwise prompt the user for the master password, use it once and zeroize it. PGP-protected master passwords: prompt the user instead of decrypting the PGP envelope.
+  - URL-only data sources keep credentials inside the JDBC URL in plain text; extract the password into Clew's keychain and drop it from the stored URL.
+  - Entry naming (keychain service / KeePass entry titles and how they reference the data source uuid) and the master-password file name/format are not documented; confirm them against a current DataGrip install and keep parsing tolerant.
 - **DBeaver:** `data-sources.json` `connections.*.configuration` (passwords are encrypted with a well-known key in `credentials-config.json`; we deliberately don't decrypt them).
 - **pgpass:** one candidate per non-wildcard line.
 - **Environment detection:** regex on the name: `prod|prd` → production, `stag|stg|uat` → staging, `dev|test` → development, else local.
@@ -67,4 +71,4 @@ The chip reads the active tab's `{connectionId, database, schema}`. Switching da
 ## Open Questions
 
 - TablePlus import: not planned (undocumented format); the Welcome copy no longer mentions it.
-- DataGrip keychain item naming must be confirmed against the current DataGrip release before implementing password import.
+- DataGrip keychain item / KeePass entry naming and the stored master-password file format are undocumented; confirm them against a current DataGrip install (macOS and Windows) before implementing task 7.4.

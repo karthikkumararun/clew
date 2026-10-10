@@ -148,7 +148,7 @@ input,select{font:inherit}
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 24px">
               <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Import SQL consoles and scratch files<small>14 files are copied to <span class="mono">~/Documents/Clew/Scripts/&lt;connection&gt;/</span> and linked to their connection.</small></span></label>
-              <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Try to import saved passwords<small>Read from DataGrip's entries in your system keychain. macOS asks once per connection.</small></span></label>
+              <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Try to import saved passwords<small>From DataGrip's Password Safe: your system keychain (macOS asks once per connection) or its KeePass database (you may be asked for DataGrip's master password).</small></span></label>
               <div class="fld"><label for="dg-env">Environment for imported connections</label><select id="dg-env" class="in"><option>Detect from name (prod → Production)</option><option>Local</option><option>Development</option><option>Staging</option><option>Production</option></select></div>
               <div class="fld"><label for="dg-group">Put them in group</label><select id="dg-group" class="in"><option>Imported from DataGrip</option><option>Keep DataGrip folders as groups</option></select></div>
             </div>
