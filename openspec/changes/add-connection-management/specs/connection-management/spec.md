@@ -119,20 +119,116 @@ The Welcome screen SHALL list up to 5 most recently used connections with enviro
 - **WHEN** the user clicks `dev-mongo` in Recent
 - **THEN** the app connects and opens a console tab for it
 
-### Requirement: Import connections
-The system SHALL import connections from: DataGrip (`dataSources.xml` + `dataSources.local.xml` of a project), DBeaver (`data-sources.json`), `~/.pgpass`, and Clew's own export file. Imported connections SHALL be shown in a preview list with checkboxes before anything is saved; duplicates (same driver, host, port, database, user) SHALL be flagged.
+### Requirement: Export connections
+The system SHALL export selected connections (with their groups and environments) from the Export tab of the Connections dialog (`design/canvas/ImportExport.dc.html`). The user SHALL choose whether to include saved passwords (database passwords and SSH passphrases), SSH private key files referenced by the connections, and SQL files linked to the connections. When any secret or key is included, the file SHALL be encrypted with a passphrase the user enters twice (minimum 12 characters, with a strength meter), using AES-256-GCM with a key derived by Argon2id; otherwise the file SHALL be plain JSON. The passphrase SHALL never be stored.
+
+#### Scenario: Export with passwords and an SSH key
+- **WHEN** the user exports `prod-postgres`, `prod-replica` and `staging-mysql` with passwords and SSH keys included and a passphrase
+- **THEN** a `.clew` file is written whose contents (settings, passwords, the `~/.ssh/id_ed25519` key and linked SQL files) are unreadable without the passphrase, and only a small unencrypted header (format, version, KDF parameters, creation date, counts) is visible
+
+#### Scenario: Export without secrets
+- **WHEN** the user exports with neither passwords nor SSH keys included
+- **THEN** a readable `.json` file is written that contains no secret, and the dialog says the importer will be asked for passwords when connecting
+
+#### Scenario: Weak or mismatched passphrase
+- **WHEN** the passphrase is shorter than 12 characters or the confirmation doesn't match
+- **THEN** Export stays disabled and the field explains why
+
+#### Scenario: Keychain access denied during export
+- **WHEN** a password can't be read from the keychain
+- **THEN** that connection is exported without its password and the summary lists it as "password not included"
+
+#### Scenario: Missing SSH key file
+- **WHEN** a connection's key file no longer exists on disk
+- **THEN** the export continues without it and the summary warns "1 SSH key not found"
+
+### Requirement: Import a Clew export
+The Import tab SHALL accept `.clew` and `.json` files produced by Export. For encrypted files the user SHALL enter the passphrase to unlock; then the contents SHALL be listed for review (connections with New / Duplicate status, counts of passwords, keys and SQL files) before anything is saved. Imported passwords SHALL go to the OS keychain; imported SSH private keys SHALL be written to Clew's key folder (`<app_data>/ssh-keys/`) readable only by the current user (0600 on macOS; owner-only ACL on Windows), and the connections SHALL point to them.
+
+#### Scenario: Wrong passphrase
+- **WHEN** the user enters a wrong passphrase
+- **THEN** the dialog shows "That passphrase doesn't unlock this file" and nothing is imported
+
+#### Scenario: Tampered file
+- **WHEN** the encrypted payload or header has been modified
+- **THEN** authentication fails and the dialog shows "This file is damaged or was changed after export"
+
+#### Scenario: Duplicate connection
+- **WHEN** an imported connection matches an existing one (same driver, host, port, database, user)
+- **THEN** it is unchecked by default with "Already in Clew"; if checked it is added as a new connection with a suffixed name, never overwriting the existing one
+
+#### Scenario: Newer format
+- **WHEN** the file's format version is newer than this Clew understands
+- **THEN** the dialog says which Clew version is needed and imports nothing
+
+### Requirement: Import from DataGrip
+The Import tab SHALL import from DataGrip: it SHALL detect installed DataGrip configuration folders (all versions; macOS `~/Library/Application Support/JetBrains/DataGrip*`, Windows `%APPDATA%\JetBrains\DataGrip*`) for global data sources (`options/dataSources.xml` + `dataSources.local.xml`), and accept project folders (`.idea/dataSources.xml` + `dataSources.local.xml`). Each data source SHALL be listed with driver badge, name, address, number of SQL files and status (New, Already in Clew, Driver not available). Options SHALL include: import SQL consoles and scratch files, try to import saved passwords, environment for imported connections (detect from name, or a fixed environment) and target group (one "Imported from DataGrip" group, or keep DataGrip folders as groups).
+
+#### Scenario: Detect DataGrip
+- **WHEN** the user picks DataGrip as the source on a Mac with DataGrip 2026.2 and 2025.3 installed
+- **THEN** the dialog lists both configuration folders, newest first, and shows the data sources of the selected one
+
+#### Scenario: Map drivers and settings
+- **WHEN** a data source uses the JDBC URL `jdbc:postgresql://db.internal:5432/analytics` with an SSH tunnel and SSL settings
+- **THEN** the imported connection is PostgreSQL with host, port, database, user, the SSH tunnel (host, port, user, auth type, key file path) and TLS mode carried over
+
+#### Scenario: Oracle data source
+- **WHEN** a data source uses `jdbc:oracle:thin:@ora.internal:1521/REPORTS`
+- **THEN** it imports as Oracle with connect-by Service name `REPORTS`
+
+#### Scenario: Unsupported driver
+- **WHEN** a data source uses a driver Clew doesn't have (e.g. Cassandra)
+- **THEN** it is listed, unchecked and disabled, with "Driver not available"
+
+#### Scenario: Environment from name
+- **WHEN** "Detect from name" is selected and a data source is named `analytics-prod`
+- **THEN** it imports with environment Production (and its safeguard defaults); names containing `stag` map to Staging, `dev` to Development, otherwise Local
+
+#### Scenario: Passwords from DataGrip's native keychain
+- **WHEN** "Try to import saved passwords" is checked and DataGrip's Password Safe uses "In native Keychain" (macOS; Linux keyrings later)
+- **THEN** Clew reads each data source's password from DataGrip's keychain entry (macOS asks the user to allow access once per entry) and stores it in Clew's own keychain entry; entries that can't be read are listed as "password not imported"
+
+#### Scenario: Passwords from DataGrip's KeePass database
+- **WHEN** "Try to import saved passwords" is checked and DataGrip uses "In KeePass" (the only persistent option on Windows; possible on macOS)
+- **THEN** Clew opens DataGrip's `c.kdbx` read-only from its configured location, unlocks it with DataGrip's stored master key when that key is protected for the current OS user, or otherwise asks the user for DataGrip's master password (used once, never stored), and copies the matching passwords into Clew's keychain
+
+#### Scenario: DataGrip set to "Do not save"
+- **WHEN** DataGrip's Password Safe is "Do not save, forget passwords after restart"
+- **THEN** the password option is disabled with "DataGrip doesn't keep passwords — you'll be asked when connecting"
+
+#### Scenario: Credentials embedded in a URL
+- **WHEN** a DataGrip data source uses the URL-only connection type with the user and password inside the JDBC URL (which DataGrip stores in plain text)
+- **THEN** Clew moves the password into its keychain, strips it from the stored connection settings, and the review list notes "password moved out of the URL"
+
+### Requirement: Import SQL files from DataGrip
+When "Import SQL consoles and scratch files" is checked, the system SHALL copy each imported data source's query consoles (from DataGrip's `consoles/db/<data-source-id>/` folder) into `~/Documents/Clew/Scripts/<connection name>/` and link them to the new connection, and SHALL copy DataGrip scratch files (`scratches/*.sql`) into `~/Documents/Clew/Scripts/Scratches/` unlinked. Original files SHALL never be modified or moved.
+
+#### Scenario: Consoles follow their connection
+- **WHEN** `analytics-prod` has 4 consoles in DataGrip and is imported
+- **THEN** 4 `.sql` files appear under `analytics-prod` in the explorer's Scripts node, and opening one opens a console bound to `analytics-prod`
+
+#### Scenario: Merge into an existing connection
+- **WHEN** a data source is "Already in Clew" and its row is set to "merge SQL files only"
+- **THEN** its consoles are linked to the existing Clew connection and no new connection is created
+
+#### Scenario: Name collision
+- **WHEN** a file with the same name already exists in the target folder
+- **THEN** the imported file is saved with a numeric suffix and nothing is overwritten
+
+### Requirement: Import from DBeaver and pgpass
+The Import tab SHALL also import DBeaver connections (`data-sources.json` of a workspace, without passwords) and `~/.pgpass` lines (one PostgreSQL connection per non-wildcard line; passwords go to the keychain only if the user ticks "Import passwords"). Imported entries SHALL be reviewed in the same list before saving.
 
 #### Scenario: Import from DBeaver
 - **WHEN** the user picks a DBeaver `data-sources.json` with 4 connections
 - **THEN** a preview lists 4 connections with detected drivers; importing the checked ones adds them to an "Imported" group without passwords
 
-#### Scenario: Unsupported driver in import
-- **WHEN** an imported entry uses a driver Clew doesn't have (e.g. Cassandra)
-- **THEN** it is listed, unchecked and disabled, with "Driver not available"
+### Requirement: Connection scripts
+Each connection SHALL have a Scripts folder (default `~/Documents/Clew/Scripts/<connection name>/`, changeable per connection) for SQL files linked to it. Files saved from a console of that connection SHALL default to this folder, and linked files SHALL open in a console bound to the connection.
 
-### Requirement: Export connections
-The system SHALL export selected connections to a JSON file that contains no secrets.
+#### Scenario: Save a console
+- **WHEN** the user saves a new console for `staging-mysql`
+- **THEN** the save dialog starts in `~/Documents/Clew/Scripts/staging-mysql/`
 
-#### Scenario: Share with a friend
-- **WHEN** the user exports two connections
-- **THEN** the file contains their settings without passwords and can be imported on another machine
+#### Scenario: Rename a connection
+- **WHEN** a connection is renamed
+- **THEN** its links are kept; the folder is renamed only if the user agrees

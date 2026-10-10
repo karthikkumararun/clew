@@ -31,3 +31,8 @@
 - [ ] 5.1 Persist and restore expanded ids and selection (spec: database-explorer › Persisted explorer state)
 - [ ] 5.2 Reveal and highlight the active table tab's node (spec: database-explorer › Selected-node sync)
 - [ ] 5.3 Test: restore after simulated restart; reveal on tab switch
+
+## 6. Scripts node
+
+- [ ] 6.1 Scripts node per connection listing linked SQL files, with New script / Reveal / Refresh; open in a bound console (spec: database-explorer › Scripts node)
+- [ ] 6.2 Test: imported file opens bound to its connection; deleted file disappears after refresh

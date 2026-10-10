@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew import and export</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.h{margin:0;font-size:11px;font-weight:600;letter-spacing:0.08em;color:#9AA3AE}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld label{font-size:12px;color:#9AA3AE}
+.in{height:34px;border-radius:6px;border:1px solid #2E343D;background:#0E1014;color:#E6E8EB;padding:0 10px;font-size:13px;width:100%}
+.btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:6px;border:1px solid #2E343D;background:#1A1E25;font-size:13px;white-space:nowrap}
+.pri{background:#E3A64F;border-color:#E3A64F;color:#0E1014;font-weight:600}
+.chk{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#E6E8EB}
+.chk input{margin:2px 0 0;accent-color:#E3A64F;width:14px;height:14px;flex:none}
+.chk small{display:block;color:#9AA3AE;font-size:12px;margin-top:2px;line-height:1.45}
+.row{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:6px;font-size:13px}
+.row input{accent-color:#E3A64F;width:14px;height:14px;margin:0}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:16px;border-radius:3px;font:600 9px/1 'JetBrains Mono',monospace;color:#0E1014;flex:none}
+.src{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;text-align:left;font-size:13px;min-height:72px}
+.src small{color:#9AA3AE;font-size:11.5px;line-height:1.4}
+.t{width:100%;border-collapse:collapse;font-size:12.5px}
+.t th{text-align:left;font-weight:500;color:#9AA3AE;font-size:11.5px;padding:6px 10px;border-bottom:1px solid #262B33}
+.t td{padding:0 10px;height:34px;border-bottom:1px solid #1F242B;white-space:nowrap}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 900px; display: flex; align-items: center; justify-content: center; padding: 24px 16px; background: #090A0D; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <div role="dialog" aria-modal="true" aria-labelledby="ie-title" style="width: 100%; max-width: 1040px; border-radius: 12px; border: 1px solid #2E343D; background: #14171C; box-shadow: 0 24px 64px rgba(0,0,0,0.55); display: flex; flex-direction: column; overflow: hidden">
+
+    <div style="height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 12px 0 20px; border-bottom: 1px solid #262B33">
+      <h1 id="ie-title" style="margin: 0; font-size: 15px; font-weight: 600">Connections</h1>
+      <div role="tablist" aria-label="Import or export" style="display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: #0E1014; border: 1px solid #262B33">
+        <sc-for list="{{tabs}}" as="t" hint-placeholder-count="2">
+          <button role="tab" type="button" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="height: 26px; padding: 0 14px; border: 0; border-radius: 6px; background: {{t.bg}}; color: {{t.fg}}; font-size: 12.5px">{{t.name}}</button>
+        </sc-for>
+      </div>
+      <div style="flex: 1"></div>
+      <button type="button" aria-label="Close" style="width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #9AA3AE; display: inline-flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+
+    <!-- ================= EXPORT ================= -->
+    <sc-if value="{{isExport}}" hint-placeholder-val="{{true}}">
+      <div style="display: flex; flex-wrap: wrap; min-height: 640px">
+        <div style="flex: 1 1 300px; max-width: 340px; padding: 16px 10px; background: #111419; border-right: 1px solid #262B33; display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 10px 8px"><h2 class="h">CONNECTIONS TO EXPORT</h2><a href="#" style="font-size: 12px; text-decoration: none">Select all</a></div>
+          <div class="h" style="padding: 8px 10px 2px; font-size: 10.5px; color: #7D8794">PRODUCTION</div>
+          <label class="row"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span class="badge" style="background: #6EA8FE">PG</span>prod-postgres<span style="margin-left: auto; color: #7D8794; font-size: 11px">ssh key</span></label>
+          <label class="row"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span class="badge" style="background: #6EA8FE">PG</span>prod-replica</label>
+          <div class="h" style="padding: 8px 10px 2px; font-size: 10.5px; color: #7D8794">STAGING</div>
+          <label class="row"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span class="badge" style="background: #F0A35E">MY</span>staging-mysql</label>
+          <label class="row"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span class="badge" style="background: #66D1D6">N4</span>staging-neo4j</label>
+          <div class="h" style="padding: 8px 10px 2px; font-size: 10.5px; color: #7D8794">LOCAL</div>
+          <label class="row"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span class="badge" style="background: #6CC48A">MG</span>dev-mongo</label>
+          <label class="row"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span class="badge" style="background: #F2766B">RD</span>cache-redis</label>
+          <label class="row"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span class="badge" style="background: #B8C0CC">SQ</span>notes.sqlite</label>
+        </div>
+
+        <div style="flex: 999 1 460px; min-width: 0; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px">
+          <div style="display: flex; flex-direction: column; gap: 12px">
+            <h2 class="h">INCLUDE</h2>
+            <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Connection settings, groups and environments<small>Always included. Hosts, ports, databases, SSH and TLS settings.</small></span></label>
+            <label class="chk"><input type="checkbox" checked="{{withPasswords}}" onChange="{{togglePasswords}}"><span>Saved passwords<small>Database passwords and SSH passphrases from your keychain, encrypted inside the file.</small></span></label>
+            <label class="chk"><input type="checkbox" checked="{{withKeys}}" onChange="{{toggleKeys}}"><span>SSH private keys<small>The key files these connections use (1 key: ~/.ssh/id_ed25519), embedded and encrypted.</small></span></label>
+            <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>SQL files linked to these connections<small>9 files from their Scripts folders.</small></span></label>
+          </div>
+
+          <sc-if value="{{needsPass}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 10px; border: 1px solid #4A3A22; background: #1E1A12">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #F2C27F">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+                Protect the file with a passphrase
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+                <div class="fld"><label for="pp1">Passphrase</label><input id="pp1" class="in mono" type="password" value="placeholder-passphrase-1" onChange="{{noop}}"></div>
+                <div class="fld"><label for="pp2">Confirm passphrase</label><input id="pp2" class="in mono" type="password" value="placeholder-passphrase-1" onChange="{{noop}}"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <div aria-hidden="true" style="flex: 1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px"><span style="height: 4px; border-radius: 2px; background: #6CC4A1"></span><span style="height: 4px; border-radius: 2px; background: #6CC4A1"></span><span style="height: 4px; border-radius: 2px; background: #6CC4A1"></span><span style="height: 4px; border-radius: 2px; background: #2E343D"></span></div>
+                <span style="font-size: 12px; color: #6CC4A1">Strong</span>
+              </div>
+              <p style="margin: 0; color: #C9B48F; font-size: 12px; line-height: 1.5">Clew can't recover this passphrase. Send it to the other person separately, never in the same message as the file.</p>
+            </div>
+          </sc-if>
+          <sc-if value="{{noPass}}" hint-placeholder-val="{{false}}">
+            <p style="margin: 0; padding: 12px 14px; border-radius: 8px; border: 1px solid #262B33; background: #111419; color: #9AA3AE; font-size: 12.5px; line-height: 1.5">No secrets included, so the file is plain JSON. Whoever imports it will be asked for passwords when they connect.</p>
+          </sc-if>
+
+          <div style="flex: 1"></div>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; border: 1px solid #262B33; background: #0E1014; flex-wrap: wrap">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>
+            <span class="mono" style="font-size: 12.5px">{{fileName}}</span>
+            <span style="color: #9AA3AE; font-size: 12px">{{summary}}</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid #262B33">
+        <span style="color: #7D8794; font-size: 12px">{{cryptoNote}}</span>
+        <div style="flex: 1"></div>
+        <button type="button" class="btn" style="background: transparent">Cancel</button>
+        <button type="button" class="btn pri">Export…</button>
+      </div>
+    </sc-if>
+
+    <!-- ================= IMPORT ================= -->
+    <sc-if value="{{isImport}}" hint-placeholder-val="{{false}}">
+      <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 640px">
+        <div>
+          <h2 class="h" style="margin-bottom: 10px">IMPORT FROM</h2>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px">
+            <sc-for list="{{sources}}" as="s" hint-placeholder-count="4">
+              <button type="button" class="src" onClick="{{s.pick}}" aria-pressed="{{s.selected}}" style="border: 1px solid {{s.border}}; background: {{s.bg}}; color: #E6E8EB">
+                <span style="font-weight: 600">{{s.name}}</span><small>{{s.sub}}</small>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- DataGrip -->
+        <sc-if value="{{srcDataGrip}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end">
+              <div class="fld"><label for="dg-src">DataGrip settings found</label><select id="dg-src" class="in mono"><option>DataGrip 2026.2 · ~/Library/Application Support/JetBrains/DataGrip2026.2</option><option>DataGrip 2025.3 · ~/Library/Application Support/JetBrains/DataGrip2025.3</option></select></div>
+              <button type="button" class="btn">Add a project folder…</button>
+            </div>
+            <div style="border: 1px solid #262B33; border-radius: 8px; overflow: hidden">
+              <table class="t">
+                <thead><tr><th scope="col" style="width: 36px"></th><th scope="col">Data source</th><th scope="col">Address</th><th scope="col">SQL files</th><th scope="col">Status</th></tr></thead>
+                <tbody>
+                  <tr><td><input type="checkbox" checked="{{true}}" onChange="{{noop}}" aria-label="Import analytics-prod" style="accent-color: #E3A64F"></td><td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="badge" style="background: #6EA8FE">PG</span>analytics-prod</span></td><td class="mono" style="color: #9AA3AE; font-size: 12px">db.internal:5432/analytics</td><td>4 consoles</td><td style="color: #6CC4A1">New</td></tr>
+                  <tr><td><input type="checkbox" checked="{{true}}" onChange="{{noop}}" aria-label="Import billing-mysql" style="accent-color: #E3A64F"></td><td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="badge" style="background: #F0A35E">MY</span>billing-mysql</span></td><td class="mono" style="color: #9AA3AE; font-size: 12px">billing-db:3306/billing</td><td>2 consoles</td><td style="color: #6CC4A1">New</td></tr>
+                  <tr><td><input type="checkbox" checked="{{true}}" onChange="{{noop}}" aria-label="Import reporting-oracle" style="accent-color: #E3A64F"></td><td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="badge" style="background: #EE8B6F">OR</span>reporting-oracle</span></td><td class="mono" style="color: #9AA3AE; font-size: 12px">ora.internal:1521/REPORTS</td><td>7 consoles</td><td style="color: #6CC4A1">New</td></tr>
+                  <tr><td><input type="checkbox" checked="{{false}}" onChange="{{noop}}" aria-label="Import prod-postgres" style="accent-color: #E3A64F"></td><td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="badge" style="background: #6EA8FE">PG</span>prod-postgres</span></td><td class="mono" style="color: #9AA3AE; font-size: 12px">db.internal:5432/analytics</td><td>1 console</td><td style="color: #E3A64F">Already in Clew · merge SQL files only</td></tr>
+                  <tr style="opacity: 0.6"><td><input type="checkbox" disabled="{{true}}" aria-label="Import old-cassandra (not available)" style="accent-color: #E3A64F"></td><td><span style="display: inline-flex; align-items: center; gap: 8px"><span class="badge" style="background: #7D8794">CA</span>old-cassandra</span></td><td class="mono" style="color: #9AA3AE; font-size: 12px">cass-1:9042</td><td>—</td><td style="color: #9AA3AE">Driver not available</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 24px">
+              <label class="chk"><input type="checkbox" checked="{{true}}" onChange="{{noop}}"><span>Import SQL consoles and scratch files<small>14 files are copied to <span class="mono">~/Documents/Clew/Scripts/&lt;connection&gt;/</span> and linked to their connection.</small></span></label>
+              <label class="chk"><input type="checkbox" checked="{{false}}" onChange="{{noop}}"><span>Try to import saved passwords<small>From DataGrip's Password Safe: your system keychain (macOS asks once per connection) or its KeePass database (you may be asked for DataGrip's master password).</small></span></label>
+              <div class="fld"><label for="dg-env">Environment for imported connections</label><select id="dg-env" class="in"><option>Detect from name (prod → Production)</option><option>Local</option><option>Development</option><option>Staging</option><option>Production</option></select></div>
+              <div class="fld"><label for="dg-group">Put them in group</label><select id="dg-group" class="in"><option>Imported from DataGrip</option><option>Keep DataGrip folders as groups</option></select></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Clew file -->
+        <sc-if value="{{srcClew}}" hint-placeholder-val="{{false}}">
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 8px; border: 1px solid #262B33; background: #0E1014">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>
+              <span class="mono" style="font-size: 12.5px">clew-connections-2026-10-10.clew</span>
+              <span style="color: #9AA3AE; font-size: 12px">from ADK's Mac · 3 connections · encrypted passwords · 1 SSH key · 9 SQL files</span>
+              <div style="flex: 1"></div>
+              <button type="button" class="btn" style="height: 28px; font-size: 12px">Choose another…</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 10px; border: 1px solid #4A3A22; background: #1E1A12; max-width: 520px">
+              <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #F2C27F">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+                This file is encrypted
+              </div>
+              <div class="fld"><label for="ip">Passphrase</label><div style="display: flex; gap: 8px"><input id="ip" class="in mono" type="password" value="placeholder-passphrase-1" onChange="{{noop}}"><button type="button" class="btn pri">Unlock</button></div></div>
+              <p style="margin: 0; color: #C9B48F; font-size: 12px">SSH keys are saved to Clew's key folder, readable only by you. Passwords go to your system keychain.</p>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{srcOther}}" hint-placeholder-val="{{false}}">
+          <p style="margin: 0; color: #9AA3AE">{{otherNote}}</p>
+        </sc-if>
+
+        <div style="flex: 1"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-top: 1px solid #262B33">
+        <span style="color: #7D8794; font-size: 12px">Nothing is saved until you press Import. Duplicates are never overwritten.</span>
+        <div style="flex: 1"></div>
+        <button type="button" class="btn" style="background: transparent">Cancel</button>
+        <button type="button" class="btn pri">{{importLabel}}</button>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'export', withPasswords: true, withKeys: true, source: 'datagrip' };
+  }
+  renderVals() {
+    const s = this.state;
+    const tabs = [['export', 'Export'], ['import', 'Import']].map(([id, name]) => {
+      const sel = id === s.tab;
+      return { name, selected: sel ? 'true' : 'false', bg: sel ? '#262D36' : 'transparent', fg: sel ? '#E6E8EB' : '#9AA3AE', pick: () => this.setState({ tab: id }) };
+    });
+    const S = [
+      { id: 'datagrip', name: 'DataGrip', sub: 'Data sources, SQL consoles and scratch files' },
+      { id: 'clew', name: 'Clew export', sub: '.clew file, encrypted or plain' },
+      { id: 'dbeaver', name: 'DBeaver', sub: 'data-sources.json' },
+      { id: 'pgpass', name: '~/.pgpass', sub: 'PostgreSQL password file' }
+    ];
+    const sources = S.map((x) => {
+      const sel = x.id === s.source;
+      return { ...x, selected: sel ? 'true' : 'false', bg: sel ? '#1E242C' : '#111419', border: sel ? '#E3A64F' : '#262B33', pick: () => this.setState({ source: x.id }) };
+    });
+    const needsPass = s.withPasswords || s.withKeys;
+    const parts = ['3 connections'];
+    if (s.withPasswords) parts.push('3 passwords');
+    if (s.withKeys) parts.push('1 SSH key');
+    parts.push('9 SQL files');
+    const importLabel = { datagrip: 'Import 3 connections · 14 files', clew: 'Import 3 connections', dbeaver: 'Import', pgpass: 'Import' }[s.source];
+    return {
+      tabs, sources,
+      isExport: s.tab === 'export', isImport: s.tab === 'import',
+      withPasswords: s.withPasswords, withKeys: s.withKeys,
+      togglePasswords: () => this.setState({ withPasswords: !s.withPasswords }),
+      toggleKeys: () => this.setState({ withKeys: !s.withKeys }),
+      needsPass, noPass: !needsPass,
+      fileName: needsPass ? 'clew-connections-2026-10-10.clew' : 'clew-connections-2026-10-10.json',
+      summary: parts.join(' · '),
+      cryptoNote: needsPass ? 'Encrypted with AES-256-GCM; key derived from your passphrase with Argon2id.' : 'Plain JSON. No secrets inside.',
+      srcDataGrip: s.source === 'datagrip', srcClew: s.source === 'clew', srcOther: s.source === 'dbeaver' || s.source === 'pgpass',
+      otherNote: s.source === 'dbeaver' ? 'Pick a DBeaver workspace; its data-sources.json connections are listed for review, without passwords.' : 'Each host:port:database:user line becomes a PostgreSQL connection; passwords go to the keychain only if you tick "Import passwords".',
+      importLabel,
+      noop: () => {}
+    };
+  }
+}
+</script>
+</body>
+</html>

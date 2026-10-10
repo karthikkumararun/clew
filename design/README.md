@@ -22,6 +22,7 @@ This folder is the source of truth for implementation:
 | Welcome / first run | `canvas/Welcome.dc.html` | `add-app-shell`, `add-connection-management` |
 | New connection dialog | `canvas/ConnectionDialog.dc.html` | `add-connection-management` |
 | Command palette | `canvas/CommandPalette.dc.html` | `add-command-palette` |
+| Import / export connections (encrypted export, DataGrip import with SQL consoles) | `canvas/ImportExport.dc.html` | `add-connection-management` |
 | AI assistant side panel, inline diff review, Fix with AI | `canvas/AIAssistant.dc.html` | `add-ai-assistant` (panel slot: `add-app-shell`) |
 | Settings › AI assistant (providers, sign-in, routing, privacy); also the layout for every Settings section | `canvas/AIProviders.dc.html` | `add-ai-assistant`, `add-app-shell` (Settings layout) |
 
