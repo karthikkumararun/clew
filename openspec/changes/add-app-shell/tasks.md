@@ -18,10 +18,10 @@
 
 ## 3. Platform and shortcuts
 
-- [ ] 3.1 Add `lib/platform.ts` (isMac, isWindows) and `formatShortcut()` rendering ⌘⇧⌥ vs Ctrl+Shift+Alt (spec: app-shell › Keyboard shortcuts)
-- [ ] 3.2 Implement the shortcut registry with scopes, conflict detection and a single window listener
-- [ ] 3.3 Implement the command registry `{ id, title, category, shortcut?, run }` (used later by the command palette)
-- [ ] 3.4 Test: Mod mapping per platform, conflict rejection, editor scope precedence
+- [x] 3.1 Add `lib/platform.ts` (isMac, isWindows) and `formatShortcut()` rendering ⌘⇧⌥ vs Ctrl+Shift+Alt (spec: app-shell › Keyboard shortcuts)
+- [x] 3.2 Implement the shortcut registry with scopes, conflict detection and a single window listener
+- [x] 3.3 Implement the command registry `{ id, title, category, shortcut?, run }` (used later by the command palette)
+- [x] 3.4 Test: Mod mapping per platform, conflict rejection, editor scope precedence
 
 ## 4. Workspace layout
 
