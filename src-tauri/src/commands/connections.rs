@@ -7,7 +7,7 @@ use crate::connections::import::{
     CommitOptions, ImportEnv, ImportResult, ImportSource, PasswordSafeInfo, ScanView, Selection,
 };
 use crate::connections::model::{ConnectionsFile, Group};
-use crate::connections::scripts::{FolderRename, ScriptsInfo};
+use crate::connections::scripts::{FolderRename, ScriptFile, ScriptsInfo};
 use crate::connections::service::{SaveOutcome, SaveRequest, SecretStatus};
 use crate::connections::url::{parse_url, ParsedUrl};
 use crate::drivers::{DriverError, ErrorCode, Secret, ServerInfo};
@@ -277,6 +277,37 @@ pub fn connections_scripts_info(
     connection_id: String,
 ) -> AppResult<ScriptsInfo> {
     state.connections.scripts_info(&connection_id)
+}
+
+/// The SQL files in a connection's Scripts folder.
+#[tauri::command]
+pub fn connections_scripts_list(
+    state: State<'_, AppState>,
+    connection_id: String,
+) -> AppResult<Vec<ScriptFile>> {
+    state.connections.scripts_list(&connection_id)
+}
+
+/// Create an empty script in the connection's Scripts folder; returns its path.
+#[tauri::command]
+pub fn connections_scripts_new(
+    state: State<'_, AppState>,
+    connection_id: String,
+    name: String,
+) -> AppResult<String> {
+    state.connections.scripts_create(&connection_id, &name)
+}
+
+/// Show the Scripts folder (or one file in it) in Finder / Explorer.
+#[tauri::command]
+pub fn connections_scripts_reveal(
+    state: State<'_, AppState>,
+    connection_id: String,
+    rel_path: Option<String>,
+) -> AppResult<()> {
+    state
+        .connections
+        .scripts_reveal(&connection_id, rel_path.as_deref())
 }
 
 /// Rename; returns an offer to rename the Scripts folder too when it follows the name.

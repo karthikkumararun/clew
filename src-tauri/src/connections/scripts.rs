@@ -127,6 +127,95 @@ pub fn safe_relative(rel: &str) -> Option<PathBuf> {
     (!out.as_os_str().is_empty()).then_some(out)
 }
 
+/// One SQL file in a connection's Scripts folder (content is read when it is opened).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ScriptFile {
+    /// File name without folders, e.g. `monthly_revenue.sql`.
+    pub name: String,
+    /// Path relative to the Scripts folder with `/` separators.
+    pub rel_path: String,
+    /// Absolute path.
+    pub path: String,
+}
+
+/// Every `.sql` file under `dir`, sorted by relative path. Reads no content.
+pub fn list_script_files(dir: &Path) -> Vec<ScriptFile> {
+    fn walk(base: &Path, dir: &Path, out: &mut Vec<ScriptFile>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        let mut entries: Vec<_> = entries.flatten().collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in entries {
+            if out.len() >= MAX_FILES {
+                return;
+            }
+            let path = entry.path();
+            let Ok(meta) = entry.metadata() else { continue };
+            if meta.is_dir() {
+                walk(base, &path, out);
+            } else if meta.is_file()
+                && path
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("sql"))
+            {
+                if let Ok(rel) = path.strip_prefix(base) {
+                    let rel_path = rel
+                        .components()
+                        .map(|c| c.as_os_str().to_string_lossy())
+                        .collect::<Vec<_>>()
+                        .join("/");
+                    out.push(ScriptFile {
+                        name: entry.file_name().to_string_lossy().into_owned(),
+                        rel_path,
+                        path: path.to_string_lossy().into_owned(),
+                    });
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(dir, dir, &mut out);
+    out
+}
+
+/// Show a file or folder in Finder / Explorer.
+fn reveal_in_file_manager(path: &Path, is_file: bool) -> AppResult<()> {
+    let result = if cfg!(target_os = "macos") {
+        let mut cmd = std::process::Command::new("open");
+        if is_file {
+            cmd.arg("-R");
+        }
+        cmd.arg(path).status()
+    } else if cfg!(target_os = "windows") {
+        let mut cmd = std::process::Command::new("explorer");
+        if is_file {
+            cmd.arg(format!("/select,{}", path.display()));
+        } else {
+            cmd.arg(path);
+        }
+        // Explorer reports a non-zero exit code even on success.
+        cmd.status().map(|_| std::process::ExitStatus::default())
+    } else {
+        std::process::Command::new("xdg-open")
+            .arg(if is_file {
+                path.parent().unwrap_or(path)
+            } else {
+                path
+            })
+            .status()
+    };
+    match result {
+        Ok(status) if status.success() => Ok(()),
+        Ok(_) => Err(AppError::new("io", "Couldn't open the file manager")),
+        Err(e) => {
+            Err(AppError::new("io", "Couldn't open the file manager").with_detail(e.to_string()))
+        }
+    }
+}
+
 /// A connection's Scripts folder, for the save dialog and the Advanced tab.
 #[derive(Debug, Clone, Serialize, ts_rs::TS)]
 #[ts(export)]
@@ -148,6 +237,59 @@ pub struct FolderRename {
 }
 
 impl ConnectionService {
+    /// The SQL files in the connection's Scripts folder (none when the folder doesn't exist).
+    pub fn scripts_list(&self, id: &str) -> AppResult<Vec<ScriptFile>> {
+        let c = self.get(id)?;
+        let dir = scripts_dir_of(&c)
+            .ok_or_else(|| AppError::new("not_found", "Couldn't work out the Scripts folder"))?;
+        Ok(list_script_files(&dir))
+    }
+
+    /// Create an empty script (never overwriting) and return its absolute path.
+    pub fn scripts_create(&self, id: &str, name: &str) -> AppResult<String> {
+        let c = self.get(id)?;
+        let dir = scripts_dir_of(&c)
+            .ok_or_else(|| AppError::new("not_found", "Couldn't work out the Scripts folder"))?;
+        let mut file_name = sanitize_dir_name(name.trim());
+        if !file_name.to_ascii_lowercase().ends_with(".sql") {
+            file_name.push_str(".sql");
+        }
+        std::fs::create_dir_all(&dir).map_err(|e| {
+            AppError::new("io", "Couldn't create the Scripts folder").with_detail(e.to_string())
+        })?;
+        let path = free_path(&dir, &file_name);
+        std::fs::write(&path, "").map_err(|e| {
+            AppError::new("io", "Couldn't create the script").with_detail(e.to_string())
+        })?;
+        Ok(path.to_string_lossy().into_owned())
+    }
+
+    /// Show the Scripts folder, or one file in it (`rel_path`), in the file manager.
+    pub fn scripts_reveal(&self, id: &str, rel_path: Option<&str>) -> AppResult<()> {
+        let c = self.get(id)?;
+        let dir = scripts_dir_of(&c)
+            .ok_or_else(|| AppError::new("not_found", "Couldn't work out the Scripts folder"))?;
+        match rel_path {
+            Some(rel) => {
+                let rel = safe_relative(rel).ok_or_else(|| {
+                    AppError::new("invalid", "That path isn't inside the Scripts folder")
+                })?;
+                let path = dir.join(rel);
+                if !path.exists() {
+                    return Err(AppError::new("not_found", "That file no longer exists"));
+                }
+                reveal_in_file_manager(&path, true)
+            }
+            None => {
+                std::fs::create_dir_all(&dir).map_err(|e| {
+                    AppError::new("io", "Couldn't create the Scripts folder")
+                        .with_detail(e.to_string())
+                })?;
+                reveal_in_file_manager(&dir, false)
+            }
+        }
+    }
+
     pub fn scripts_info(&self, id: &str) -> AppResult<ScriptsInfo> {
         let c = self.get(id)?;
         let dir = scripts_dir_of(&c)
@@ -370,5 +512,21 @@ mod service_tests {
             std::fs::create_dir_all(home.join("Documents/Clew/Scripts/custom")).unwrap();
             assert!(svc.rename("c2", "renamed").unwrap().is_none());
         });
+    }
+
+    #[test]
+    fn script_files_list_sorted_without_reading_content() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("reports")).unwrap();
+        std::fs::write(dir.path().join("b.sql"), "select 1").unwrap();
+        std::fs::write(dir.path().join("A.SQL"), "select 2").unwrap();
+        std::fs::write(dir.path().join("notes.txt"), "no").unwrap();
+        std::fs::write(dir.path().join("reports").join("monthly.sql"), "x").unwrap();
+        let files = list_script_files(dir.path());
+        let rel: Vec<_> = files.iter().map(|f| f.rel_path.as_str()).collect();
+        assert_eq!(rel, ["A.SQL", "b.sql", "reports/monthly.sql"]);
+        assert_eq!(files[2].name, "monthly.sql");
+        assert!(files[2].path.ends_with("monthly.sql"));
+        assert!(list_script_files(&dir.path().join("missing")).is_empty());
     }
 }

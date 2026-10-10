@@ -151,6 +151,10 @@ impl Driver for MysqlDriver {
     async fn ddl(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<String> {
         introspect::ddl(pool.downcast::<Arc<MyMeta>>()?, path).await
     }
+
+    async fn count_rows(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<i64> {
+        introspect::count_rows(pool.downcast::<Arc<MyMeta>>()?, path).await
+    }
 }
 
 #[cfg(test)]

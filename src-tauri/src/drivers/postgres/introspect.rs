@@ -6,6 +6,7 @@ use std::sync::Arc;
 use sqlx::postgres::{PgConnectOptions, PgPool, PgPoolOptions};
 use tokio::sync::Mutex;
 
+use super::ddl::{render_table, render_view, ColumnDef, TableDef};
 use super::error::map_error;
 use crate::drivers::introspect::{
     ColumnInfo, NodeKind, NodePath, SchemaSnapshot, SnapshotColumn, SnapshotSchema, SnapshotTable,
@@ -456,6 +457,149 @@ pub async fn snapshot(meta: &PgMeta, db: &str) -> DriverResult<SchemaSnapshot> {
 
 #[allow(dead_code)]
 fn _arc(_: Arc<PgMeta>) {}
+
+fn schema_of(path: &NodePath) -> DriverResult<&str> {
+    path.find(NodeKind::Schema)
+        .ok_or_else(|| DriverError::internal("The object is not inside a schema"))
+}
+
+/// `CREATE` statement for a table, view or materialized view, built from the catalogue.
+#[allow(clippy::type_complexity)]
+pub async fn ddl(meta: &PgMeta, path: &NodePath) -> DriverResult<String> {
+    let seg = path
+        .0
+        .last()
+        .ok_or_else(|| DriverError::internal("The path does not name an object"))?;
+    if !matches!(
+        seg.kind,
+        NodeKind::Table | NodeKind::View | NodeKind::MaterializedView
+    ) {
+        return Err(DriverError::unsupported("DDL for this kind of object"));
+    }
+    let schema = schema_of(path)?;
+    let table = seg.name.as_str();
+    let pool = meta.pool(path.find(NodeKind::Database)).await?;
+
+    let kind: Option<String> = sqlx::query_scalar(concat!(
+        "SELECT c.relkind::text FROM pg_class c WHERE c.oid = ",
+        rel!()
+    ))
+    .bind(schema)
+    .bind(table)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| meta.err(e))?;
+    let kind = kind
+        .ok_or_else(|| DriverError::new(ErrorCode::QueryFailed, "The object no longer exists"))?;
+
+    let indexes: Vec<String> = sqlx::query_scalar(concat!(
+        "SELECT pg_get_indexdef(x.indexrelid) FROM pg_index x WHERE x.indrelid = ",
+        rel!(),
+        " AND NOT EXISTS (SELECT 1 FROM pg_constraint k WHERE k.conindid = x.indexrelid \
+           AND k.contype IN ('p','u','x')) ORDER BY 1"
+    ))
+    .bind(schema)
+    .bind(table)
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| meta.err(e))?;
+
+    match kind.as_str() {
+        "v" | "m" => {
+            let def: Option<String> =
+                sqlx::query_scalar(concat!("SELECT pg_get_viewdef(", rel!(), ", true)"))
+                    .bind(schema)
+                    .bind(table)
+                    .fetch_one(&pool)
+                    .await
+                    .map_err(|e| meta.err(e))?;
+            let def = def.unwrap_or_default();
+            let matview = kind == "m";
+            Ok(render_view(
+                schema,
+                table,
+                &def,
+                matview,
+                if matview { &indexes } else { &[] },
+            ))
+        }
+        "r" | "p" => {
+            let columns: Vec<(String, String, bool, Option<String>, String, String)> =
+                sqlx::query_as(concat!(
+                    "SELECT a.attname::text, format_type(a.atttypid, a.atttypmod), a.attnotnull, \
+                            pg_get_expr(d.adbin, d.adrelid), a.attidentity::text, a.attgenerated::text \
+                     FROM pg_attribute a \
+                     LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum \
+                     WHERE a.attrelid = ",
+                    rel!(),
+                    " AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum"
+                ))
+                .bind(schema)
+                .bind(table)
+                .fetch_all(&pool)
+                .await
+                .map_err(|e| meta.err(e))?;
+            let constraints: Vec<(String, String)> = sqlx::query_as(concat!(
+                "SELECT conname::text, pg_get_constraintdef(oid) FROM pg_constraint \
+                 WHERE conrelid = ",
+                rel!(),
+                " AND contype IN ('p','u','c','f','x') \
+                 ORDER BY CASE contype WHEN 'p' THEN 0 WHEN 'u' THEN 1 WHEN 'c' THEN 2 \
+                          WHEN 'f' THEN 3 ELSE 4 END, conname"
+            ))
+            .bind(schema)
+            .bind(table)
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| meta.err(e))?;
+            let first = |s: &str| {
+                s.chars()
+                    .next()
+                    .filter(|c| *c != '\0' && !c.is_whitespace())
+            };
+            Ok(render_table(&TableDef {
+                schema: schema.into(),
+                name: table.into(),
+                columns: columns
+                    .into_iter()
+                    .map(
+                        |(name, type_name, not_null, default, identity, generated)| ColumnDef {
+                            name,
+                            type_name,
+                            not_null,
+                            default,
+                            identity: first(&identity),
+                            generated: first(&generated),
+                        },
+                    )
+                    .collect(),
+                constraints,
+                indexes,
+            }))
+        }
+        _ => Err(DriverError::unsupported("DDL for this kind of object")),
+    }
+}
+
+/// Exact row count of a table or view.
+pub async fn count_rows(meta: &PgMeta, path: &NodePath) -> DriverResult<i64> {
+    let seg = path
+        .0
+        .last()
+        .ok_or_else(|| DriverError::internal("The path does not name an object"))?;
+    let schema = schema_of(path)?;
+    let pool = meta.pool(path.find(NodeKind::Database)).await?;
+    let sql = format!(
+        "SELECT count(*) FROM {}.{}",
+        super::ddl::quote(schema),
+        super::ddl::quote(&seg.name)
+    );
+    // Both identifiers are quoted by `quote`, which doubles embedded quotes.
+    sqlx::query_scalar(sqlx::AssertSqlSafe(sql))
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| meta.err(e))
+}
 
 #[cfg(test)]
 mod tests {

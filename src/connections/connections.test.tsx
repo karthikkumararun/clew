@@ -7,7 +7,9 @@ import { clearShortcuts } from "../shell/registry/shortcuts";
 import { useRecents } from "../shell/registry/recents";
 import { useSlots } from "../shell/registry/slots";
 import { ConnectionChip, namespaceMenu } from "./ConnectionChip";
-import { ConnectionList } from "./ConnectionList";
+import { ExplorerPanel } from "../features/explorer/ExplorerPanel";
+import { registerExplorerCommands } from "../features/explorer/commands";
+import { stubLayout } from "../features/explorer/testing";
 import { ConnectionModals } from "./ConnectionPrompts";
 import { openFromUrl, recentsOf, registerConnectionCommands } from "./commands";
 import { useConnections } from "./connectionsStore";
@@ -84,10 +86,13 @@ function setFile(file: Partial<ConnectionsFile>) {
   useConnections.setState({ file: full, connected: {}, busy: {}, modal: null, dialog: null });
 }
 
+let restoreLayout: () => void = () => {};
 beforeEach(() => {
   vi.clearAllMocks();
   clearShortcuts();
   clearCommands();
+  registerExplorerCommands();
+  restoreLayout = stubLayout();
   setPlatformForTests("mac");
   useNotices.setState({ notices: [] });
   useWorkspace.setState({ tabs: [], activeTabId: null, closeRequest: null });
@@ -107,6 +112,8 @@ beforeEach(() => {
   }));
   setFile({ connections: [prod, dev] });
 });
+
+afterEach(() => restoreLayout());
 
 describe("display helpers", () => {
   it("shortens addresses per settings kind", () => {
@@ -225,17 +232,17 @@ describe("organising connections", () => {
     api.list.mockResolvedValue({ version: 1, groups: [], connections: [dev] });
     render(
       <>
-        <ConnectionList />
+        <ExplorerPanel />
         <ConnectionModals />
       </>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Actions for prod-postgres" }));
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: /prod-postgres/ }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete…" }));
     expect(api.del).not.toHaveBeenCalled();
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(api.del).toHaveBeenCalledWith("c1"));
     await waitFor(() =>
-      expect(screen.queryByRole("option", { name: /prod-postgres/ })).not.toBeInTheDocument(),
+      expect(screen.queryByRole("treeitem", { name: /prod-postgres/ })).not.toBeInTheDocument(),
     );
     expect(useWorkspace.getState().tabs.map((t) => t.id)).toEqual(["t2"]);
   });
@@ -295,16 +302,18 @@ describe("organising connections", () => {
     });
     render(
       <>
-        <ConnectionList />
+        <ExplorerPanel />
         <ConnectionModals />
       </>,
     );
-    const work = screen.getByRole("group", { name: "Work" });
-    expect(within(work).getByText("prod-postgres")).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("group", { name: "Ungrouped" })).getByText("dev-mongo"),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Actions for group Work" }));
+    const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
+    expect(labels).toEqual([
+      expect.stringContaining("Work"),
+      expect.stringContaining("prod-postgres"),
+      expect.stringContaining("Ungrouped"),
+      expect.stringContaining("dev-mongo"),
+    ]);
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "Work" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete group" }));
     expect(screen.getByText(/connections move to Ungrouped/)).toBeInTheDocument();
   });

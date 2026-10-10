@@ -459,6 +459,11 @@ pub trait Driver: Send + Sync {
     async fn ddl(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<String> {
         Err(DriverError::unsupported("showing DDL"))
     }
+
+    /// Exact `SELECT count(*)` of the table or view at `path`, on the metadata pool.
+    async fn count_rows(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<i64> {
+        Err(DriverError::unsupported("counting rows"))
+    }
 }
 
 #[async_trait]

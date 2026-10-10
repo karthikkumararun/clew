@@ -140,6 +140,16 @@ pub async fn introspect_ddl(
     Ok(state.sessions.ddl(&connection_id, &path).await?)
 }
 
+/// Exact `SELECT count(*)` of a table or view, to replace the explorer's estimate.
+#[tauri::command]
+pub async fn explorer_count_rows(
+    state: State<'_, AppState>,
+    connection_id: String,
+    path: NodePath,
+) -> AppResult<i64> {
+    Ok(state.sessions.count_rows(&connection_id, &path).await?)
+}
+
 #[tauri::command]
 pub async fn completion_snapshot(
     state: State<'_, AppState>,

@@ -1,6 +1,7 @@
 //! The PostgreSQL driver (12+), built on sqlx.
 
 pub mod config;
+pub mod ddl;
 pub mod decode;
 pub mod error;
 pub mod introspect;
@@ -127,6 +128,14 @@ impl Driver for PostgresDriver {
     async fn completion_snapshot(&self, pool: &MetaPool, db: &str) -> DriverResult<SchemaSnapshot> {
         let meta = pool.downcast::<Arc<PgMeta>>()?;
         introspect::snapshot(meta, db).await
+    }
+
+    async fn ddl(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<String> {
+        introspect::ddl(pool.downcast::<Arc<PgMeta>>()?, path).await
+    }
+
+    async fn count_rows(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<i64> {
+        introspect::count_rows(pool.downcast::<Arc<PgMeta>>()?, path).await
     }
 }
 
