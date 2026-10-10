@@ -182,3 +182,33 @@ pub async fn session_switch_namespace(
         .switch_namespace(&session_id, database.as_deref(), schema.as_deref())
         .await?)
 }
+
+/// A connection's executed statements, newest first. `query` filters by a substring of the text;
+/// `before` is the cursor returned with the previous page.
+#[tauri::command]
+pub async fn history_list(
+    state: State<'_, AppState>,
+    connection_id: String,
+    query: Option<String>,
+    before: Option<i64>,
+) -> AppResult<crate::history::HistoryPage> {
+    state
+        .store
+        .history_list(
+            &connection_id,
+            query.as_deref(),
+            before,
+            crate::history::PAGE_SIZE,
+        )
+        .await
+}
+
+/// Delete one connection's history, or all of it when `connection_id` is empty. Returns how
+/// many entries were deleted.
+#[tauri::command]
+pub async fn history_clear(
+    state: State<'_, AppState>,
+    connection_id: Option<String>,
+) -> AppResult<u64> {
+    state.store.history_clear(connection_id.as_deref()).await
+}

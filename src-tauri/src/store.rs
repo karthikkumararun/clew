@@ -5,6 +5,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 
 use crate::error::{AppError, AppResult};
+use crate::history::{entry_from_row, like_pattern, HistoryPage, NewEntry, Row, HISTORY_LIMIT};
 
 pub const DB_FILE: &str = "clew.db";
 
@@ -64,6 +65,96 @@ impl Store {
         .await
         .map_err(db_err)?;
         Ok(())
+    }
+
+    /// Record a finished statement and trim the connection's history to the newest entries.
+    pub async fn history_insert(&self, e: &NewEntry) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO history (connection_id, database, sql, started_at, duration_ms, rows, outcome) \
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(&e.connection_id)
+        .bind(&e.database)
+        .bind(&e.sql)
+        .bind(e.started_at)
+        .bind(e.duration_ms)
+        .bind(e.rows)
+        .bind(e.outcome.as_str())
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        sqlx::query(
+            "DELETE FROM history WHERE connection_id = ?1 AND id NOT IN \
+             (SELECT id FROM history WHERE connection_id = ?1 ORDER BY started_at DESC, id DESC LIMIT ?2)",
+        )
+        .bind(&e.connection_id)
+        .bind(HISTORY_LIMIT)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+
+    /// A connection's history, newest first. `query` is a case-insensitive substring of the
+    /// statement; `before` is the `next` cursor of the previous page.
+    pub async fn history_list(
+        &self,
+        connection_id: &str,
+        query: Option<&str>,
+        before: Option<i64>,
+        limit: i64,
+    ) -> AppResult<HistoryPage> {
+        let pattern = query.filter(|q| !q.is_empty()).map(like_pattern);
+        // One extra row tells whether there is another page.
+        let rows: Vec<Row> = sqlx::query_as(
+            "SELECT id, connection_id, database, sql, started_at, duration_ms, rows, outcome \
+             FROM history WHERE connection_id = ?1 \
+               AND (?2 IS NULL OR sql LIKE ?2 ESCAPE '\\') \
+               AND (?3 IS NULL OR id < ?3) \
+             ORDER BY started_at DESC, id DESC LIMIT ?4",
+        )
+        .bind(connection_id)
+        .bind(pattern)
+        .bind(before)
+        .bind(limit + 1)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        let mut entries: Vec<_> = rows.into_iter().map(entry_from_row).collect();
+        let next = if entries.len() as i64 > limit {
+            entries.truncate(limit as usize);
+            entries.last().map(|e| e.id)
+        } else {
+            None
+        };
+        Ok(HistoryPage { entries, next })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
+
+    pub async fn history_count(&self, connection_id: &str) -> AppResult<i64> {
+        sqlx::query_scalar("SELECT count(*) FROM history WHERE connection_id = ?")
+            .bind(connection_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(db_err)
+    }
+
+    /// Delete one connection's history, or everyone's. Returns how many entries went.
+    pub async fn history_clear(&self, connection_id: Option<&str>) -> AppResult<u64> {
+        let result = match connection_id {
+            Some(id) => {
+                sqlx::query("DELETE FROM history WHERE connection_id = ?")
+                    .bind(id)
+                    .execute(&self.pool)
+                    .await
+            }
+            None => sqlx::query("DELETE FROM history").execute(&self.pool).await,
+        };
+        Ok(result.map_err(db_err)?.rows_affected())
     }
 
     pub async fn ui_state_all(&self) -> AppResult<HashMap<String, String>> {

@@ -48,8 +48,8 @@
 
 ## 8. Query history
 
-- [ ] 8.1 Rust: `history` table migration, record after every statement, retention 10,000 per connection (spec: query-history › Record executed statements)
-- [ ] 8.2 Commands `history_list(connection, query, cursor)`, `history_clear(connection?)`
-- [ ] 8.3 History tab UI with search, entry detail, Insert / Open in new console / Copy (spec: query-history › Browse and search history)
-- [ ] 8.4 Clear history with confirmation (spec: query-history › Clear history)
-- [ ] 8.5 Test: recording outcomes incl. error and cancelled; retention trimming; search
+- [x] 8.1 Rust: `history` table migration, record after every statement, retention 10,000 per connection (spec: query-history › Record executed statements)
+- [x] 8.2 Commands `history_list(connection, query, cursor)`, `history_clear(connection?)`
+- [x] 8.3 History tab UI with search, entry detail, Insert / Open in new console / Copy (spec: query-history › Browse and search history)
+- [x] 8.4 Clear history with confirmation (spec: query-history › Clear history)
+- [x] 8.5 Test: recording outcomes incl. error and cancelled; retention trimming; search

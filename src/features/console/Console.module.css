@@ -560,3 +560,133 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+
+/* ---- history ---- */
+
+.history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.histBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel-sunken);
+}
+
+.histBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.histList {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.histRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 26px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-small);
+  cursor: default;
+}
+
+.histRow:hover {
+  background: var(--bg-hover);
+}
+
+.histRow[aria-selected="true"] {
+  background: var(--bg-selected);
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--text);
+}
+
+.histRow:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.histSql {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.histMeta {
+  flex: none;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.histOk {
+  color: var(--success);
+  flex: none;
+}
+
+.histError {
+  color: var(--danger);
+  flex: none;
+}
+
+.histCancelled {
+  color: var(--warning);
+  flex: none;
+}
+
+.histDetail {
+  flex: none;
+  width: min(420px, 45%);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--bg-panel-sunken);
+}
+
+.histFull {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.histActions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.link {
+  align-self: flex-start;
+  margin: 6px 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-small);
+}

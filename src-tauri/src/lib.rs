@@ -3,6 +3,7 @@ pub mod connections;
 pub mod drivers;
 pub mod error;
 pub mod files;
+pub mod history;
 pub mod paths;
 pub mod sessions;
 pub mod settings;
@@ -107,6 +108,7 @@ pub fn run() {
                 );
             }
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
+            sessions.set_history_sink(history::sink(store.clone()));
             spawn_idle_sweeper(sessions.clone());
             let files = files::FileAccess::new(&data_dir, {
                 let handle = app.handle().clone();
@@ -152,6 +154,8 @@ pub fn run() {
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
             commands::sessions::explorer_count_rows,
+            commands::sessions::history_list,
+            commands::sessions::history_clear,
             commands::files::file_open_dialog,
             commands::files::file_save_dialog,
             commands::files::file_read,

@@ -11,6 +11,7 @@ import { useStore } from "zustand";
 import { diagnosticsExtension, showErrorMarks } from "./editor/diagnostics";
 import { Editor } from "./editor/Editor";
 import { getView } from "./editor/views";
+import { HistoryPanel } from "./HistoryPanel";
 import { ResultsPanel } from "./ResultsPanel";
 import { getRuntime } from "./runtime";
 import { submitRun } from "./run";
@@ -136,7 +137,17 @@ export function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
         onKeyDown={onKeyDown}
       />
       <div className={styles.resultsHost} style={{ height }}>
-        <ResultsPanel runtime={runtime} onRerun={() => void rerunActive()} />
+        <ResultsPanel
+          runtime={runtime}
+          onRerun={() => void rerunActive()}
+          history={
+            <HistoryPanel
+              tabId={tab.id}
+              connectionId={connection.id}
+              connectionName={connection.name}
+            />
+          }
+        />
       </div>
     </div>
   );
