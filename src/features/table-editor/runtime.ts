@@ -153,7 +153,7 @@ export class TableRuntime {
   }
 
   /** Run a statement on the session and collect its first result. */
-  private async run(sessionId: string, sql: string, pageSize: number) {
+  async run(sessionId: string, sql: string, pageSize: number) {
     const results = new QueryRunStore();
     results.begin();
     try {

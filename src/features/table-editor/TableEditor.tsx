@@ -5,7 +5,14 @@ import { Button, IconButton } from "../../components/Button";
 import { Menu } from "../../components/Menu";
 import type { MenuItem } from "../../components/Menu";
 import { EnvDot } from "../../components/Badge";
-import { ChevronRight, Download, Plus, Refresh, Terminal } from "../../components/icons";
+import {
+  ChevronRight,
+  Download,
+  PanelRight,
+  Plus,
+  Refresh,
+  Terminal,
+} from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { BADGE_ENV } from "../../connections/display";
 import type { Value } from "../../lib/ipc/drivers";
@@ -25,6 +32,11 @@ import { confirmPending, readOnlyReason, submitChanges } from "./actions";
 import { CellEditor } from "./CellEditor";
 import { READ_ONLY_KINDS } from "./editValue";
 import { PendingBar } from "./PendingBar";
+import { RecordPanel } from "./RecordPanel";
+import { loadReferencedBy, loadReferences } from "./recordData";
+import type { ReferencedLink, ReferenceLink } from "./recordData";
+import { format } from "../grid/copyFormats";
+import { lookOf } from "../grid/cellStyle";
 import { PreviewDialog } from "./PreviewDialog";
 import { askChoice } from "../console/prompts";
 import { useNotices } from "../../stores/noticesStore";
@@ -288,11 +300,52 @@ export function TableEditor({ tab }: { tab: TableTab }) {
       sql: sql ? `${sql};` : undefined,
     });
 
-  const openTable = (schema: string | null, table: string) =>
+  const openTable = (schema: string | null, table: string, where?: string) =>
     void runCommand("table.open", {
       connectionId: s.connectionId,
       path: siblingTablePath(s.path, schema, table),
+      where,
     });
+
+  // --- record panel ----------------------------------------------------------------------------
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [references, setReferences] = useState<ReferenceLink[] | null>(null);
+  const [referencedBy, setReferencedBy] = useState<ReferencedLink[] | null>(null);
+  const recordRow =
+    s.record && selectedRow !== null && selectedRow < changes.rowCount ? selectedRow : null;
+  useEffect(() => {
+    setReferences(null);
+    setReferencedBy(null);
+    if (recordRow === null || !meta || recordRow >= changes.loadedRows) return;
+    let live = true;
+    const values = columnNames.map((_, i) => changes.original(i, recordRow));
+    void loadReferences(runtime, flavor, meta.foreignKeys, columnNames, values).then(
+      (r) => live && setReferences(r),
+    );
+    void loadReferencedBy(runtime, flavor, meta.referencedBy, columnNames, values).then(
+      (r) => live && setReferencedBy(r),
+    );
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordRow, meta, data.version]);
+
+  const recordValues = (row: number) => columnNames.map((_, i) => changes.get(i, row));
+  const recordTitle = (row: number) => {
+    const keys = (keyColumns ?? []).map((k) => columnNames.indexOf(k)).filter((i) => i >= 0);
+    return keys.length > 0
+      ? `Record #${keys.map((i) => lookOf(changes.get(i, row)).text).join(", ")}`
+      : `Record · row ${row + 1}`;
+  };
+  const copyRecordJson = (row: number) => {
+    const text = format({ columns: columnNames, rows: [recordValues(row)] }, "json", {
+      flavor,
+      table: "",
+    });
+    const one = JSON.parse(text) as unknown[];
+    void navigator.clipboard.writeText(JSON.stringify(one[0] ?? {}, null, 2));
+  };
 
   const exportSource = (): ExportSource => {
     const cols = visibleColumns(data.columns.length, gv.order, gv.hidden);
@@ -491,6 +544,14 @@ export function TableEditor({ tab }: { tab: TableTab }) {
               −
             </IconButton>
             <IconButton
+              aria-label="Record panel"
+              aria-pressed={s.record}
+              title={`Record panel (${formatShortcut("Mod+Shift+R")})`}
+              onClick={() => patchTab(tab.id, { record: !s.record })}
+            >
+              <PanelRight size={14} />
+            </IconButton>
+            <IconButton
               aria-label="Undo"
               title={`Undo (${formatShortcut("Mod+Z")})`}
               disabled={!canEdit || !changes.canUndo}
@@ -600,7 +661,12 @@ export function TableEditor({ tab }: { tab: TableTab }) {
                     startEdit(col, row);
                     return true;
                   }}
-                  onSelectionChange={(cells) => (runtime.selectedRows = cells.rows)}
+                  onSelectionChange={(cells) => {
+                    runtime.selectedRows = cells.rows;
+                    setSelectedRow(
+                      cells.rows.length === 1 ? cells.rows[0] : (cells.rows[0] ?? null),
+                    );
+                  }}
                   driver={driver}
                   fkColumns={fkColumns}
                   keyColumns={keySet}
@@ -618,6 +684,30 @@ export function TableEditor({ tab }: { tab: TableTab }) {
                 <p className={styles.viewEmpty}>Loading…</p>
               ) : null}
             </div>
+            {s.record ? (
+              recordRow !== null ? (
+                <RecordPanel
+                  columns={data.columns}
+                  values={recordValues(recordRow)}
+                  originals={columnNames.map((_, i) =>
+                    recordRow < changes.loadedRows
+                      ? changes.original(i, recordRow)
+                      : changes.get(i, recordRow),
+                  )}
+                  title={recordTitle(recordRow)}
+                  references={references}
+                  referencedBy={referencedBy}
+                  onCopyJson={() => copyRecordJson(recordRow)}
+                  onFollow={(l) => openTable(l.fk.refSchema ?? null, l.fk.refTable, l.where)}
+                  onOpenReferencing={(l) => openTable(l.ref.schema ?? null, l.ref.table, l.where)}
+                  onClose={() => patchTab(tab.id, { record: false })}
+                />
+              ) : (
+                <aside className={styles.record} aria-label="Record">
+                  <p className={styles.viewEmpty}>Select a row to see its record.</p>
+                </aside>
+              )
+            ) : null}
           </div>
         </>
       ) : (

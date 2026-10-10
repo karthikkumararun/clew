@@ -5,7 +5,7 @@ import { newDraft, toConnection } from "../../connections/draft";
 import type { NodePath, ResultEvent, Value } from "../../lib/ipc/drivers";
 import { setPlatformForTests } from "../../lib/platform";
 import { clearCommands, registerCommand, runCommand } from "../../shell/registry/commands";
-import { clearShortcuts } from "../../shell/registry/shortcuts";
+import { clearShortcuts, installShortcutListener } from "../../shell/registry/shortcuts";
 import { clearTabKinds, getTabKind } from "../../shell/registry/tabKinds";
 import { useNotices } from "../../stores/noticesStore";
 import { useWorkspace } from "../../stores/workspaceStore";
@@ -191,6 +191,7 @@ function database(opts: { rows?: Value[][]; count?: number; selectError?: string
 
 let offTab: () => void = () => {};
 let offCommands: () => void = () => {};
+let offKeys: () => void = () => {};
 const consoleCalls: unknown[] = [];
 
 /** Like the editor area: always hands the editor the tab as it is now. */
@@ -267,6 +268,7 @@ beforeEach(() => {
   });
   offTab = registerTableTab();
   offCommands = registerTableCommands();
+  offKeys = installShortcutListener(window);
   registerCommand({
     id: "console.new",
     title: "x",
@@ -277,6 +279,7 @@ beforeEach(() => {
 afterEach(() => {
   offTab();
   offCommands();
+  offKeys();
 });
 
 describe("opening a table", () => {
@@ -595,5 +598,144 @@ describe("restoring and the session", () => {
     await screen.findByRole("grid");
     useWorkspace.getState().closeTab(id);
     expect(api.sessionClose).toHaveBeenCalledWith("s1");
+  });
+});
+
+describe("record panel", () => {
+  /** Answers the orders page, the users lookup and the order_items count. */
+  function recordDatabase() {
+    api.query.mockImplementation(
+      async (_c: string, r: { path: NodePath; whereClause: string | null }) => {
+        const table = r.path[r.path.length - 1].name;
+        const w = r.whereClause ? ` WHERE (${r.whereClause})` : "";
+        return {
+          select: `SELECT * FROM "public"."${table}"${w} LIMIT 1`,
+          count: `SELECT count(*) FROM "public"."${table}"${w}`,
+          table: `"public"."${table}"`,
+        };
+      },
+    );
+    api.execute.mockImplementation(async (_s: string, req: { sql: string }, send: Send) => {
+      const id = nextResult++;
+      const done = () =>
+        send({
+          event: "done",
+          result_id: id,
+          summary: { rows_affected: null, elapsed_ms: 1, has_more: false },
+        });
+      if (req.sql.startsWith("SELECT count")) {
+        const n = req.sql.includes("order_items") ? 3 : 2;
+        send({
+          event: "columns",
+          result_id: id,
+          statement: 0,
+          columns: [col("count", "int8", "int")],
+        });
+        send({ event: "rows", result_id: id, rows: [[int(n)]] });
+      } else if (req.sql.includes('"users"')) {
+        send({
+          event: "columns",
+          result_id: id,
+          statement: 0,
+          columns: [
+            col("id", "int8", "int"),
+            col("name", "text", "text"),
+            col("email", "text", "text"),
+          ],
+        });
+        send({
+          event: "rows",
+          result_id: id,
+          rows: [[int(1042), text("Ada Lovelace"), text("ada@example.com")]],
+        });
+      } else {
+        send({ event: "columns", result_id: id, statement: 0, columns: COLUMNS });
+        send({ event: "rows", result_id: id, rows: PAGE });
+      }
+      done();
+      return null;
+    });
+  }
+  const selectFirstRow = () => fireEvent.click(screen.getAllByRole("row")[1]);
+  const openPanel = () => fireEvent.click(screen.getByRole("button", { name: "Record panel" }));
+
+  it("shows the selected row as key/value lines with its key in the title", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    openPanel();
+    expect(screen.getByRole("complementary", { name: "Record" })).toHaveTextContent("Select a row");
+    selectFirstRow();
+    const panel = await screen.findByRole("complementary", { name: "Record" });
+    expect(panel).toHaveTextContent("Record #1");
+    expect(within(panel).getByText("status").nextSibling).toHaveTextContent("pending");
+    expect(within(panel).getByText("user_id").nextSibling).toHaveTextContent("1042");
+  });
+
+  it("toggles with Mod+Shift+R", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    expect(tabState().record).toBe(false);
+    fireEvent.keyDown(screen.getByRole("grid"), { key: "r", metaKey: true, shiftKey: true });
+    await waitFor(() => expect(tabState().record).toBe(true));
+  });
+
+  it("lists what the row points at, labelled from the target row", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    openPanel();
+    selectFirstRow();
+    const refs = await screen.findByRole("region", { name: "References" });
+    expect(
+      await within(refs).findByRole("button", {
+        name: "users #1042 · Ada Lovelace · ada@example.com",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the referenced table filtered to the row", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    openPanel();
+    selectFirstRow();
+    fireEvent.click(await screen.findByRole("button", { name: /^users #1042/ }));
+    await waitFor(() => expect(useWorkspace.getState().tabs).toHaveLength(2));
+    const opened = useWorkspace.getState().tabs[1].state as TableTabState;
+    expect(opened.path.map((p) => p.name)).toEqual(["analytics", "public", "tables", "users"]);
+    expect(opened.where).toBe('"id" = 1042');
+    expect(opened.view).toBe("data");
+  });
+
+  it("lists referencing tables with counts and opens them filtered", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    openPanel();
+    selectFirstRow();
+    const by = await screen.findByRole("region", { name: "Referenced by" });
+    fireEvent.click(await within(by).findByRole("button", { name: "order_items · 3 rows" }));
+    await waitFor(() => expect(useWorkspace.getState().tabs).toHaveLength(2));
+    const opened = useWorkspace.getState().tabs[1].state as TableTabState;
+    expect(opened.path[opened.path.length - 1].name).toBe("order_items");
+    expect(opened.where).toBe('"order_id" = 1');
+  });
+
+  it("copies the record as JSON", async () => {
+    recordDatabase();
+    mount();
+    await screen.findByRole("grid");
+    openPanel();
+    selectFirstRow();
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    fireEvent.click(await screen.findByRole("button", { name: "Copy as JSON" }));
+    expect(JSON.parse(writeText.mock.calls[0][0])).toEqual({
+      id: 1,
+      user_id: 1042,
+      status: "pending",
+    });
   });
 });

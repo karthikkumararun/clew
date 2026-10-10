@@ -84,6 +84,14 @@ const typing = () => {
   );
 };
 
+function activeTable() {
+  const { activeTabId, tabs } = useWorkspace.getState();
+  const tab = tabs.find((t) => t.id === activeTabId);
+  return tab && tab.kind === TABLE_KIND
+    ? (tab as { id: string; state: { record: boolean } })
+    : undefined;
+}
+
 /** The runtime of the table tab on screen, when editing can happen there. */
 function activeEditable(): TableRuntime | undefined {
   const { activeTabId, tabs } = useWorkspace.getState();
@@ -112,6 +120,20 @@ export function registerTableShortcuts(): () => void {
     grid("table.undo", "Mod+Z", (r) => void r.changes.undo()),
     grid("table.redo", "Mod+Shift+Z", (r) => void r.changes.redo()),
     grid("table.submit", "Mod+S", (r) => void submitChanges(r), true),
+    registerShortcut({
+      id: "table.record",
+      keys: "Mod+Shift+R",
+      scope: "grid",
+      when: () => activeTable() !== undefined,
+      run: () => {
+        const tab = activeTable();
+        if (tab) {
+          useWorkspace
+            .getState()
+            .updateTabState<{ record: boolean }>(tab.id, { record: !tab.state.record });
+        }
+      },
+    }),
   ];
   return () => offs.forEach((o) => o());
 }

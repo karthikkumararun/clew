@@ -76,8 +76,15 @@ export function registerTableCommands(): () => void {
       title: "Open table",
       category: "Table",
       run: (arg) => {
-        const a = (arg ?? {}) as { connectionId?: string; path?: NodePath };
-        if (a.connectionId && a.path) openTable(a.connectionId, a.path);
+        const a = (arg ?? {}) as { connectionId?: string; path?: NodePath; where?: string };
+        if (a.connectionId && a.path) {
+          // An explicit filter replaces the tab's current one and starts from the first page.
+          openTable(
+            a.connectionId,
+            a.path,
+            a.where === undefined ? {} : { view: "data", where: a.where, orderBy: "", page: 0 },
+          );
+        }
       },
     }),
     registerCommand({

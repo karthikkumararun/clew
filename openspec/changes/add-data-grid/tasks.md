@@ -42,6 +42,6 @@
 
 ## 6. Record panel
 
-- [ ] 6.1 Record panel with key/value list, "was <old>" for changed values, Copy as JSON, Mod+Shift+R toggle (spec: table-editor › Record panel)
-- [ ] 6.2 REFERENCES (FK targets with label columns) and REFERENCED BY (counts) with open-filtered navigation
-- [ ] 6.3 Test: follow reference opens filtered table
+- [x] 6.1 Record panel with key/value list, "was <old>" for changed values, Copy as JSON, Mod+Shift+R toggle (spec: table-editor › Record panel)
+- [x] 6.2 REFERENCES (FK targets with label columns) and REFERENCED BY (counts) with open-filtered navigation
+- [x] 6.3 Test: follow reference opens filtered table
