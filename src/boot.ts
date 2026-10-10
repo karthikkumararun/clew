@@ -2,6 +2,7 @@ import { isTauri, tauriUiStateBackend } from "./lib/ipc";
 import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
 import { startSnapshotSync } from "./features/console/completionTarget";
 import { registerConsoleTab } from "./features/console/ConsoleTab";
+import { startFileSync } from "./features/console/fileSync";
 import { startExplorerSync, useExplorer } from "./features/explorer/explorerStore";
 import { rehydrateLayout } from "./stores/layoutStore";
 import { applySettingsToDocument, useSettings } from "./stores/settingsStore";
@@ -22,6 +23,7 @@ export async function boot(): Promise<void> {
   useExplorer.getState().rehydrate();
   startExplorerSync();
   startSnapshotSync();
+  startFileSync();
   await useSettings.getState().load();
   applySettingsToDocument(useSettings.getState().settings);
   useSettings.subscribe((s) => applySettingsToDocument(s.settings));

@@ -41,10 +41,10 @@
 
 ## 7. Files and status bar
 
-- [ ] 7.1 Open / Save / Save as with dialog plugin and a user-picked path allow-set; dirty dot (spec: sql-console › SQL files)
-- [ ] 7.2 Watch open files and reload or ask on external change
-- [ ] 7.3 Status bar items: Ln/Col, encoding, dialect, transaction state (spec: sql-console › Status bar items)
-- [ ] 7.4 Test: save/reload flow with a temp file
+- [x] 7.1 Open / Save / Save as with dialog plugin and a user-picked path allow-set; dirty dot (spec: sql-console › SQL files)
+- [x] 7.2 Watch open files and reload or ask on external change
+- [x] 7.3 Status bar items: Ln/Col, encoding, dialect, transaction state (spec: sql-console › Status bar items)
+- [x] 7.4 Test: save/reload flow with a temp file
 
 ## 8. Query history
 

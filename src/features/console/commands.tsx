@@ -1,5 +1,3 @@
-import { connOfId } from "../explorer/tree";
-import { useExplorer } from "../explorer/explorerStore";
 import { useConnections } from "../../connections/connectionsStore";
 import { registerCommand } from "../../shell/registry/commands";
 import { registerShortcut } from "../../shell/registry/shortcuts";
@@ -12,6 +10,9 @@ import { submitExplain, submitRun } from "./run";
 import { isWrite } from "./explain";
 import { askChoice } from "./prompts";
 import { ConsoleToolbar } from "./ConsoleToolbar";
+import { connectionInContext } from "./context";
+import { openFileFromDialog, openScript, saveConsole, saveConsoleAs } from "./fileOps";
+import { registerConsoleStatusItems } from "./statusItems";
 import { registerSlotItem } from "../../shell/registry/slots";
 import { getView } from "./editor/views";
 import { useWorkspace } from "../../stores/workspaceStore";
@@ -27,19 +28,6 @@ export interface NewConsoleArgs {
   schema?: string;
   /** Initial text; not run. */
   sql?: string;
-}
-
-/** The connection a new console should use: the explorer's selection, else the active tab's. */
-export function connectionInContext(): string | null {
-  const known = new Set(useConnections.getState().file.connections.map((c) => c.id));
-  const selected = useExplorer.getState().selectedId;
-  if (selected && known.has(connOfId(selected)) && !selected.startsWith("group:")) {
-    return connOfId(selected);
-  }
-  const { tabs, activeTabId } = useWorkspace.getState();
-  const active = tabs.find((t) => t.id === activeTabId);
-  const bound = (active?.state as { connectionId?: string } | undefined)?.connectionId;
-  return bound && known.has(bound) ? bound : null;
 }
 
 /** Open a console tab (always a new one). Returns its tab id, or null if nothing was chosen. */
@@ -62,6 +50,13 @@ export function activeConsole() {
   const tab = tabs.find((t) => t.id === activeTabId && t.kind === CONSOLE_KIND);
   const view = tab ? getView(tab.id) : undefined;
   return tab && view ? { tab: tab as Tab<ConsoleState>, view } : null;
+}
+
+/** The active tab when it is a console (its editor need not be on screen). */
+export function activeConsoleTab(): Tab<ConsoleState> | null {
+  const { tabs, activeTabId } = useWorkspace.getState();
+  const tab = tabs.find((t) => t.id === activeTabId && t.kind === CONSOLE_KIND);
+  return tab ? (tab as Tab<ConsoleState>) : null;
 }
 
 /** What a run command would execute for the active editor, or why there is nothing to run. */
@@ -336,6 +331,69 @@ export function registerConsoleCommands(): () => void {
       render: () => <ConsoleToolbar />,
     }),
     registerCommand({
+      id: "console.openFile",
+      title: "Open SQL file",
+      category: "Console",
+      run: async () => void (await openFileFromDialog()),
+    }),
+    registerCommand({
+      id: "console.save",
+      title: "Save SQL file",
+      category: "Console",
+      run: async () => {
+        const tab = activeConsoleTab();
+        if (tab) await saveConsole(tab.id);
+      },
+    }),
+    registerCommand({
+      id: "console.saveAs",
+      title: "Save SQL file as…",
+      category: "Console",
+      run: async () => {
+        const tab = activeConsoleTab();
+        if (tab) await saveConsoleAs(tab.id);
+      },
+    }),
+    registerCommand({
+      id: "script.open",
+      title: "Open script",
+      category: "Console",
+      run: async (arg) => {
+        const a = (arg ?? {}) as { connectionId?: string; path?: string };
+        if (a.connectionId && a.path) await openScript(a.connectionId, a.path);
+      },
+    }),
+    // Mod+O / Mod+S in an editor are about SQL files; elsewhere Mod+O still opens a database file.
+    registerShortcut({
+      id: "console.openFile",
+      keys: "Mod+O",
+      scope: "editor",
+      run: (e) => {
+        e.preventDefault();
+        void openFileFromDialog();
+      },
+    }),
+    registerShortcut({
+      id: "console.save",
+      keys: "Mod+S",
+      scope: "editor",
+      run: (e) => {
+        e.preventDefault();
+        const tab = activeConsoleTab();
+        if (tab) void saveConsole(tab.id);
+      },
+    }),
+    registerShortcut({
+      id: "console.saveAs",
+      keys: "Mod+Shift+S",
+      scope: "editor",
+      run: (e) => {
+        e.preventDefault();
+        const tab = activeConsoleTab();
+        if (tab) void saveConsoleAs(tab.id);
+      },
+    }),
+    registerCommand({
       id: "console.format",
       title: "Format SQL",
       category: "Console",
@@ -351,5 +409,9 @@ export function registerConsoleCommands(): () => void {
       },
     }),
   ];
-  return () => disposers.forEach((d) => d());
+  const offStatus = registerConsoleStatusItems();
+  return () => {
+    offStatus();
+    disposers.forEach((d) => d());
+  };
 }

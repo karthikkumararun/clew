@@ -4,6 +4,7 @@ import { BADGE_ENV } from "../../connections/display";
 import { registerTabKind } from "../../shell/registry/tabKinds";
 import type { TabKind } from "../../shell/registry/tabKinds";
 import { ConsoleView } from "./ConsoleView";
+import { saveConsole } from "./fileOps";
 import { askChoice } from "./prompts";
 import { disposeRuntime, peekRuntime } from "./runtime";
 import { useConsoleUi } from "./ui";
@@ -33,6 +34,7 @@ const consoleKind: TabKind<ConsoleState> = {
   serialize: serializeConsole,
   deserialize: deserializeConsole,
   render: ({ tab }) => <ConsoleView key={tab.id} tab={tab} />,
+  save: (tab) => saveConsole(tab.id),
   confirmClose: async (tab) => {
     const runtime = peekRuntime(tab.id);
     const { txOpen, txPending } = runtime?.store.getState() ?? { txOpen: false, txPending: 0 };
