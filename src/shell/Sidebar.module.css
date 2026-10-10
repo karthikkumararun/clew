@@ -1,0 +1,77 @@
+.sidebar {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  min-width: 0;
+}
+
+.header {
+  height: var(--h-tabstrip);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 14px;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.empty p {
+  margin: 0;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+
+.link:hover {
+  color: var(--accent-hover);
+}
+
+.overlayRoot {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+}
+
+.overlayScrim {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-backdrop);
+  opacity: 0.6;
+}
+
+.overlayPanel {
+  position: relative;
+  width: var(--w-sidebar);
+  max-width: 85%;
+  height: 100%;
+  box-shadow: var(--shadow-dialog);
+}

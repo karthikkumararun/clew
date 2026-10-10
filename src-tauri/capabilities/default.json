@@ -3,5 +3,6 @@
   "identifier": "default",
   "description": "Capability for the main window: own commands only, no shell/http/fs plugins",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default",
+    "core:window:allow-start-dragging"]
 }

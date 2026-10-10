@@ -25,11 +25,11 @@
 
 ## 4. Workspace layout
 
-- [ ] 4.1 Build `Toolbar` with the logo, "Clew" / "by ADK" wordmark and left/center/right slots; macOS overlay title bar with drag region and 78px inset (spec: app-shell › Brand mark in the toolbar, Desktop application)
-- [ ] 4.2 Build `Sidebar` slot with resizable width 240–420 (default 272), Mod+B toggle, auto-collapse below 900px (spec: app-shell › Workspace layout)
-- [ ] 4.3 Build `SidePanel` right slot (380px default, resizable 320–560, persisted open state) and a toolbar toggle-button slot (spec: app-shell › Workspace layout)
-- [ ] 4.4 Build `StatusBar` with left connection area and a right-side item registry (spec: app-shell › Status bar)
-- [ ] 4.5 Test: layout renders with canvas metrics; sidebar and side-panel clamp and toggle
+- [x] 4.1 Build `Toolbar` with the logo, "Clew" / "by ADK" wordmark and left/center/right slots; macOS overlay title bar with drag region and 78px inset (spec: app-shell › Brand mark in the toolbar, Desktop application)
+- [x] 4.2 Build `Sidebar` slot with resizable width 240–420 (default 272), Mod+B toggle, auto-collapse below 900px (spec: app-shell › Workspace layout)
+- [x] 4.3 Build `SidePanel` right slot (380px default, resizable 320–560, persisted open state) and a toolbar toggle-button slot (spec: app-shell › Workspace layout)
+- [x] 4.4 Build `StatusBar` with left connection area and a right-side item registry (spec: app-shell › Status bar)
+- [x] 4.5 Test: layout renders with canvas metrics; sidebar and side-panel clamp and toggle
 
 ## 5. Editor tabs
 
