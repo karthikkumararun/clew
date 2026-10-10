@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod connections;
 pub mod drivers;
 pub mod error;
 pub mod paths;
@@ -68,6 +69,7 @@ fn spawn_idle_sweeper(sessions: Arc<sessions::SessionManager>) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = paths::app_data_dir(&app.path().data_dir()?);
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
@@ -84,6 +86,25 @@ pub fn run() {
                     timeout: Duration::from_secs(120),
                 }),
             };
+            let password_prompts = Arc::new(connections::service::PendingPasswords::default());
+            let handle = app.handle().clone();
+            let (connections, loaded) = connections::service::ConnectionService::new(
+                &data_dir,
+                Arc::new(connections::secrets::KeyringStore),
+                Arc::new(connections::service::EventPasswordPrompter {
+                    pending: password_prompts.clone(),
+                    emit: Arc::new(move |prompt| {
+                        let _ = handle.emit("password_prompt", prompt);
+                    }),
+                    timeout: Duration::from_secs(120),
+                }),
+            );
+            if let Some(backup) = loaded.backup {
+                eprintln!(
+                    "connections.json was unreadable; moved to {}",
+                    backup.display()
+                );
+            }
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
             spawn_idle_sweeper(sessions.clone());
             app.manage(state::AppState {
@@ -92,6 +113,9 @@ pub fn run() {
                 registry,
                 sessions,
                 host_key_prompts,
+                connections: Arc::new(connections),
+                password_prompts,
+                test_cancels: Default::default(),
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -111,6 +135,7 @@ pub fn run() {
             commands::sessions::connection_disconnect,
             commands::sessions::session_open,
             commands::sessions::session_close,
+            commands::sessions::session_switch_namespace,
             commands::sessions::query_execute,
             commands::sessions::query_fetch_more,
             commands::sessions::query_cancel,
@@ -119,6 +144,30 @@ pub fn run() {
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
             commands::sessions::host_key_answer,
+            commands::connections::connections_list,
+            commands::connections::connections_save,
+            commands::connections::connections_delete,
+            commands::connections::connections_duplicate,
+            commands::connections::groups_save,
+            commands::connections::groups_delete,
+            commands::connections::connection_secret_status,
+            commands::connections::password_answer,
+            commands::connections::connections_parse_url,
+            commands::connections::connections_test,
+            commands::connections::connections_test_cancel,
+            commands::connections::connections_connect,
+            commands::connections::connections_open_transactions,
+            commands::connections::connections_disconnect,
+            commands::connections::connections_export_summary,
+            commands::connections::connections_export,
+            commands::connections::import_datagrip_discover,
+            commands::connections::import_datagrip_password_safe,
+            commands::connections::import_clew_inspect,
+            commands::connections::import_scan,
+            commands::connections::import_commit,
+            commands::connections::connections_scripts_info,
+            commands::connections::connections_rename,
+            commands::connections::connections_finish_folder_rename,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

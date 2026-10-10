@@ -1,9 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window: own commands only, no shell/http/fs plugins",
+  "description": "Capability for the main window: own commands only, file pickers only, no shell/http/fs plugins",
   "windows": ["main"],
   "permissions": ["core:default",
     "core:window:allow-start-dragging",
-    "window-state:default"]
+    "window-state:default",
+    "dialog:allow-open",
+    "dialog:allow-save"]
 }

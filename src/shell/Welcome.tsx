@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { DRIVER_BADGES, ENV_COLORS, Kbd } from "../components/Badge";
 import { ClewLogo, File, Import, Plus } from "../components/icons";
+import { useConnections } from "../connections/connectionsStore";
 import { appPaths } from "../lib/ipc";
 import type { AppPaths } from "../lib/ipc";
 import { formatShortcut } from "../lib/platform";
@@ -34,6 +35,8 @@ export function Welcome() {
   const recents = useRecents((s) => s.recents);
   const paths = useAppPaths();
   const [url, setUrl] = useState("");
+  const urlError = useConnections((s) => s.urlError);
+  const setUrlError = useConnections((s) => s.setUrlError);
 
   const connect = (e: FormEvent) => {
     e.preventDefault();
@@ -127,7 +130,12 @@ export function Welcome() {
                   className={`${styles.url} mono`}
                   placeholder="postgres://user@host:5432/db"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    if (urlError) setUrlError(null);
+                  }}
+                  aria-invalid={Boolean(urlError)}
+                  aria-describedby={urlError ? "welcome-url-error" : undefined}
                   autoComplete="off"
                   spellCheck={false}
                 />
@@ -135,6 +143,11 @@ export function Welcome() {
                   Connect
                 </button>
               </div>
+              {urlError ? (
+                <p id="welcome-url-error" role="alert" className={styles.urlError}>
+                  {urlError}
+                </p>
+              ) : null}
               <p className={styles.urlHelp}>
                 Driver, host and database are detected from the URL; you&apos;ll confirm before
                 anything is saved.

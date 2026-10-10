@@ -82,6 +82,7 @@ mod tests {
             query_timeout_secs: None,
             read_only: false,
             options: Default::default(),
+            on_connect: vec![],
         }
     }
 

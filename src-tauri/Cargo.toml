@@ -32,6 +32,18 @@ tokio-rustls = { version = "0.26.6", default-features = false, features = ["ring
 rustls-native-certs = "0.8.4"
 rustls-pemfile = "2.2.0"
 ts-rs = { version = "12.0.1", features = ["serde-json-impl", "no-serde-warnings"] }
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
+ulid = "3.0.0"
+url = "2"
+percent-encoding = "2"
+tauri-plugin-dialog = "2"
+argon2 = "0.5"
+aes-gcm = "0.10"
+zeroize = "1"
+base64 = "0.22"
+sha2 = "0.10"
+quick-xml = "0.37"
+keepass = { version = "0.15.0", features = ["save_kdbx4"] }
 
 [profile.release]
 codegen-units = 1
@@ -47,3 +59,6 @@ integration = []
 [dev-dependencies]
 rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"] }
 tempfile = "3.27.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"

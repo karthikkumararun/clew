@@ -2,6 +2,10 @@ import { useEffect } from "react";
 import { NARROW_BREAKPOINT, useLayout } from "../stores/layoutStore";
 import { EditorArea } from "./EditorArea";
 import { Notices } from "./Notices";
+import { ImportExportDialog } from "../connections/exchange/ImportExportDialog";
+import { ConnectionModals } from "../connections/ConnectionPrompts";
+import { ConnectionPromptHost } from "../connections/ConnectionPrompts";
+import { ConnectionDialogHost } from "../connections/ConnectionDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { SidePanel } from "./SidePanel";
 import { Sidebar } from "./Sidebar";
@@ -29,6 +33,10 @@ export function Workspace() {
       </div>
       <StatusBar />
       <SettingsDialog />
+      <ConnectionDialogHost />
+      <ConnectionModals />
+      <ConnectionPromptHost />
+      <ImportExportDialog />
       <Notices />
     </div>
   );

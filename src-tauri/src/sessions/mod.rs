@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 
 use crate::drivers::registry::Registry;
 use crate::drivers::split::split;
+use crate::drivers::Dialect;
 use crate::drivers::{
     CancelHandle, Driver, DriverError, DriverResult, ErrorCode, ExecRequest, ExecSummary,
     FullValueRequest, MetaPool, NodePath, ResolvedConfig, ResultEvent, ResultId, ResultSink,
@@ -129,6 +130,59 @@ pub fn transaction_effect(sql: &str) -> Option<bool> {
     }
 }
 
+fn quote_ident(dialect: Dialect, name: &str) -> String {
+    match dialect {
+        Dialect::Mysql | Dialect::Mariadb => format!("`{}`", name.replace('`', "``")),
+        _ => format!("\"{}\"", name.replace('"', "\"\"")),
+    }
+}
+
+/// The statement that makes `database` / `schema` the session's default, per dialect.
+pub fn switch_statement(
+    dialect: Dialect,
+    database: Option<&str>,
+    schema: Option<&str>,
+) -> DriverResult<String> {
+    match dialect {
+        Dialect::Postgresql => match (database, schema) {
+            (_, Some(schema)) => Ok(format!("SET search_path TO {}", quote_ident(dialect, schema))),
+            (Some(_), None) => Err(DriverError::unsupported(
+                "switching database in an open session (PostgreSQL needs a connection per database)",
+            )),
+            (None, None) => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
+        Dialect::Mysql | Dialect::Mariadb => match database.or(schema) {
+            Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
+            None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
+        Dialect::Sqlite => Err(DriverError::unsupported("switching database or schema")),
+    }
+}
+
+/// Run the connection's "run on connect" statements on a fresh session, discarding results.
+async fn run_on_connect(session: &mut dyn Session, cfg: &ResolvedConfig) -> DriverResult<()> {
+    for sql in cfg.on_connect.iter().filter(|s| !s.trim().is_empty()) {
+        let (sink, mut rx) = ResultSink::channel(8);
+        let drain = tokio::spawn(async move { while rx.recv().await.is_some() {} });
+        let request = ExecRequest {
+            sql: sql.clone(),
+            page_size: 1,
+            script: false,
+            continue_on_error: false,
+        };
+        let result = session.execute(request, sink).await;
+        let _ = drain.await;
+        if let Err(e) = result {
+            return Err(DriverError::new(
+                e.code,
+                format!("The statement run on connect failed: {}", e.message),
+            )
+            .with_detail(sql.clone()));
+        }
+    }
+    Ok(())
+}
+
 impl SessionManager {
     pub fn new(registry: Arc<Registry>, ssh_env: SshEnv) -> Self {
         Self {
@@ -226,6 +280,99 @@ impl SessionManager {
         Ok(())
     }
 
+    /// `via SSH <host>` for a tunnelled connection.
+    pub fn connection_transport(&self, connection_id: &str) -> Option<String> {
+        let entry = self.connection(connection_id).ok()?;
+        entry.tunnel.as_ref().map(|t| t.via().to_string())
+    }
+
+    /// Server product and version of a connected connection.
+    pub async fn connection_server(&self, connection_id: &str) -> DriverResult<ServerInfo> {
+        let entry = self.connection(connection_id)?;
+        with_connect_timeout(&entry.cfg, entry.driver.test(&entry.cfg)).await
+    }
+
+    pub fn is_connected(&self, connection_id: &str) -> bool {
+        self.inner
+            .lock()
+            .unwrap()
+            .connections
+            .contains_key(connection_id)
+    }
+
+    /// Sessions of the connection with an uncommitted transaction (a busy session counts).
+    pub fn sessions_in_transaction(&self, connection_id: &str) -> Vec<SessionId> {
+        let entries: Vec<(SessionId, Arc<SessionEntry>)> = self
+            .inner
+            .lock()
+            .unwrap()
+            .sessions
+            .iter()
+            .filter(|(_, s)| s.connection_id == connection_id)
+            .map(|(id, s)| (id.clone(), s.clone()))
+            .collect();
+        entries
+            .into_iter()
+            .filter(|(_, s)| {
+                s.state
+                    .try_lock()
+                    .map(|st| st.in_transaction)
+                    .unwrap_or(true)
+            })
+            .map(|(id, _)| id)
+            .collect()
+    }
+
+    /// Make `database` / `schema` the session's default. Returns the statement that was run.
+    pub async fn switch_namespace(
+        &self,
+        session_id: &str,
+        database: Option<&str>,
+        schema: Option<&str>,
+    ) -> DriverResult<String> {
+        let entry = self.session(session_id)?;
+        let dialect = entry
+            .connection
+            .driver
+            .meta()
+            .dialect
+            .ok_or_else(|| DriverError::unsupported("switching database or schema"))?;
+        let sql = switch_statement(dialect, database, schema)?;
+        let emit: Emit = Arc::new(|_| true);
+        self.execute(
+            session_id,
+            ExecRequest {
+                sql: sql.clone(),
+                page_size: 1,
+                script: false,
+                continue_on_error: false,
+            },
+            emit,
+        )
+        .await?;
+        Ok(sql)
+    }
+
+    /// COMMIT or ROLLBACK every open transaction of the connection.
+    pub async fn end_transactions(&self, connection_id: &str, commit: bool) -> DriverResult<()> {
+        let sql = if commit { "COMMIT" } else { "ROLLBACK" };
+        for id in self.sessions_in_transaction(connection_id) {
+            let emit: Emit = Arc::new(|_| true);
+            self.execute(
+                &id,
+                ExecRequest {
+                    sql: sql.to_string(),
+                    page_size: 1,
+                    script: false,
+                    continue_on_error: false,
+                },
+                emit,
+            )
+            .await?;
+        }
+        Ok(())
+    }
+
     /// Close every session of the connection and drop its pool.
     pub async fn disconnect(&self, connection_id: &str) {
         self.close_sessions_of(connection_id).await;
@@ -250,8 +397,12 @@ impl SessionManager {
     /// Open a dedicated session (one physical connection) for an editor tab.
     pub async fn open_session(&self, connection_id: &str) -> DriverResult<SessionOpened> {
         let connection = self.connection(connection_id)?;
-        let session =
+        let mut session =
             with_connect_timeout(&connection.cfg, connection.driver.open(&connection.cfg)).await?;
+        if let Err(e) = run_on_connect(session.as_mut(), &connection.cfg).await {
+            let _ = session.close().await;
+            return Err(e);
+        }
         let server = session.server_info();
         let id = self.new_id("session");
         let entry = Arc::new(SessionEntry {
@@ -331,7 +482,11 @@ impl SessionManager {
         emit: &Emit,
     ) -> DriverResult<()> {
         let conn = &entry.connection;
-        let session = with_connect_timeout(&conn.cfg, conn.driver.open(&conn.cfg)).await?;
+        let mut session = with_connect_timeout(&conn.cfg, conn.driver.open(&conn.cfg)).await?;
+        if let Err(e) = run_on_connect(session.as_mut(), &conn.cfg).await {
+            let _ = session.close().await;
+            return Err(e);
+        }
         *entry.cancel.lock().unwrap() = session.cancel_handle();
         *entry.server.lock().unwrap() = session.server_info();
         st.session = Some(session);

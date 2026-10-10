@@ -48,6 +48,7 @@ fn cfg_as(f: Flavor, user: &str, password: &str) -> ResolvedConfig {
         query_timeout_secs: None,
         read_only: false,
         options: Default::default(),
+        on_connect: vec![],
     }
 }
 

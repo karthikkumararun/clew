@@ -157,3 +157,18 @@ pub async fn completion_snapshot(
 pub fn host_key_answer(state: State<'_, AppState>, prompt_id: String, accept: bool) -> bool {
     state.host_key_prompts.answer(&prompt_id, accept)
 }
+
+/// Make a database / schema the session's default (the toolbar chip menu). Returns the
+/// statement that was run.
+#[tauri::command]
+pub async fn session_switch_namespace(
+    state: State<'_, AppState>,
+    session_id: String,
+    database: Option<String>,
+    schema: Option<String>,
+) -> AppResult<String> {
+    Ok(state
+        .sessions
+        .switch_namespace(&session_id, database.as_deref(), schema.as_deref())
+        .await?)
+}

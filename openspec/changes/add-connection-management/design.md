@@ -72,3 +72,11 @@ The chip reads the active tab's `{connectionId, database, schema}`. Switching da
 
 - TablePlus import: not planned (undocumented format); the Welcome copy no longer mentions it.
 - DataGrip keychain item / KeePass entry naming and the stored master-password file format are undocumented; confirm them against a current DataGrip install (macOS and Windows) before implementing task 7.4.
+
+- Task 7.4 status: tolerant keychain and KeePass lookups ship with fixture tests, but the entry naming is unverified. The DataGrip 2026.1 install on the dev machine has no `security.xml`, `dataSources.xml` or `c.kdbx`, so it can't confirm anything. To close: create a data source with a saved password in DataGrip, read the keychain item's service/account names (Keychain Access, without revealing the secret) and the KeePass entry titles, then adjust `import/passwords.rs` and its tests.
+
+### Decisions made during implementation
+- **Pasted URL password:** `connections_parse_url` returns the password found in the URL so the dialog can show it in the Password field (spec: "Postgres URL with password"). It is the one secret that travels to the WebView, and only because the user pasted it moments earlier; nothing else ever returns a secret.
+- **Test connection:** `connections_test(request, testId)` resolves the unsaved draft in Rust (typed secrets win over stored ones, never prompts, saves nothing); `connections_test_cancel(testId)` aborts it.
+- **Driver list:** the dialog shows all eleven drivers from a static catalog and disables those missing from `drivers_list` ("soon") until their changes land.
+- **File picker:** `tauri-plugin-dialog` with only `dialog:allow-open` / `dialog:allow-save`; no fs plugin is registered.

@@ -1,3 +1,5 @@
+import { connectionStateOf } from "../connections/ConnectionChip";
+import { useConnections } from "../connections/connectionsStore";
 import { useWorkspace } from "../stores/workspaceStore";
 import { registerStatusItem } from "./registry/statusItems";
 import { getTabKind } from "./registry/tabKinds";
@@ -5,7 +7,27 @@ import type { TabStatus } from "./registry/tabKinds";
 
 function useActiveStatus(): TabStatus | undefined {
   const active = useWorkspace((s) => s.tabs.find((t) => t.id === s.activeTabId));
-  return active ? getTabKind(active.kind)?.status?.(active.state) : undefined;
+  const connections = useConnections((s) => s.file.connections);
+  const connected = useConnections((s) => s.connected);
+  if (!active) return undefined;
+  const own = getTabKind(active.kind)?.status?.(active.state);
+  if (own?.connection) return own;
+  // Tabs bound to a saved connection get the connection item for free.
+  const bound = connectionStateOf(active.state);
+  const connection = bound && connections.find((c) => c.id === bound.connectionId);
+  if (!bound || !connection) return own;
+  const info = connected[connection.id];
+  return {
+    ...own,
+    connection: info
+      ? {
+          state: "connected",
+          name: connection.name,
+          serverVersion: `${info.server.product} ${info.server.version}`,
+          transport: info.transport ?? undefined,
+        }
+      : { state: "disconnected", name: connection.name },
+  };
 }
 
 function ConnectionState() {

@@ -104,6 +104,12 @@ pub struct DriverMeta {
 #[serde(transparent)]
 pub struct Secret(String);
 
+impl Drop for Secret {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.0);
+    }
+}
+
 impl Secret {
     pub fn new(s: impl Into<String>) -> Self {
         Self(s.into())
@@ -222,6 +228,9 @@ pub struct ResolvedConfig {
     /// Driver-specific extras (e.g. `application_name`).
     #[serde(default)]
     pub options: BTreeMap<String, String>,
+    /// Statements to run on every new session (a saved connection's "on connect" list).
+    #[serde(default)]
+    pub on_connect: Vec<String>,
 }
 
 fn default_connect_timeout() -> u64 {
