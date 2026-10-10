@@ -74,14 +74,16 @@ export function ConnectionChip() {
 
   const pick = async (id: string) => {
     setItems(null);
-    if (!state.sessionId) return;
     const [kind, ...rest] = id.split(":");
     const name = rest.join(":");
     try {
-      await sessionSwitchNamespace(
-        state.sessionId,
-        kind === "db" ? { database: name } : { schema: name },
-      );
+      // Without a session yet the choice is kept on the tab and applied when one opens.
+      if (state.sessionId) {
+        await sessionSwitchNamespace(
+          state.sessionId,
+          kind === "db" ? { database: name } : { schema: name },
+        );
+      }
       useWorkspace
         .getState()
         .updateTabState<Partial<ConnectionTabState>>(

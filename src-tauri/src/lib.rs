@@ -2,6 +2,8 @@ pub mod commands;
 pub mod connections;
 pub mod drivers;
 pub mod error;
+pub mod files;
+pub mod history;
 pub mod paths;
 pub mod sessions;
 pub mod settings;
@@ -106,7 +108,14 @@ pub fn run() {
                 );
             }
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
+            sessions.set_history_sink(history::sink(store.clone()));
             spawn_idle_sweeper(sessions.clone());
+            let files = files::FileAccess::new(&data_dir, {
+                let handle = app.handle().clone();
+                Arc::new(move |path| {
+                    let _ = handle.emit("file_changed", path);
+                })
+            });
             app.manage(state::AppState {
                 data_dir,
                 store,
@@ -116,6 +125,7 @@ pub fn run() {
                 connections: Arc::new(connections),
                 password_prompts,
                 test_cancels: Default::default(),
+                files,
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -144,6 +154,14 @@ pub fn run() {
             commands::sessions::completion_snapshot,
             commands::sessions::introspect_ddl,
             commands::sessions::explorer_count_rows,
+            commands::sessions::history_list,
+            commands::sessions::history_clear,
+            commands::files::file_open_dialog,
+            commands::files::file_save_dialog,
+            commands::files::file_read,
+            commands::files::file_write,
+            commands::files::file_watch,
+            commands::files::file_unwatch,
             commands::sessions::host_key_answer,
             commands::connections::connections_list,
             commands::connections::connections_save,

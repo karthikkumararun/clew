@@ -23,4 +23,6 @@ pub struct AppState {
     pub password_prompts: Arc<PendingPasswords>,
     /// Running "Test connection" attempts, by id, so the dialog can cancel them.
     pub test_cancels: Mutex<HashMap<String, oneshot::Sender<()>>>,
+    /// Which files the WebView may read and write (see `files.rs`).
+    pub files: crate::files::FileAccess,
 }

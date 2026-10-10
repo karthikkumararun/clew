@@ -6,6 +6,8 @@ import { ImportExportDialog } from "../connections/exchange/ImportExportDialog";
 import { ConnectionModals } from "../connections/ConnectionPrompts";
 import { ConnectionPromptHost } from "../connections/ConnectionPrompts";
 import { ConnectionDialogHost } from "../connections/ConnectionDialog";
+import { ConnectionPickerHost } from "../features/console/ConnectionPicker";
+import { ConsolePromptHost } from "../features/console/prompts";
 import { SettingsDialog } from "./SettingsDialog";
 import { SidePanel } from "./SidePanel";
 import { Sidebar } from "./Sidebar";
@@ -36,6 +38,8 @@ export function Workspace() {
       <ConnectionDialogHost />
       <ConnectionModals />
       <ConnectionPromptHost />
+      <ConnectionPickerHost />
+      <ConsolePromptHost />
       <ImportExportDialog />
       <Notices />
     </div>

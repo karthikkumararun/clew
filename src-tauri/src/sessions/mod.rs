@@ -15,6 +15,7 @@ use crate::drivers::{
     FullValueRequest, MetaPool, NodePath, ResolvedConfig, ResultEvent, ResultId, ResultSink,
     SchemaSnapshot, ServerInfo, Session, Target, TreeNode, Value,
 };
+use crate::history::{HistorySink, NewEntry, Outcome};
 use crate::transport::ssh::{SshEnv, SshTunnel};
 use crate::transport::tls;
 
@@ -72,6 +73,8 @@ pub struct SessionManager {
     ssh_env: SshEnv,
     inner: StdMutex<Inner>,
     next_id: AtomicU64,
+    /// Where finished console statements are reported (query history).
+    history: StdMutex<Option<Arc<dyn HistorySink>>>,
 }
 
 impl std::fmt::Debug for SessionManager {
@@ -188,9 +191,15 @@ impl SessionManager {
         Self {
             registry,
             ssh_env,
+            history: StdMutex::new(None),
             inner: StdMutex::new(Inner::default()),
             next_id: AtomicU64::new(1),
         }
+    }
+
+    /// Report every statement executed from a console to `sink` (query history).
+    pub fn set_history_sink(&self, sink: Arc<dyn HistorySink>) {
+        *self.history.lock().unwrap() = Some(sink);
     }
 
     fn new_id(&self, prefix: &str) -> String {
@@ -339,7 +348,7 @@ impl SessionManager {
             .ok_or_else(|| DriverError::unsupported("switching database or schema"))?;
         let sql = switch_statement(dialect, database, schema)?;
         let emit: Emit = Arc::new(|_| true);
-        self.execute(
+        self.execute_inner(
             session_id,
             ExecRequest {
                 sql: sql.clone(),
@@ -348,6 +357,7 @@ impl SessionManager {
                 continue_on_error: false,
             },
             emit,
+            false,
         )
         .await?;
         Ok(sql)
@@ -358,7 +368,7 @@ impl SessionManager {
         let sql = if commit { "COMMIT" } else { "ROLLBACK" };
         for id in self.sessions_in_transaction(connection_id) {
             let emit: Emit = Arc::new(|_| true);
-            self.execute(
+            self.execute_inner(
                 &id,
                 ExecRequest {
                     sql: sql.to_string(),
@@ -367,6 +377,7 @@ impl SessionManager {
                     continue_on_error: false,
                 },
                 emit,
+                false,
             )
             .await?;
         }
@@ -506,12 +517,28 @@ impl SessionManager {
     ///
     /// Returns the summary of the last statement that completed, or the error that stopped the
     /// run (the error is also emitted as an event).
+    /// Run a statement or script from a console; each statement lands in the query history.
     pub async fn execute(
         &self,
         session_id: &str,
         req: ExecRequest,
         emit: Emit,
     ) -> DriverResult<Option<ExecSummary>> {
+        self.execute_inner(session_id, req, emit, true).await
+    }
+
+    async fn execute_inner(
+        &self,
+        session_id: &str,
+        req: ExecRequest,
+        emit: Emit,
+        record: bool,
+    ) -> DriverResult<Option<ExecSummary>> {
+        let sink = if record {
+            self.history.lock().unwrap().clone()
+        } else {
+            None
+        };
         let entry = self.session(session_id)?;
         let mut st = entry.state.lock().await;
         Self::touch(&entry);
@@ -550,8 +577,22 @@ impl SessionManager {
             }
 
             let cancel = entry.cancel.lock().unwrap().clone();
-            let (sink, rx) = ResultSink::channel(32);
-            let pump = tokio::spawn(pump(rx, emit.clone(), index));
+            let (result_sink, rx) = ResultSink::channel(32);
+            // Count the rows a statement streams, for its history entry.
+            let streamed = Arc::new(AtomicU64::new(0));
+            let counting: Emit = {
+                let emit = emit.clone();
+                let streamed = streamed.clone();
+                Arc::new(move |event| {
+                    if let ResultEvent::Rows { rows, .. } = &event {
+                        streamed.fetch_add(rows.len() as u64, Ordering::Relaxed);
+                    }
+                    emit(event)
+                })
+            };
+            let pump = tokio::spawn(pump(rx, counting, index));
+            let started_at = now_ms();
+            let timer = Instant::now();
             let single = ExecRequest {
                 sql: sql.clone(),
                 page_size: req.page_size,
@@ -559,8 +600,37 @@ impl SessionManager {
                 continue_on_error: false,
             };
             let session = st.session.as_mut().expect("session present");
-            let result = run_with_timeout(session.as_mut(), single, sink, &cancel, timeout).await;
+            let result =
+                run_with_timeout(session.as_mut(), single, result_sink, &cancel, timeout).await;
             let _ = pump.await;
+            if let Some(history) = &sink {
+                // Transaction control is the console's own plumbing, not something to look up later.
+                if transaction_effect(&sql).is_none() {
+                    let (outcome, rows) = match &result {
+                        Ok(s) => (
+                            Outcome::Ok,
+                            Some(match s.rows_affected {
+                                Some(n) => n as i64,
+                                None => streamed.load(Ordering::Relaxed) as i64,
+                            }),
+                        ),
+                        Err(e) if e.code == ErrorCode::Cancelled => (Outcome::Cancelled, None),
+                        Err(_) => (Outcome::Error, None),
+                    };
+                    history.record(NewEntry {
+                        connection_id: entry.connection_id.clone(),
+                        database: entry.connection.cfg.database.clone().unwrap_or_default(),
+                        sql: sql.clone(),
+                        started_at,
+                        duration_ms: match &result {
+                            Ok(s) => s.elapsed_ms as i64,
+                            Err(_) => timer.elapsed().as_millis() as i64,
+                        },
+                        rows,
+                        outcome,
+                    });
+                }
+            }
 
             match result {
                 Ok(summary) => {
@@ -679,6 +749,14 @@ impl SessionManager {
         let c = self.connection(connection_id)?;
         c.driver.completion_snapshot(&c.pool, db).await
     }
+}
+
+/// Milliseconds since the epoch.
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 /// A statement that errored is only fatal to the whole run when it stopped it.

@@ -25,6 +25,8 @@ interface WorkspaceState {
   closeTab: (id: string) => void;
   /** Close, asking first when the tab is dirty and confirmation is enabled. */
   requestClose: (id: string) => void;
+  /** The unsaved-changes part of closing, without the editor's own confirmation. */
+  requestCloseUnguarded: (id: string) => void;
   resolveCloseRequest: (decision: "save" | "discard" | "cancel") => Promise<void>;
   moveTab: (id: string, toIndex: number) => void;
   activateRelative: (delta: 1 | -1) => void;
@@ -64,6 +66,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
     const { tabs, activeTabId } = get();
     const index = tabs.findIndex((t) => t.id === id);
     if (index < 0) return;
+    getTabKind(tabs[index].kind)?.onClose?.(tabs[index]);
     const remaining = tabs.filter((t) => t.id !== id);
     let next = activeTabId;
     if (activeTabId === id) {
@@ -78,6 +81,21 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   },
 
   requestClose: (id) => {
+    const tab = get().tabs.find((t) => t.id === id);
+    if (!tab) return;
+    const confirm = getTabKind(tab.kind)?.confirmClose;
+    if (confirm) {
+      // The editor has its own question first (e.g. an open transaction); then the usual flow.
+      set({ activeTabId: id });
+      void confirm(tab).then((ok) => {
+        if (ok) get().requestCloseUnguarded(id);
+      });
+      return;
+    }
+    get().requestCloseUnguarded(id);
+  },
+
+  requestCloseUnguarded: (id) => {
     const tab = get().tabs.find((t) => t.id === id);
     if (!tab) return;
     if (isTabDirty(tab) && useSettings.getState().settings.confirmCloseUnsaved) {

@@ -237,6 +237,13 @@ pub struct FolderRename {
 }
 
 impl ConnectionService {
+    /// The Scripts folder of every connection (the places consoles may read and write freely).
+    pub fn scripts_dirs(&self) -> Vec<PathBuf> {
+        self.list()
+            .map(|f| f.connections.iter().filter_map(scripts_dir_of).collect())
+            .unwrap_or_default()
+    }
+
     /// The SQL files in the connection's Scripts folder (none when the folder doesn't exist).
     pub fn scripts_list(&self, id: &str) -> AppResult<Vec<ScriptFile>> {
         let c = self.get(id)?;

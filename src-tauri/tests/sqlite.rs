@@ -661,3 +661,140 @@ async fn count_rows_is_exact_for_tables_and_views() {
         .await
         .is_err());
 }
+
+#[tokio::test]
+async fn manual_mode_commit_keeps_the_transaction_open_until_commit() {
+    // The console's Manual mode is `BEGIN` on first run, then plain statements, then COMMIT.
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY)").await;
+
+    c.must("BEGIN").await;
+    c.must("INSERT INTO t (id) VALUES (1)").await;
+    c.must("INSERT INTO t (id) VALUES (2)").await;
+    assert_eq!(
+        c.mgr.sessions_in_transaction("conf"),
+        vec![c.session.clone()],
+        "the session reports its open transaction (the close prompt relies on it)"
+    );
+
+    let other = c.another_session().await;
+    let count = |sid| {
+        let mgr = c.mgr.clone();
+        async move { run(&mgr, &sid, "SELECT count(*) FROM t").await.scalar_int() }
+    };
+    assert_eq!(
+        count(other.clone()).await,
+        0,
+        "uncommitted rows stay invisible"
+    );
+
+    c.must("COMMIT").await;
+    assert!(c.mgr.sessions_in_transaction("conf").is_empty());
+    assert_eq!(count(other).await, 2, "committed rows become visible");
+    assert_eq!(count(c.session.clone()).await, 2);
+}
+
+// ---- query history ----------------------------------------------------------------------------
+
+use clew_lib::history::{self, Outcome};
+use clew_lib::store::Store;
+
+/// Wait until `n` entries have been written (recording is fire-and-forget).
+async fn history_of(store: &Store, n: usize) -> Vec<clew_lib::history::HistoryEntry> {
+    for _ in 0..100 {
+        let page = store.history_list("conf", None, None, 100).await.unwrap();
+        if page.entries.len() >= n {
+            return page.entries;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    panic!("expected {n} history entries");
+}
+
+#[tokio::test]
+async fn every_console_statement_is_recorded_with_its_outcome() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let store = Store::open_in_memory().await.unwrap();
+    c.mgr.set_history_sink(history::sink(store.clone()));
+
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY)").await;
+    c.must("INSERT INTO t (id) VALUES (1), (2), (3)").await;
+    c.must("SELECT id FROM t").await;
+    assert!(c.run("SELEC 1").await.result.is_err());
+    // Transaction control is the console's plumbing and isn't kept.
+    c.must("BEGIN").await;
+    c.must("COMMIT").await;
+    // A script records each of its statements.
+    run_script(&c.mgr, &c.session, "SELECT 10; SELECT 20", false).await;
+
+    let entries = history_of(&store, 6).await;
+    assert_eq!(entries.len(), 6, "{entries:#?}");
+    let newest_first: Vec<_> = entries.iter().rev().collect();
+    let sqls: Vec<_> = newest_first.iter().map(|e| e.sql.as_str()).collect();
+    assert_eq!(
+        sqls,
+        [
+            "CREATE TABLE t (id INTEGER PRIMARY KEY)",
+            "INSERT INTO t (id) VALUES (1), (2), (3)",
+            "SELECT id FROM t",
+            "SELEC 1",
+            "SELECT 10",
+            "SELECT 20",
+        ]
+    );
+    assert_eq!(newest_first[1].rows, Some(3), "rows affected by the INSERT");
+    assert_eq!(newest_first[2].rows, Some(3), "rows returned by the SELECT");
+    assert_eq!(newest_first[3].outcome, Outcome::Error);
+    assert_eq!(newest_first[3].rows, None);
+    assert!(newest_first.iter().all(|e| e.connection_id == "conf"));
+    assert!(newest_first
+        .iter()
+        .all(|e| e.started_at > 1_700_000_000_000));
+    assert_eq!(newest_first[0].outcome, Outcome::Ok);
+}
+
+#[tokio::test]
+async fn a_cancelled_statement_is_recorded_as_cancelled() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let store = Store::open_in_memory().await.unwrap();
+    c.mgr.set_history_sink(history::sink(store.clone()));
+
+    let mgr = c.mgr.clone();
+    let sid = c.session.clone();
+    let task = tokio::spawn(async move {
+        run(
+            &mgr,
+            &sid,
+            "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c",
+        )
+        .await
+    });
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    c.mgr.cancel(&c.session).await.expect("cancel");
+    let r = task.await.unwrap();
+    assert_eq!(r.err().code, ErrorCode::Cancelled);
+
+    let entries = history_of(&store, 1).await;
+    assert_eq!(entries[0].outcome, Outcome::Cancelled);
+    assert!(entries[0].sql.contains("count(*)"));
+}
+
+#[tokio::test]
+async fn statements_the_app_runs_itself_are_not_recorded() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let store = Store::open_in_memory().await.unwrap();
+    c.mgr.set_history_sink(history::sink(store.clone()));
+    c.must("BEGIN").await;
+    c.must("CREATE TABLE t (id INTEGER)").await;
+    // Closing a connection's transactions (disconnect prompt) runs COMMIT/ROLLBACK internally.
+    c.mgr.end_transactions("conf", false).await.unwrap();
+    let entries = history_of(&store, 1).await;
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].sql, "CREATE TABLE t (id INTEGER)");
+    tokio::time::sleep(std::time::Duration::from_millis(150)).await;
+    assert_eq!(store.history_count("conf").await.unwrap(), 1);
+}
