@@ -5,7 +5,7 @@
 - [x] 1.3 Set up the Rust crate layout: `src-tauri/src/{main.rs,lib.rs,error.rs,commands/mod.rs,state.rs}` with a typed `AppError { code, message, detail }` serialized across IPC
 - [x] 1.4 Configure the CSP and Tauri capabilities (own commands only, no shell/http plugins) (spec: app-shell › Offline by default)
 - [x] 1.5 Add `.github/workflows/ci.yml` with a macos-14 + windows-latest matrix running typecheck, vitest, fmt, clippy, cargo test and a debug build
-- [ ] 1.6 Test: CI passes on both OSes with a placeholder window
+- [x] 1.6 Test: CI passes on both OSes with a placeholder window
 
 ## 2. Design system primitives
 
