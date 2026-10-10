@@ -2,10 +2,14 @@ pub mod commands;
 pub mod drivers;
 pub mod error;
 pub mod paths;
+pub mod sessions;
 pub mod settings;
 pub mod state;
 pub mod store;
 pub mod window;
+
+use std::sync::Arc;
+use std::time::Duration;
 
 use tauri::{Manager, PhysicalPosition};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
@@ -49,6 +53,16 @@ fn correct_off_screen(window: &tauri::WebviewWindow) {
     }
 }
 
+/// Close sessions that have sat idle for longer than the idle timeout.
+fn spawn_idle_sweeper(sessions: Arc<sessions::SessionManager>) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            sessions.sweep_idle(sessions::IDLE_TIMEOUT).await;
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -56,10 +70,14 @@ pub fn run() {
         .setup(|app| {
             let data_dir = paths::app_data_dir(&app.path().data_dir()?);
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
+            let registry = Arc::new(drivers::registry::Registry::with_defaults());
+            let sessions = Arc::new(sessions::SessionManager::new(registry.clone()));
+            spawn_idle_sweeper(sessions.clone());
             app.manage(state::AppState {
                 data_dir,
                 store,
-                registry: drivers::registry::Registry::with_defaults(),
+                registry,
+                sessions,
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -74,6 +92,17 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app::app_paths,
             commands::drivers::drivers_list,
+            commands::sessions::connection_test,
+            commands::sessions::connection_connect,
+            commands::sessions::connection_disconnect,
+            commands::sessions::session_open,
+            commands::sessions::session_close,
+            commands::sessions::query_execute,
+            commands::sessions::query_fetch_more,
+            commands::sessions::query_cancel,
+            commands::sessions::value_fetch_full,
+            commands::sessions::introspect_children,
+            commands::sessions::completion_snapshot,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::ui_state::ui_state_get,

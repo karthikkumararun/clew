@@ -1,11 +1,13 @@
 //! The driver contract. Every database backend implements [`Driver`] and [`Session`]; the UI only
 //! ever talks to these types (through the Tauri commands in `commands/`).
 
+pub mod batch;
 pub mod error;
 pub mod introspect;
 pub mod mysql;
 pub mod postgres;
 pub mod registry;
+pub mod split;
 pub mod sqlite;
 pub mod value;
 
@@ -283,6 +285,10 @@ pub enum ResultEvent {
     Cancelled {
         result_id: Option<ResultId>,
     },
+    /// Informational message about the session itself (e.g. it was re-established).
+    Notice {
+        message: String,
+    },
 }
 
 /// Where a session sends result events. Dropping the receiver (window closed) makes sends fail,
@@ -396,8 +402,11 @@ pub trait Driver: Send + Sync {
 
 #[async_trait]
 pub trait Session: Send {
-    /// Run one statement (or a script). Events stream into `sink`; the summary of the last
-    /// statement is returned. Errors are also sent as `ResultEvent::Error`.
+    /// Run exactly one statement (the session manager splits scripts). `Columns`, `Rows` and
+    /// `Done` events stream into `sink`; the summary is also returned. Failures are returned as
+    /// `Err` (use `ErrorCode::Cancelled` for a cancelled statement); the manager turns them into
+    /// `Error` / `Cancelled` events, so drivers must not send those themselves. Result ids must
+    /// increase over the session's lifetime so they stay unique across statements.
     async fn execute(&mut self, req: ExecRequest, sink: ResultSink) -> DriverResult<ExecSummary>;
 
     /// Pull up to `n` more rows of an open result. Returns whether more rows remain.

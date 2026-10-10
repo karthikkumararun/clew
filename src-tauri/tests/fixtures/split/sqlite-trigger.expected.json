@@ -1,0 +1,1 @@
+{"dialect":"sqlite","statements":["CREATE TRIGGER log_insert AFTER INSERT ON orders\nBEGIN\n  INSERT INTO log(msg) VALUES ('new order');\n  UPDATE stats SET n = n + 1;\nEND","SELECT count(*) FROM orders"]}

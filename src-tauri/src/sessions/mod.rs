@@ -1,0 +1,509 @@
+//! Live connections: a metadata pool per connection plus one dedicated session per editor tab.
+
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex as StdMutex};
+use std::time::{Duration, Instant};
+
+use tokio::sync::Mutex;
+
+use crate::drivers::registry::Registry;
+use crate::drivers::split::split;
+use crate::drivers::{
+    CancelHandle, Driver, DriverError, DriverResult, ErrorCode, ExecRequest, ExecSummary,
+    FullValueRequest, MetaPool, NodePath, ResolvedConfig, ResultEvent, ResultId, ResultSink,
+    SchemaSnapshot, ServerInfo, Session, TreeNode, Value,
+};
+
+pub type SessionId = String;
+pub type ConnectionId = String;
+
+/// Sessions idle for this long are closed.
+pub const IDLE_TIMEOUT: Duration = Duration::from_secs(30 * 60);
+
+/// Receives result events. Returns false when the receiver is gone (window closed).
+pub type Emit = Arc<dyn Fn(ResultEvent) -> bool + Send + Sync>;
+
+struct ConnectionEntry {
+    driver: Arc<dyn Driver>,
+    cfg: ResolvedConfig,
+    pool: MetaPool,
+}
+
+struct SessionState {
+    /// `None` after the connection was lost; the next execute reconnects.
+    session: Option<Box<dyn Session>>,
+    in_transaction: bool,
+}
+
+struct SessionEntry {
+    connection_id: ConnectionId,
+    connection: Arc<ConnectionEntry>,
+    state: Mutex<SessionState>,
+    /// Lives outside `state` so cancelling never waits for a running execute.
+    cancel: StdMutex<CancelHandle>,
+    server: StdMutex<ServerInfo>,
+    last_used: StdMutex<Instant>,
+}
+
+#[derive(Default)]
+struct Inner {
+    connections: HashMap<ConnectionId, Arc<ConnectionEntry>>,
+    sessions: HashMap<SessionId, Arc<SessionEntry>>,
+}
+
+pub struct SessionManager {
+    registry: Arc<Registry>,
+    inner: StdMutex<Inner>,
+    next_id: AtomicU64,
+}
+
+impl std::fmt::Debug for SessionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("SessionManager")
+    }
+}
+
+fn not_found(what: &str, id: &str) -> DriverError {
+    DriverError::new(ErrorCode::Internal, format!("Unknown {what} \"{id}\""))
+}
+
+/// Run `fut` with the connect timeout, turning an elapsed timer into a `timeout` error that names
+/// the host and port.
+async fn with_connect_timeout<T>(
+    cfg: &ResolvedConfig,
+    fut: impl std::future::Future<Output = DriverResult<T>>,
+) -> DriverResult<T> {
+    match tokio::time::timeout(Duration::from_secs(cfg.connect_timeout_secs.max(1)), fut).await {
+        Ok(r) => r,
+        Err(_) => Err(DriverError::new(
+            ErrorCode::Timeout,
+            format!(
+                "Could not reach {} within {}s",
+                cfg.describe_target(),
+                cfg.connect_timeout_secs
+            ),
+        )),
+    }
+}
+
+/// Does this statement start or end a transaction? Some(true) = opens, Some(false) = closes.
+pub fn transaction_effect(sql: &str) -> Option<bool> {
+    let mut rest = sql.trim_start();
+    loop {
+        if let Some(r) = rest.strip_prefix("--") {
+            rest = r.split_once('\n').map_or("", |(_, tail)| tail).trim_start();
+        } else if let Some(r) = rest.strip_prefix("/*") {
+            rest = r.split_once("*/").map_or("", |(_, tail)| tail).trim_start();
+        } else {
+            break;
+        }
+    }
+    let mut words = rest
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(str::to_ascii_uppercase);
+    match words.next().as_deref() {
+        Some("BEGIN" | "START") => Some(true),
+        Some("COMMIT" | "END") => Some(false),
+        Some("ROLLBACK") => match words.next().as_deref() {
+            Some("TO" | "SAVEPOINT") => None,
+            _ => Some(false),
+        },
+        _ => None,
+    }
+}
+
+impl SessionManager {
+    pub fn new(registry: Arc<Registry>) -> Self {
+        Self {
+            registry,
+            inner: StdMutex::new(Inner::default()),
+            next_id: AtomicU64::new(1),
+        }
+    }
+
+    fn new_id(&self, prefix: &str) -> String {
+        format!("{prefix}-{}", self.next_id.fetch_add(1, Ordering::Relaxed))
+    }
+
+    fn connection(&self, id: &str) -> DriverResult<Arc<ConnectionEntry>> {
+        self.inner
+            .lock()
+            .unwrap()
+            .connections
+            .get(id)
+            .cloned()
+            .ok_or_else(|| not_found("connection", id))
+    }
+
+    fn session(&self, id: &str) -> DriverResult<Arc<SessionEntry>> {
+        self.inner
+            .lock()
+            .unwrap()
+            .sessions
+            .get(id)
+            .cloned()
+            .ok_or_else(|| not_found("session", id))
+    }
+
+    /// Connect without saving anything: round-trip, server version, timing.
+    pub async fn test_connection(&self, cfg: &ResolvedConfig) -> DriverResult<ServerInfo> {
+        let driver = self.registry.get(&cfg.driver)?;
+        with_connect_timeout(cfg, driver.test(cfg)).await
+    }
+
+    /// Register a connection and open its metadata pool.
+    pub async fn connect(&self, connection_id: &str, cfg: ResolvedConfig) -> DriverResult<()> {
+        let driver = self.registry.get(&cfg.driver)?;
+        let pool = with_connect_timeout(&cfg, driver.open_meta_pool(&cfg)).await?;
+        let entry = Arc::new(ConnectionEntry { driver, cfg, pool });
+        let previous = self
+            .inner
+            .lock()
+            .unwrap()
+            .connections
+            .insert(connection_id.to_string(), entry);
+        if previous.is_some() {
+            self.close_sessions_of(connection_id).await;
+        }
+        Ok(())
+    }
+
+    /// Close every session of the connection and drop its pool.
+    pub async fn disconnect(&self, connection_id: &str) {
+        self.close_sessions_of(connection_id).await;
+        self.inner.lock().unwrap().connections.remove(connection_id);
+    }
+
+    async fn close_sessions_of(&self, connection_id: &str) {
+        let ids: Vec<SessionId> = self
+            .inner
+            .lock()
+            .unwrap()
+            .sessions
+            .iter()
+            .filter(|(_, s)| s.connection_id == connection_id)
+            .map(|(id, _)| id.clone())
+            .collect();
+        for id in ids {
+            let _ = self.close_session(&id).await;
+        }
+    }
+
+    /// Open a dedicated session (one physical connection) for an editor tab.
+    pub async fn open_session(&self, connection_id: &str) -> DriverResult<(SessionId, ServerInfo)> {
+        let connection = self.connection(connection_id)?;
+        let session =
+            with_connect_timeout(&connection.cfg, connection.driver.open(&connection.cfg)).await?;
+        let server = session.server_info();
+        let id = self.new_id("session");
+        let entry = Arc::new(SessionEntry {
+            connection_id: connection_id.to_string(),
+            cancel: StdMutex::new(session.cancel_handle()),
+            server: StdMutex::new(server.clone()),
+            state: Mutex::new(SessionState {
+                session: Some(session),
+                in_transaction: false,
+            }),
+            last_used: StdMutex::new(Instant::now()),
+            connection,
+        });
+        self.inner
+            .lock()
+            .unwrap()
+            .sessions
+            .insert(id.clone(), entry);
+        Ok((id, server))
+    }
+
+    pub async fn close_session(&self, session_id: &str) -> DriverResult<()> {
+        let entry = self.inner.lock().unwrap().sessions.remove(session_id);
+        let Some(entry) = entry else { return Ok(()) };
+        // Cancel anything running so we can take the lock promptly.
+        let handle = entry.cancel.lock().unwrap().clone();
+        let _ = handle.cancel().await;
+        let mut st = entry.state.lock().await;
+        match st.session.take() {
+            Some(s) => s.close().await,
+            None => Ok(()),
+        }
+    }
+
+    pub fn session_count(&self) -> usize {
+        self.inner.lock().unwrap().sessions.len()
+    }
+
+    /// Close sessions idle for longer than `max_idle` (skipping any that are executing).
+    pub async fn sweep_idle(&self, max_idle: Duration) -> usize {
+        let now = Instant::now();
+        let stale: Vec<SessionId> = self
+            .inner
+            .lock()
+            .unwrap()
+            .sessions
+            .iter()
+            .filter(|(_, s)| {
+                now.duration_since(*s.last_used.lock().unwrap()) >= max_idle
+                    && s.state.try_lock().is_ok()
+            })
+            .map(|(id, _)| id.clone())
+            .collect();
+        for id in &stale {
+            let _ = self.close_session(id).await;
+        }
+        stale.len()
+    }
+
+    fn touch(entry: &SessionEntry) {
+        *entry.last_used.lock().unwrap() = Instant::now();
+    }
+
+    /// Re-open a lost session. Reports a rolled-back transaction.
+    async fn reconnect(
+        entry: &SessionEntry,
+        st: &mut SessionState,
+        emit: &Emit,
+    ) -> DriverResult<()> {
+        let conn = &entry.connection;
+        let session = with_connect_timeout(&conn.cfg, conn.driver.open(&conn.cfg)).await?;
+        *entry.cancel.lock().unwrap() = session.cancel_handle();
+        *entry.server.lock().unwrap() = session.server_info();
+        st.session = Some(session);
+        let message = if st.in_transaction {
+            "The connection was lost and has been re-established. The open transaction was rolled back."
+        } else {
+            "The connection was lost and has been re-established."
+        };
+        st.in_transaction = false;
+        emit(ResultEvent::Notice {
+            message: message.to_string(),
+        });
+        Ok(())
+    }
+
+    /// Execute a statement or script on the session, streaming events through `emit`.
+    ///
+    /// Returns the summary of the last statement that completed, or the error that stopped the
+    /// run (the error is also emitted as an event).
+    pub async fn execute(
+        &self,
+        session_id: &str,
+        req: ExecRequest,
+        emit: Emit,
+    ) -> DriverResult<Option<ExecSummary>> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+
+        let dialect = entry.connection.driver.meta().dialect;
+        let statements: Vec<String> = if req.script {
+            split(&req.sql, dialect)
+                .into_iter()
+                .map(|s| s.text)
+                .collect()
+        } else if req.sql.trim().is_empty() {
+            Vec::new()
+        } else {
+            vec![req.sql.clone()]
+        };
+
+        let timeout = entry
+            .connection
+            .cfg
+            .query_timeout_secs
+            .map(Duration::from_secs);
+        let mut last = None;
+        let mut first_error: Option<DriverError> = None;
+
+        for (index, sql) in statements.into_iter().enumerate() {
+            if st.session.is_none() {
+                if let Err(e) = Self::reconnect(&entry, &mut st, &emit).await {
+                    emit(ResultEvent::Error {
+                        result_id: None,
+                        statement: index,
+                        error: e.clone(),
+                    });
+                    first_error.get_or_insert(e);
+                    break;
+                }
+            }
+
+            let cancel = entry.cancel.lock().unwrap().clone();
+            let (sink, rx) = ResultSink::channel(32);
+            let pump = tokio::spawn(pump(rx, emit.clone(), index));
+            let single = ExecRequest {
+                sql: sql.clone(),
+                page_size: req.page_size,
+                script: false,
+                continue_on_error: false,
+            };
+            let session = st.session.as_mut().expect("session present");
+            let result = run_with_timeout(session.as_mut(), single, sink, &cancel, timeout).await;
+            let _ = pump.await;
+
+            match result {
+                Ok(summary) => {
+                    if let Some(open) = transaction_effect(&sql) {
+                        st.in_transaction = open;
+                    }
+                    last = Some(summary);
+                }
+                Err(error) => {
+                    match error.code {
+                        ErrorCode::Cancelled => {
+                            emit(ResultEvent::Cancelled { result_id: None });
+                        }
+                        _ => {
+                            emit(ResultEvent::Error {
+                                result_id: None,
+                                statement: index,
+                                error: error.clone(),
+                            });
+                        }
+                    }
+                    let stop = match error.code {
+                        ErrorCode::ConnectionLost => {
+                            st.session = None;
+                            true
+                        }
+                        ErrorCode::Cancelled | ErrorCode::Timeout => true,
+                        _ => !req.continue_on_error,
+                    };
+                    first_error.get_or_insert(error);
+                    if stop {
+                        break;
+                    }
+                }
+            }
+        }
+
+        match (last, first_error) {
+            (_, Some(e)) if !req.continue_on_error || last_is_fatal(&e) => Err(e),
+            (last, _) => Ok(last),
+        }
+    }
+
+    pub async fn fetch_more(
+        &self,
+        session_id: &str,
+        result_id: ResultId,
+        n: usize,
+        emit: Emit,
+    ) -> DriverResult<bool> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(ErrorCode::ConnectionLost, "The session is disconnected")
+        })?;
+        let (sink, rx) = ResultSink::channel(32);
+        let pump = tokio::spawn(pump(rx, emit, 0));
+        let r = session.fetch_more(result_id, n, sink).await;
+        let _ = pump.await;
+        r
+    }
+
+    /// Cancel the statement running on the session. Never waits for the session lock.
+    pub async fn cancel(&self, session_id: &str) -> DriverResult<()> {
+        let entry = self.session(session_id)?;
+        let handle = entry.cancel.lock().unwrap().clone();
+        handle.cancel().await
+    }
+
+    pub async fn fetch_full_value(
+        &self,
+        session_id: &str,
+        req: FullValueRequest,
+    ) -> DriverResult<Value> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(ErrorCode::ConnectionLost, "The session is disconnected")
+        })?;
+        session.fetch_full_value(req).await
+    }
+
+    pub fn server_info(&self, session_id: &str) -> DriverResult<ServerInfo> {
+        Ok(self.session(session_id)?.server.lock().unwrap().clone())
+    }
+
+    /// Children of `path`, loaded through the metadata pool (never the tab's session).
+    pub async fn introspect(
+        &self,
+        connection_id: &str,
+        path: &NodePath,
+    ) -> DriverResult<Vec<TreeNode>> {
+        let c = self.connection(connection_id)?;
+        c.driver.introspect(&c.pool, path).await
+    }
+
+    pub async fn completion_snapshot(
+        &self,
+        connection_id: &str,
+        db: &str,
+    ) -> DriverResult<SchemaSnapshot> {
+        let c = self.connection(connection_id)?;
+        c.driver.completion_snapshot(&c.pool, db).await
+    }
+}
+
+/// A statement that errored is only fatal to the whole run when it stopped it.
+fn last_is_fatal(e: &DriverError) -> bool {
+    matches!(
+        e.code,
+        ErrorCode::ConnectionLost | ErrorCode::Cancelled | ErrorCode::Timeout
+    )
+}
+
+/// Forward driver events to the frontend, tagging them with the statement index. Stops when the
+/// receiver on the other side is gone, which drops the channel and makes the driver stop too.
+async fn pump(mut rx: tokio::sync::mpsc::Receiver<ResultEvent>, emit: Emit, statement: usize) {
+    while let Some(event) = rx.recv().await {
+        let event = match event {
+            ResultEvent::Columns {
+                result_id, columns, ..
+            } => ResultEvent::Columns {
+                result_id,
+                statement,
+                columns,
+            },
+            other => other,
+        };
+        if !emit(event) {
+            break;
+        }
+    }
+}
+
+/// Run one statement, cancelling it through the session's cancel handle when `timeout` elapses.
+async fn run_with_timeout(
+    session: &mut dyn Session,
+    req: ExecRequest,
+    sink: ResultSink,
+    cancel: &CancelHandle,
+    timeout: Option<Duration>,
+) -> DriverResult<ExecSummary> {
+    let Some(limit) = timeout else {
+        return session.execute(req, sink).await;
+    };
+    let exec = session.execute(req, sink);
+    tokio::pin!(exec);
+    tokio::select! {
+        r = &mut exec => r,
+        _ = tokio::time::sleep(limit) => {
+            let _ = cancel.cancel().await;
+            match exec.await {
+                Err(e) if e.code == ErrorCode::Cancelled => Err(DriverError::new(
+                    ErrorCode::Timeout,
+                    format!("The statement was cancelled after exceeding the {}s query timeout", limit.as_secs()),
+                )),
+                other => other,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;

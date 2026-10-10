@@ -1,0 +1,1 @@
+{"dialect":"mysql","statements":["CREATE PROCEDURE p()\nBEGIN\n  SELECT 1;\n  IF 1 THEN SELECT 2; END IF;\nEND","SELECT 3"]}

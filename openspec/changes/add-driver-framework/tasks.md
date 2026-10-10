@@ -9,18 +9,18 @@
 ## 2. Value model
 
 - [x] 2.1 Implement `Value` enum with serde tagging and the conversions listed in the spec (spec: driver-framework › Uniform value model)
-- [ ] 2.2 Implement truncation (64 KB) with `truncated` flag and a `value_fetch_full` command
+- [x] 2.2 Implement truncation (64 KB) with `truncated` flag and a `value_fetch_full` command
 - [x] 2.3 Test: exact decimal round-trip, bigint beyond i64, timestamptz ISO output, `other` fallback
 
 ## 3. Sessions and execution
 
-- [ ] 3.1 Implement `SessionManager` (open/close, per-tab sessions, metadata pool of 3, idle close) and commands `session_open`/`session_close` (spec: driver-framework › Sessions)
-- [ ] 3.2 Implement `query_execute` streaming over `Channel<ResultEvent>` with 500-row / 2 MB batches and `query_fetch_more` (spec: driver-framework › Execute and stream results)
-- [ ] 3.3 Implement the dialect-aware statement splitter (`drivers/split.rs`) with a shared fixture corpus `tests/fixtures/split/*.sql`
-- [ ] 3.4 Implement script mode (sequential results, stop on first error unless continue-on-error)
-- [ ] 3.5 Implement `query_cancel` and per-connection query timeout (spec: driver-framework › Cancel and timeout)
-- [ ] 3.6 Implement lost-connection detection and auto-reconnect on next execute
-- [ ] 3.7 Test: splitter corpus; cancel during execute; timeout; reconnect after server kill
+- [x] 3.1 Implement `SessionManager` (open/close, per-tab sessions, metadata pool of 3, idle close) and commands `session_open`/`session_close` (spec: driver-framework › Sessions)
+- [x] 3.2 Implement `query_execute` streaming over `Channel<ResultEvent>` with 500-row / 2 MB batches and `query_fetch_more` (spec: driver-framework › Execute and stream results)
+- [x] 3.3 Implement the dialect-aware statement splitter (`drivers/split.rs`) with a shared fixture corpus `tests/fixtures/split/*.sql`
+- [x] 3.4 Implement script mode (sequential results, stop on first error unless continue-on-error)
+- [x] 3.5 Implement `query_cancel` and per-connection query timeout (spec: driver-framework › Cancel and timeout)
+- [x] 3.6 Implement lost-connection detection and auto-reconnect on next execute
+- [x] 3.7 Test: splitter corpus; cancel during execute; timeout; reconnect after server kill (session-manager behaviour is tested against a scripted fake driver; the same scenarios run against real servers in the conformance suites of groups 5–7)
 
 ## 4. Transport
 
