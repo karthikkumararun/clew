@@ -3,7 +3,7 @@ use tauri::State;
 use crate::connections::model::{ConnectionsFile, Group};
 use crate::connections::service::{SaveOutcome, SaveRequest, SecretStatus};
 use crate::connections::url::{parse_url, ParsedUrl};
-use crate::drivers::Secret;
+use crate::drivers::{DriverError, ErrorCode, Secret, ServerInfo};
 use crate::error::AppResult;
 use crate::state::AppState;
 
@@ -67,4 +67,37 @@ pub fn password_answer(
 #[tauri::command]
 pub fn connections_parse_url(url: String) -> AppResult<ParsedUrl> {
     parse_url(&url)
+}
+
+/// "Test connection" from the dialog: connect with the unsaved draft (typed secrets win over
+/// stored ones), report the server, save nothing. Cancellable through `connections_test_cancel`.
+#[tauri::command]
+pub async fn connections_test(
+    state: State<'_, AppState>,
+    request: SaveRequest,
+    test_id: String,
+) -> AppResult<ServerInfo> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    state
+        .test_cancels
+        .lock()
+        .unwrap()
+        .insert(test_id.clone(), tx);
+    let work = async {
+        let config = state.connections.resolve_draft(&request).await?;
+        state.sessions.test_connection(&config).await
+    };
+    let result = tokio::select! {
+        r = work => r,
+        _ = rx => Err(DriverError::new(ErrorCode::Cancelled, "Test cancelled")),
+    };
+    state.test_cancels.lock().unwrap().remove(&test_id);
+    Ok(result?)
+}
+
+#[tauri::command]
+pub fn connections_test_cancel(state: State<'_, AppState>, test_id: String) {
+    if let Some(tx) = state.test_cancels.lock().unwrap().remove(&test_id) {
+        let _ = tx.send(());
+    }
 }

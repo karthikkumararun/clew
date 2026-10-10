@@ -1,5 +1,8 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+
+use tokio::sync::oneshot;
 
 use crate::connections::service::{ConnectionService, PendingPasswords};
 use crate::drivers::registry::Registry;
@@ -18,4 +21,6 @@ pub struct AppState {
     pub host_key_prompts: Arc<PendingPrompts>,
     pub connections: Arc<ConnectionService>,
     pub password_prompts: Arc<PendingPasswords>,
+    /// Running "Test connection" attempts, by id, so the dialog can cancel them.
+    pub test_cancels: Mutex<HashMap<String, oneshot::Sender<()>>>,
 }

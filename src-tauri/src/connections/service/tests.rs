@@ -283,3 +283,22 @@ async fn resolve_maps_each_settings_kind() {
     assert_eq!(cfg.on_connect, vec!["SET x = 1".to_string()]);
     assert!(cfg.password.is_none());
 }
+
+#[tokio::test]
+async fn a_draft_test_uses_the_typed_password_and_never_prompts() {
+    let f = fixture(Some("should-not-be-asked"));
+    let typed = f
+        .svc
+        .resolve_draft(&req(conn("", "db"), set("typed")))
+        .await
+        .unwrap();
+    assert_eq!(typed.password.unwrap().expose(), "typed");
+    let none = f
+        .svc
+        .resolve_draft(&req(conn("", "db"), SecretUpdate::Keep))
+        .await
+        .unwrap();
+    assert!(none.password.is_none());
+    assert_eq!(f.prompter.asked.load(Ordering::SeqCst), 0);
+    assert!(f.secrets.is_empty(), "testing saves nothing");
+}

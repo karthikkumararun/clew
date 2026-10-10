@@ -11,7 +11,10 @@ import { clearShortcuts } from "./registry/shortcuts";
 import { useStatusItems } from "./registry/statusItems";
 import { clearTabKinds, registerTabKind } from "./registry/tabKinds";
 
+vi.mock("../connections/commands", () => ({ registerConnectionCommands: () => () => {} }));
+
 vi.mock("../lib/ipc", () => ({
+  isTauri: () => false,
   appPaths: async () => ({
     dataDir: "/Users/ada/Library/Application Support/Clew",
     connectionsFile: "/Users/ada/Library/Application Support/Clew/connections.json",

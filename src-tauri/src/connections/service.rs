@@ -147,6 +147,26 @@ impl PasswordPrompter for EventPasswordPrompter {
     }
 }
 
+/// Secrets supplied by the dialog for a connection that is not (fully) saved yet, e.g. to test it.
+#[derive(Default)]
+struct Overrides {
+    password: Option<Secret>,
+    ssh_passphrase: Option<Secret>,
+    ssh_password: Option<Secret>,
+    /// Never prompt for a missing keychain password; connect without one.
+    no_prompt: bool,
+}
+
+impl Overrides {
+    fn get(&self, kind: SecretKind) -> Option<Secret> {
+        match kind {
+            SecretKind::Password => self.password.clone(),
+            SecretKind::SshPassphrase => self.ssh_passphrase.clone(),
+            SecretKind::SshPassword => self.ssh_password.clone(),
+        }
+    }
+}
+
 pub struct ConnectionService {
     store: Mutex<ConnectionsStore>,
     secrets: Arc<dyn SecretStore>,
@@ -443,16 +463,20 @@ impl ConnectionService {
         kind: SecretKind,
         mode: PasswordMode,
         optional: bool,
+        overrides: &Overrides,
     ) -> Result<Option<Secret>, DriverError> {
         if mode == PasswordMode::None {
             return Ok(None);
+        }
+        if let Some(secret) = overrides.get(kind) {
+            return Ok(Some(secret));
         }
         if mode == PasswordMode::Keychain {
             // A locked keychain or a missing entry both fall back to asking.
             if let Ok(Some(secret)) = self.secrets.get(&connection.id, kind) {
                 return Ok(Some(secret));
             }
-            if optional {
+            if optional || overrides.no_prompt {
                 return Ok(None);
             }
         }
@@ -509,6 +533,30 @@ impl ConnectionService {
     }
 
     pub async fn resolve_connection(&self, c: &Connection) -> Result<ResolvedConfig, DriverError> {
+        self.resolve_with(c, &Overrides::default()).await
+    }
+
+    /// Resolve an unsaved dialog draft for "Test connection": typed secrets win over stored ones
+    /// and nothing is prompted for or saved.
+    pub async fn resolve_draft(&self, req: &SaveRequest) -> Result<ResolvedConfig, DriverError> {
+        let value = |u: &SecretUpdate| match u {
+            SecretUpdate::Set { value } if !value.expose().is_empty() => Some(value.clone()),
+            _ => None,
+        };
+        let overrides = Overrides {
+            password: value(&req.password),
+            ssh_passphrase: value(&req.ssh_passphrase),
+            ssh_password: value(&req.ssh_password),
+            no_prompt: true,
+        };
+        self.resolve_with(&req.connection, &overrides).await
+    }
+
+    async fn resolve_with(
+        &self,
+        c: &Connection,
+        overrides: &Overrides,
+    ) -> Result<ResolvedConfig, DriverError> {
         let mut options = c.advanced.properties.clone();
         let mode = c.settings.password_mode();
         let target = match &c.settings {
@@ -579,7 +627,7 @@ impl ConnectionService {
         };
 
         let password = self
-            .secret_for(c, SecretKind::Password, mode, false)
+            .secret_for(c, SecretKind::Password, mode, false, overrides)
             .await?;
 
         let ssh = match c.ssh.as_ref().filter(|s| s.enabled) {
@@ -591,12 +639,24 @@ impl ConnectionService {
                         path: expand_home(s.key_file.as_deref().unwrap_or("~/.ssh/id_ed25519")),
                         // a key without a passphrase is normal, so a missing one is not asked for
                         passphrase: self
-                            .secret_for(c, SecretKind::SshPassphrase, PasswordMode::Keychain, true)
+                            .secret_for(
+                                c,
+                                SecretKind::SshPassphrase,
+                                PasswordMode::Keychain,
+                                true,
+                                overrides,
+                            )
                             .await?,
                     },
                     SshAuthKind::Password => SshAuth::Password {
                         password: self
-                            .secret_for(c, SecretKind::SshPassword, PasswordMode::Keychain, false)
+                            .secret_for(
+                                c,
+                                SecretKind::SshPassword,
+                                PasswordMode::Keychain,
+                                false,
+                                overrides,
+                            )
                             .await?
                             .unwrap_or_default(),
                     },

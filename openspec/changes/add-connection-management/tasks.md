@@ -15,14 +15,14 @@
 
 ## 3. Connection dialog (frontend)
 
-- [ ] 3.1 Build the dialog shell, driver list with search and SQL/NoSQL groups per `ConnectionDialog.dc.html` (spec: connection-management › Connection dialog)
-- [ ] 3.2 Build Name (with suggestion), Group select, Environment chips
-- [ ] 3.3 Build General forms: NetworkForm, OracleForm (connect-by, role, wallet, Instant Client status), FileForm, UriForm, KeyValueForm; port follows driver default until edited
-- [ ] 3.4 Build the SSH tunnel, SSL / TLS and Advanced tabs
-- [ ] 3.5 Build the URL preview with Copy and the Production safeguards box
-- [ ] 3.6 Validation, Esc / Mod+Enter, focus order
-- [ ] 3.7 Test connection inline result, error details toggle, cancel after 2s (spec: connection-management › Test connection from the dialog)
-- [ ] 3.8 Test: Vitest for driver switch port behaviour, name suggestion, validation and the safeguards box
+- [x] 3.1 Build the dialog shell, driver list with search and SQL/NoSQL groups per `ConnectionDialog.dc.html` (spec: connection-management › Connection dialog)
+- [x] 3.2 Build Name (with suggestion), Group select, Environment chips
+- [x] 3.3 Build General forms: NetworkForm, OracleForm (connect-by, role, wallet, Instant Client status), FileForm, UriForm, KeyValueForm; port follows driver default until edited
+- [x] 3.4 Build the SSH tunnel, SSL / TLS and Advanced tabs
+- [x] 3.5 Build the URL preview with Copy and the Production safeguards box
+- [x] 3.6 Validation, Esc / Mod+Enter, focus order
+- [x] 3.7 Test connection inline result, error details toggle, cancel after 2s (spec: connection-management › Test connection from the dialog)
+- [x] 3.8 Test: Vitest for driver switch port behaviour, name suggestion, validation and the safeguards box
 
 ## 4. Organise, connect and the chip
 
