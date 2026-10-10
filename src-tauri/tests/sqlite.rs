@@ -661,3 +661,36 @@ async fn count_rows_is_exact_for_tables_and_views() {
         .await
         .is_err());
 }
+
+#[tokio::test]
+async fn manual_mode_commit_keeps_the_transaction_open_until_commit() {
+    // The console's Manual mode is `BEGIN` on first run, then plain statements, then COMMIT.
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY)").await;
+
+    c.must("BEGIN").await;
+    c.must("INSERT INTO t (id) VALUES (1)").await;
+    c.must("INSERT INTO t (id) VALUES (2)").await;
+    assert_eq!(
+        c.mgr.sessions_in_transaction("conf"),
+        vec![c.session.clone()],
+        "the session reports its open transaction (the close prompt relies on it)"
+    );
+
+    let other = c.another_session().await;
+    let count = |sid| {
+        let mgr = c.mgr.clone();
+        async move { run(&mgr, &sid, "SELECT count(*) FROM t").await.scalar_int() }
+    };
+    assert_eq!(
+        count(other.clone()).await,
+        0,
+        "uncommitted rows stay invisible"
+    );
+
+    c.must("COMMIT").await;
+    assert!(c.mgr.sessions_in_transaction("conf").is_empty());
+    assert_eq!(count(other).await, 2, "committed rows become visible");
+    assert_eq!(count(c.session.clone()).await, 2);
+}

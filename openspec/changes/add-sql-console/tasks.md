@@ -35,9 +35,9 @@
 
 ## 6. Transactions
 
-- [ ] 6.1 Tx mode selector, Commit / Rollback buttons, pending indicator with statement count (spec: sql-console › Transaction mode)
-- [ ] 6.2 Close-with-open-transaction prompt
-- [ ] 6.3 Test: manual mode keeps a transaction open across runs (SQLite)
+- [x] 6.1 Tx mode selector, Commit / Rollback buttons, pending indicator with statement count (spec: sql-console › Transaction mode)
+- [x] 6.2 Close-with-open-transaction prompt
+- [x] 6.3 Test: manual mode keeps a transaction open across runs (SQLite)
 
 ## 7. Files and status bar
 

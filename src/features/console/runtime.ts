@@ -84,7 +84,9 @@ export interface RuntimeState {
   /** Where the last run's errors are, for the squiggles in the editor. */
   marks: ErrorMark[];
   explain: ExplainState | null;
-  /** Statements run in the open manual transaction (0 when none is open). */
+  /** A manual transaction is open on the session. */
+  txOpen: boolean;
+  /** Statements run in the open manual transaction. */
   txPending: number;
 }
 
@@ -101,6 +103,7 @@ const INITIAL: RuntimeState = {
   lastRun: null,
   marks: [],
   explain: null,
+  txOpen: false,
   txPending: 0,
 };
 
@@ -235,6 +238,11 @@ export class ConsoleRuntime {
         return;
       }
       try {
+        // Manual mode: the first statement opens the transaction.
+        if (this.tabState()?.txMode === "manual" && !this.store.getState().txOpen) {
+          await this.exec(sessionId, this.beginSql());
+          this.store.setState({ txOpen: true, txPending: 0 });
+        }
         await queryExecute(
           sessionId,
           {
@@ -324,6 +332,10 @@ export class ConsoleRuntime {
       this.log({ kind: "error", statement: preview(req.sql), message: snap.error.message });
     }
     for (const notice of snap.notices) this.log({ kind: "info", statement: "", message: notice });
+    if (this.store.getState().txOpen) {
+      const ran = snap.results.filter((r) => !r.error && !r.cancelled).length;
+      this.store.setState((s) => ({ txPending: s.txPending + ran }));
+    }
     this.store.setState({
       marks,
       tab: sawRows && !sawProblem ? "result" : "output",
@@ -380,7 +392,7 @@ export class ConsoleRuntime {
       explain: { status: "running", analyze: req.analyze, sql: req.sql },
     });
     const wrap = req.analyze && isWrite(req.sql);
-    const inTx = this.store.getState().txPending > 0;
+    const inTx = this.store.getState().txOpen;
     const started = Date.now();
     const own = new QueryRunStore();
     let sessionId: string | null = null;
@@ -461,6 +473,34 @@ export class ConsoleRuntime {
         raw: plan ? undefined : { columns: result.columns, rows: result.rows },
       },
     });
+  }
+
+  /** End the open manual transaction. Resolves false when the server refused. */
+  async endTransaction(commit: boolean): Promise<boolean> {
+    const { txOpen, txPending, sessionId } = this.store.getState();
+    if (!txOpen || !sessionId || this.busy) return false;
+    this.store.setState({ busy: true, startedAt: Date.now() });
+    try {
+      await this.exec(sessionId, commit ? "COMMIT" : "ROLLBACK");
+      this.store.setState({ txOpen: false, txPending: 0 });
+      const n = `${txPending} ${txPending === 1 ? "statement" : "statements"}`;
+      this.log({
+        kind: "ok",
+        statement: commit ? "COMMIT" : "ROLLBACK",
+        message: commit ? `Committed ${n}` : `Rolled back ${n}`,
+      });
+      return true;
+    } catch (e) {
+      this.log({
+        kind: "error",
+        statement: commit ? "COMMIT" : "ROLLBACK",
+        message: (e as { message?: string }).message ?? "The transaction could not be ended",
+      });
+      this.store.setState({ tab: "output" });
+      return false;
+    } finally {
+      this.store.setState({ busy: false, startedAt: null });
+    }
   }
 
   /** The statement that opens a transaction on this connection's database. */
@@ -545,6 +585,8 @@ export class ConsoleRuntime {
       server: null,
       busy: false,
       startedAt: null,
+      txOpen: false,
+      txPending: 0,
     });
     this.mirror(undefined);
   }

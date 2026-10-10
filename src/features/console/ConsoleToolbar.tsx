@@ -4,7 +4,13 @@ import { Menu } from "../../components/Menu";
 import { ChevronDown, Lines, Play } from "../../components/icons";
 import { formatShortcut } from "../../lib/platform";
 import { useWorkspace } from "../../stores/workspaceStore";
-import { cancelActive, explainActive, runActive } from "./commands";
+import {
+  cancelActive,
+  endActiveTransaction,
+  explainActive,
+  runActive,
+  setTxMode,
+} from "./commands";
 import { formatElapsed, useElapsed } from "./ResultsPanel";
 import { getRuntime } from "./runtime";
 import { CONSOLE_KIND } from "./state";
@@ -24,6 +30,13 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
   const startedAt = useStore(runtime.store, (s) => s.startedAt);
   const elapsed = useElapsed(busy ? startedAt : null);
   const [explainMenu, setExplainMenu] = useState(false);
+  const [txMenu, setTxMenu] = useState(false);
+  const txMode = useWorkspace(
+    (s) =>
+      (s.tabs.find((t) => t.id === tabId)?.state as ConsoleState | undefined)?.txMode ?? "auto",
+  );
+  const txOpen = useStore(runtime.store, (s) => s.txOpen);
+  const txPending = useStore(runtime.store, (s) => s.txPending);
   return (
     <>
       {busy ? (
@@ -89,6 +102,66 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
           </>
         ) : null}
       </span>
+      <span className={styles.splitButton}>
+        <button
+          type="button"
+          className={styles.tbButton}
+          aria-haspopup="menu"
+          aria-expanded={txMenu}
+          onClick={() => setTxMenu((o) => !o)}
+        >
+          Tx: {txMode === "manual" ? "Manual" : "Auto-commit"}
+          <ChevronDown size={12} />
+        </button>
+        {txMenu ? (
+          <>
+            <div
+              className={styles.menuScrim}
+              onMouseDown={() => setTxMenu(false)}
+              aria-hidden="true"
+            />
+            <div className={styles.explainMenu}>
+              <Menu
+                aria-label="Transaction mode"
+                items={[
+                  { id: "auto", label: `${txMode === "auto" ? "✓ " : ""}Auto-commit` },
+                  { id: "manual", label: `${txMode === "manual" ? "✓ " : ""}Manual` },
+                ]}
+                onClose={() => setTxMenu(false)}
+                onSelect={(id) => {
+                  setTxMenu(false);
+                  void setTxMode(tabId, id as "auto" | "manual");
+                }}
+              />
+            </div>
+          </>
+        ) : null}
+      </span>
+      {txMode === "manual" ? (
+        <>
+          <button
+            type="button"
+            className={styles.tbButton}
+            disabled={!txOpen || busy}
+            onClick={() => void endActiveTransaction(true)}
+          >
+            Commit
+          </button>
+          <button
+            type="button"
+            className={styles.tbButton}
+            disabled={!txOpen || busy}
+            onClick={() => void endActiveTransaction(false)}
+          >
+            Rollback
+          </button>
+          {txOpen ? (
+            <span className={styles.pending} role="status">
+              {txPending} pending
+            </span>
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }

@@ -142,6 +142,46 @@ export async function explainActive(analyze: boolean): Promise<void> {
   await submitExplain(what.tab, { sql: what.sql, offset: what.offset, analyze });
 }
 
+/** Commit or roll back the active console's manual transaction. */
+export async function endActiveTransaction(commit: boolean): Promise<void> {
+  const active = activeConsole();
+  const tab =
+    active?.tab ??
+    useWorkspace
+      .getState()
+      .tabs.find((t) => t.id === useWorkspace.getState().activeTabId && t.kind === CONSOLE_KIND);
+  if (!tab) return;
+  await getRuntime(tab.id, (tab.state as ConsoleState).connectionId).endTransaction(commit);
+}
+
+/** Switch a console between Auto-commit and Manual; leaving Manual settles the open transaction. */
+export async function setTxMode(tabId: string, mode: "auto" | "manual"): Promise<boolean> {
+  const tab = useWorkspace.getState().tabs.find((t) => t.id === tabId);
+  if (!tab) return false;
+  const state = tab.state as ConsoleState;
+  if (state.txMode === mode) return true;
+  const runtime = getRuntime(tab.id, state.connectionId);
+  if (mode === "auto" && runtime.store.getState().txOpen) {
+    const answer = await askChoice({
+      title: "Uncommitted transaction",
+      body: (
+        <p>
+          Switching to Auto-commit ends the open transaction. Commit its changes or roll them back?
+        </p>
+      ),
+      choices: [
+        { id: "cancel", label: "Cancel" },
+        { id: "rollback", label: "Roll back" },
+        { id: "commit", label: "Commit", variant: "primary" },
+      ],
+    });
+    if (answer !== "commit" && answer !== "rollback") return false;
+    if (!(await runtime.endTransaction(answer === "commit"))) return false;
+  }
+  useWorkspace.getState().updateTabState<Partial<ConsoleState>>(tabId, { txMode: mode });
+  return true;
+}
+
 export async function rerunActive(): Promise<void> {
   const active = activeConsole();
   if (!active) return;
@@ -228,6 +268,18 @@ export function registerConsoleCommands(): () => void {
         e.preventDefault();
         void explainActive(false);
       },
+    }),
+    registerCommand({
+      id: "console.commit",
+      title: "Commit transaction",
+      category: "Console",
+      run: () => endActiveTransaction(true),
+    }),
+    registerCommand({
+      id: "console.rollback",
+      title: "Roll back transaction",
+      category: "Console",
+      run: () => endActiveTransaction(false),
     }),
     registerCommand({
       id: "console.rerun",
