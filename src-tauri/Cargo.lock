@@ -4635,6 +4635,8 @@ dependencies = [
  "generic-array 0.14.7",
  "log",
  "percent-encoding",
+ "rand 0.10.3",
+ "rsa",
  "serde",
  "sha1",
  "sha2 0.11.0",

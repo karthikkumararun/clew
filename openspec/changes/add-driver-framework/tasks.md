@@ -40,11 +40,11 @@
 
 ## 6. MySQL and MariaDB driver
 
-- [ ] 6.1 Driver module with flavor, connect/test, sessions, streaming execute, KILL QUERY cancel (spec: driver-framework › MySQL and MariaDB drivers)
-- [ ] 6.2 Type mapping incl. zero dates, unsigned bigint, JSON, BIT, ENUM/SET
-- [ ] 6.3 Introspection, completion snapshot, SHOW CREATE DDL, session read-only
-- [ ] 6.4 Result source table/column metadata and backtick quoting / LIMIT paging for editing (no RETURNING on MySQL → reload by PK)
-- [ ] 6.5 Test: conformance suite against mysql:8 and mariadb:11 in docker-compose
+- [x] 6.1 Driver module with flavor, connect/test, sessions, streaming execute, KILL QUERY cancel (spec: driver-framework › MySQL and MariaDB drivers)
+- [x] 6.2 Type mapping incl. zero dates, unsigned bigint, JSON, BIT, ENUM/SET
+- [x] 6.3 Introspection, completion snapshot, SHOW CREATE DDL, session read-only
+- [x] 6.4 Result source table/column metadata and backtick quoting / LIMIT paging for editing (no RETURNING on MySQL → reload by PK)
+- [x] 6.5 Test: conformance suite against mysql:8 and mariadb:11 in docker-compose
 
 ## 7. SQLite driver
 

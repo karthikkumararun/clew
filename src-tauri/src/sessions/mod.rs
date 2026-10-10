@@ -504,6 +504,12 @@ impl SessionManager {
         c.driver.introspect(&c.pool, path).await
     }
 
+    /// The `CREATE` statement for an object, loaded through the metadata pool.
+    pub async fn ddl(&self, connection_id: &str, path: &NodePath) -> DriverResult<String> {
+        let c = self.connection(connection_id)?;
+        c.driver.ddl(&c.pool, path).await
+    }
+
     pub async fn completion_snapshot(
         &self,
         connection_id: &str,

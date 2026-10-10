@@ -17,33 +17,17 @@ use sqlx::{
     AssertSqlSafe, Column, ConnectOptions, Connection, Executor, Row, SqlSafeStr, Statement,
     TypeInfo,
 };
-use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
 
 use super::decode::{decode_value, decode_value_opts, kind_for_info};
 use super::error::{is_connection_error, map_error};
-use crate::drivers::batch::RowBatcher;
 use crate::drivers::introspect::NodeKind;
+use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
     ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
 };
 
-/// Rows buffered ahead of the consumer.
-const STREAM_BUFFER: usize = 64;
-
-enum Msg {
-    Row(Vec<Value>),
-    End,
-    Err(DriverError),
-}
-
-struct OpenStream {
-    result_id: ResultId,
-    rx: mpsc::Receiver<Msg>,
-    task: JoinHandle<PgConnection>,
-    peeked: Option<Msg>,
-}
+type OpenStream = paging::OpenStream<PgConnection>;
 
 enum ConnState {
     Idle(Box<PgConnection>),
@@ -216,79 +200,13 @@ impl PgSession {
         sink: &ResultSink,
         started: Instant,
     ) -> DriverResult<ExecSummary> {
-        let mut batcher = RowBatcher::new(count);
-        let mut sent = 0usize;
-        let mut finished = false;
-        let mut error: Option<DriverError> = None;
-        let mut receiver_gone = false;
-        let mut has_more = false;
+        let stream = self
+            .stream
+            .as_mut()
+            .ok_or_else(|| DriverError::internal("No open result to read from"))?;
+        let outcome = paging::read_page(stream, count, sink).await;
 
-        {
-            let stream = self
-                .stream
-                .as_mut()
-                .ok_or_else(|| DriverError::internal("No open result to read from"))?;
-
-            while sent < count {
-                let msg = match stream.peeked.take() {
-                    Some(m) => Some(m),
-                    None => stream.rx.recv().await,
-                };
-                match msg {
-                    Some(Msg::Row(row)) => {
-                        sent += 1;
-                        if let Some(batch) = batcher.push(row) {
-                            if !sink
-                                .send(ResultEvent::Rows {
-                                    result_id,
-                                    rows: batch,
-                                })
-                                .await
-                            {
-                                receiver_gone = true;
-                                break;
-                            }
-                        }
-                    }
-                    Some(Msg::End) | None => {
-                        finished = true;
-                        break;
-                    }
-                    Some(Msg::Err(e)) => {
-                        error = Some(e);
-                        finished = true;
-                        break;
-                    }
-                }
-            }
-            if let Some(batch) = batcher.finish() {
-                if !sink
-                    .send(ResultEvent::Rows {
-                        result_id,
-                        rows: batch,
-                    })
-                    .await
-                {
-                    receiver_gone = true;
-                }
-            }
-            // The page is full: peek one more row to learn whether the result continues.
-            if !finished && !receiver_gone {
-                match stream.rx.recv().await {
-                    Some(Msg::Row(row)) => {
-                        stream.peeked = Some(Msg::Row(row));
-                        has_more = true;
-                    }
-                    Some(Msg::End) | None => finished = true,
-                    Some(Msg::Err(e)) => {
-                        error = Some(e);
-                        finished = true;
-                    }
-                }
-            }
-        }
-
-        if finished {
+        if outcome.finished {
             if let Some(OpenStream { task, .. }) = self.stream.take() {
                 match task.await {
                     Ok(conn) => self.conn = ConnState::Idle(Box::new(conn)),
@@ -297,7 +215,7 @@ impl PgSession {
             }
             self.cancel.running.store(false, Ordering::SeqCst);
         }
-        if let Some(e) = error {
+        if let Some(e) = outcome.error {
             if e.code == ErrorCode::ConnectionLost {
                 self.conn = ConnState::Gone;
             }
@@ -307,9 +225,9 @@ impl PgSession {
         let summary = ExecSummary {
             rows_affected: None,
             elapsed_ms: started.elapsed().as_millis() as u64,
-            has_more,
+            has_more: outcome.has_more,
         };
-        if !receiver_gone {
+        if !outcome.receiver_gone {
             sink.send(ResultEvent::Done {
                 result_id,
                 summary: summary.clone(),
@@ -456,7 +374,7 @@ impl Session for PgSession {
         .await;
 
         // The stream task owns the connection until the result ends or is abandoned.
-        let (tx, rx) = mpsc::channel(STREAM_BUFFER);
+        let (tx, rx) = tokio::sync::mpsc::channel(STREAM_BUFFER);
         let mut owned = *conn;
         let task = tokio::spawn(async move {
             {
@@ -487,12 +405,7 @@ impl Session for PgSession {
             owned
         });
         self.conn = ConnState::Streaming;
-        self.stream = Some(OpenStream {
-            result_id,
-            rx,
-            task,
-            peeked: None,
-        });
+        self.stream = Some(OpenStream::new(result_id, rx, task));
         self.page(result_id, req.page_size.max(1), &sink, started)
             .await
     }

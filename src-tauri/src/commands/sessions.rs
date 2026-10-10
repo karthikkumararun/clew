@@ -128,6 +128,16 @@ pub async fn introspect_children(
     Ok(state.sessions.introspect(&connection_id, &path).await?)
 }
 
+/// The `CREATE` statement of a table, view, routine or trigger.
+#[tauri::command]
+pub async fn introspect_ddl(
+    state: State<'_, AppState>,
+    connection_id: String,
+    path: NodePath,
+) -> AppResult<String> {
+    Ok(state.sessions.ddl(&connection_id, &path).await?)
+}
+
 #[tauri::command]
 pub async fn completion_snapshot(
     state: State<'_, AppState>,

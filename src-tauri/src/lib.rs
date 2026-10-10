@@ -117,6 +117,7 @@ pub fn run() {
             commands::sessions::value_fetch_full,
             commands::sessions::introspect_children,
             commands::sessions::completion_snapshot,
+            commands::sessions::introspect_ddl,
             commands::sessions::host_key_answer,
             commands::settings::settings_get,
             commands::settings::settings_set,

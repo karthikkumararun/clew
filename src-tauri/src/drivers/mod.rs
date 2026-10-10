@@ -5,6 +5,7 @@ pub mod batch;
 pub mod error;
 pub mod introspect;
 pub mod mysql;
+pub mod paging;
 pub mod postgres;
 pub mod registry;
 pub mod split;
@@ -398,6 +399,11 @@ pub trait Driver: Send + Sync {
     async fn introspect(&self, pool: &MetaPool, path: &NodePath) -> DriverResult<Vec<TreeNode>>;
 
     async fn completion_snapshot(&self, pool: &MetaPool, db: &str) -> DriverResult<SchemaSnapshot>;
+
+    /// The `CREATE` statement for the object at `path` (e.g. via `SHOW CREATE TABLE`).
+    async fn ddl(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<String> {
+        Err(DriverError::unsupported("showing DDL"))
+    }
 }
 
 #[async_trait]

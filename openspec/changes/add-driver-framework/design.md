@@ -74,6 +74,14 @@ One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequen
 - sqlx always asks for binary results, so `drivers/postgres/decode.rs` decodes the wire format itself (numeric, intervals, arrays, jsonb, inet, ...). Types without a decoder arrive as `other` with a `\x` hex form (PostGIS is its server-style upper-case hex); this is the cost of not being able to request text per column.
 - Threshold for truncation follows the spec (values over 1 MB keep their first 64 KB), not the design's earlier 64 KB figure.
 
+### MySQL / MariaDB driver notes (implementation)
+- Results are read over the **text protocol** (`raw_sql`) so decimals stay exact and zero dates arrive as text (`other`); the statement is prepared first only to learn the columns and their origin (`ColumnOrigin` gives table and original column name). Statements the server will not prepare (error 1295) run as plain commands.
+- sqlx labels any column with the BINARY flag as BLOB/VARBINARY, which includes `_bin`-collated text and MariaDB's JSON. `drivers/mysql/decode.rs` reads the collation number (63 = real binary) from the type info's `Debug` output; a conformance test fails if sqlx changes that format.
+- `mysql-rsa` is enabled so plain (non-TLS) logins work against MySQL 8's `caching_sha2_password`.
+- `SELECT SLEEP(n)` interrupted by `KILL QUERY` returns normally instead of failing, so the cancel scenario uses a long join; a separate test checks the spec's `SLEEP(60)` case for timing only.
+- `information_schema_stats_expiry` is set to 0 on metadata connections so row estimates are fresh (ignored on MariaDB). `Driver::ddl` / `introspect_ddl` exposes `SHOW CREATE` output.
+- MariaDB 11 enables TLS by default, like MySQL 8.
+
 ### Errors
 `DriverError { code: ErrorCode, message, detail: Option<String>, position: Option<u32>, hint: Option<String> }` where `ErrorCode` covers `auth_failed | timeout | connection_lost | query_failed | cancelled | tls_failed | host_key_mismatch | file_not_found | database_locked | access_denied | driver_unavailable | unsupported`.
 

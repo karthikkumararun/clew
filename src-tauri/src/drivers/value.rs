@@ -240,6 +240,28 @@ impl Value {
         }
     }
 
+    /// Plain text form, for binding as a string parameter. `None` for NULL and arrays.
+    pub fn sql_text(&self) -> Option<String> {
+        Some(match self {
+            Value::Null | Value::Array { .. } => return None,
+            Value::Bool { value } => (*value as u8).to_string(),
+            Value::Int { value } => value.to_string(),
+            Value::Float { value } => value.to_string(),
+            Value::Bigint { value }
+            | Value::Decimal { value }
+            | Value::Text { value, .. }
+            | Value::Date { value }
+            | Value::Time { value }
+            | Value::Timestamp { value }
+            | Value::Timestamptz { value }
+            | Value::Interval { value }
+            | Value::Uuid { value }
+            | Value::Other { value, .. } => value.clone(),
+            Value::Bytes { value, .. } => value.clone(),
+            Value::Json { value } => value.to_string(),
+        })
+    }
+
     pub fn is_null(&self) -> bool {
         matches!(self, Value::Null)
     }
