@@ -8,9 +8,9 @@
 
 ## 2. Value model
 
-- [ ] 2.1 Implement `Value` enum with serde tagging and the conversions listed in the spec (spec: driver-framework › Uniform value model)
+- [x] 2.1 Implement `Value` enum with serde tagging and the conversions listed in the spec (spec: driver-framework › Uniform value model)
 - [ ] 2.2 Implement truncation (64 KB) with `truncated` flag and a `value_fetch_full` command
-- [ ] 2.3 Test: exact decimal round-trip, bigint beyond i64, timestamptz ISO output, `other` fallback
+- [x] 2.3 Test: exact decimal round-trip, bigint beyond i64, timestamptz ISO output, `other` fallback
 
 ## 3. Sessions and execution
 
