@@ -9,12 +9,12 @@
 
 ## 2. Design system primitives
 
-- [ ] 2.1 Copy `design/tokens.css` to `src/styles/tokens.css`; add `global.css` (reset, body font, 2px accent focus ring, scrollbars styled to tokens)
-- [ ] 2.2 Bundle IBM Plex Sans and JetBrains Mono via @fontsource (400/500/600)
-- [ ] 2.3 Build the icon set as React components (chevrons, plus, close, search, refresh, database, table, folder, key, link, play, filter, download, terminal, settings, warning, check, clock, file) matching the canvas SVG paths
-- [ ] 2.4 Build Button (default, toolbar, primary/accent, ghost), IconButton (requires aria-label), Input, Select, Checkbox, SegmentedControl, Badge, DriverBadge, EnvDot, Kbd, Tooltip
-- [ ] 2.5 Build Dialog (focus trap, Esc to close, 12px radius, backdrop `--bg-backdrop`), Menu (keyboard navigable) and SplitPane (drag handle, min/max, persisted size key)
-- [ ] 2.6 Test: Vitest + RTL tests for focus trap, IconButton a11y label, SplitPane clamping
+- [x] 2.1 Copy `design/tokens.css` to `src/styles/tokens.css`; add `global.css` (reset, body font, 2px accent focus ring, scrollbars styled to tokens)
+- [x] 2.2 Bundle IBM Plex Sans and JetBrains Mono via @fontsource (400/500/600)
+- [x] 2.3 Build the icon set as React components (chevrons, plus, close, search, refresh, database, table, folder, key, link, play, filter, download, terminal, settings, warning, check, clock, file) matching the canvas SVG paths
+- [x] 2.4 Build Button (default, toolbar, primary/accent, ghost), IconButton (requires aria-label), Input, Select, Checkbox, SegmentedControl, Badge, DriverBadge, EnvDot, Kbd, Tooltip
+- [x] 2.5 Build Dialog (focus trap, Esc to close, 12px radius, backdrop `--bg-backdrop`), Menu (keyboard navigable) and SplitPane (drag handle, min/max, persisted size key)
+- [x] 2.6 Test: Vitest + RTL tests for focus trap, IconButton a11y label, SplitPane clamping
 
 ## 3. Platform and shortcuts
 

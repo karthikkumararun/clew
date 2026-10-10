@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-backdrop);
+  opacity: 0.8;
+}
+
+.dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-dialog);
+  color: var(--text);
+}
+
+.header {
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.footer {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel-sunken);
+}
