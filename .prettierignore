@@ -8,3 +8,4 @@ coverage
 .claude
 CLAUDE.md
 README.md
+src/lib/ipc/generated

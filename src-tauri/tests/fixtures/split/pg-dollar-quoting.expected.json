@@ -1,0 +1,1 @@
+{"dialect":"postgresql","statements":["-- create a helper, then use it\nCREATE FUNCTION add_one(i int) RETURNS int AS $$\nBEGIN\n  RETURN i + 1; -- inner; semicolon\nEND;\n$$ LANGUAGE plpgsql","SELECT add_one(41)"]}

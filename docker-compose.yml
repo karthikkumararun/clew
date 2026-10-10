@@ -1,0 +1,84 @@
+# Integration-test databases. Test-only credentials; never use these anywhere real.
+#   scripts/gen-test-certs.sh   (once, creates docker/postgres-tls/certs and docker/bastion/keys)
+#   docker compose up -d --build --wait
+#   cargo test --features integration   (in src-tauri/)
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: clew
+      POSTGRES_PASSWORD: clew
+      POSTGRES_DB: clew
+    ports: ["54316:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clew -d clew"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  postgres-tls:
+    build: ./docker/postgres-tls
+    environment:
+      POSTGRES_USER: clew
+      POSTGRES_PASSWORD: clew
+      POSTGRES_DB: clew
+    ports: ["54317:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clew -d clew"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  postgres-tls-wrong:
+    build:
+      context: ./docker/postgres-tls
+      args:
+        CERT: wrong
+    environment:
+      POSTGRES_USER: clew
+      POSTGRES_PASSWORD: clew
+      POSTGRES_DB: clew
+    ports: ["54318:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clew -d clew"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: clew
+      MYSQL_DATABASE: clew
+      MYSQL_USER: clew
+      MYSQL_PASSWORD: clew
+    ports: ["33068:3306"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -pclew --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: clew
+      MARIADB_DATABASE: clew
+      MARIADB_USER: clew
+      MARIADB_PASSWORD: clew
+    ports: ["33071:3306"]
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  # SSH bastion that can reach the databases above by service name.
+  bastion:
+    build: ./docker/bastion
+    ports: ["2222:22"]
+    volumes:
+      - ./docker/bastion/keys:/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy

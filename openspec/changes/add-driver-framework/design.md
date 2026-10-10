@@ -35,6 +35,8 @@ pub trait Session: Send {
     async fn close(self: Box<Self>) -> Result<()>;
 }
 ```
+Additions made while implementing (`src-tauri/src/drivers/mod.rs`): `Driver::open_meta_pool` (the contract takes a `&MetaPool` but nothing created it), `Session::fetch_full_value` (backs `value_fetch_full`; identifies a cell by table path, column and primary-key values) and `Session::server_info` (status bar). `Secret` is deserialize-only and redacted in `Debug`, so passwords can arrive over IPC but never leave. Integers outside ±2^53 are emitted as `bigint` strings so JavaScript never rounds them.
+
 Document and key-value drivers add `DocumentSession` / `KeyValueSession` traits in `add-nosql-browser`; `DriverMeta.family` tells the UI which API to use.
 
 **Why trait objects over an enum:** drivers live in separate modules and can grow independently; the registry is a `HashMap<&'static str, Arc<dyn Driver>>`.
@@ -58,6 +60,35 @@ One module `drivers/mysql/` with a `Flavor` enum (differences: JSON type, sequen
 
 ### SSH
 `russh` client; local forward on `127.0.0.1:0`; the tunnel task lives as long as any session or pool for that connection. Known hosts: read `~/.ssh/known_hosts` (read-only) plus `<app_data>/known_hosts` (read-write).
+
+### Transport notes (implementation)
+- TLS (`transport/tls.rs`): `disable`/`prefer`/`require`/`verify-ca`/`verify-full` over rustls (ring). `require` encrypts without verifying; `verify-ca` checks the chain but not the host name; `verify-full` checks both. sqlx drivers receive the mode and file paths and use `map_tls_error` to turn handshake failures into `tls_failed` with a readable reason.
+- SSH (`transport/ssh.rs`, `transport/hostkey.rs`): unknown host keys pause the connection and emit a `host_key_prompt` event; the UI answers with the `host_key_answer` command (120 s timeout counts as a rejection). A rejected key fails with `cancelled`; a changed key fails with `host_key_mismatch` before any credentials are sent. Accepted keys are written to `<app data>/known_hosts`; `~/.ssh/known_hosts` is only read.
+- With a tunnel the driver connects to `127.0.0.1:<port>`, so `verify-full` cannot match the real host name; use `verify-ca` for tunnelled TLS connections.
+- A key with a missing passphrase fails with `auth_failed`; asking for it through a prompt is left to `add-connection-management`, which owns the keychain.
+
+### PostgreSQL driver notes (implementation)
+- sqlx stays (the open question): paging works by letting a task own the connection and feed a bounded channel while the session holds the receiver (`drivers/postgres/session.rs`). Abandoning an open result cancels the backend query so the rest is not drained.
+- Cancel opens a short-lived second connection and calls `pg_cancel_backend(pid)`; a `running` flag stops a late cancel from hitting the next statement.
+- Statements are prepared first so column metadata (including the source table and column from the row description's `attrelid`/`attnum`) arrives before any row. The statement cache is disabled so DDL never leaves stale plans.
+- sqlx always asks for binary results, so `drivers/postgres/decode.rs` decodes the wire format itself (numeric, intervals, arrays, jsonb, inet, ...). Types without a decoder arrive as `other` with a `\x` hex form (PostGIS is its server-style upper-case hex); this is the cost of not being able to request text per column.
+- Threshold for truncation follows the spec (values over 1 MB keep their first 64 KB), not the design's earlier 64 KB figure.
+
+### MySQL / MariaDB driver notes (implementation)
+- Results are read over the **text protocol** (`raw_sql`) so decimals stay exact and zero dates arrive as text (`other`); the statement is prepared first only to learn the columns and their origin (`ColumnOrigin` gives table and original column name). Statements the server will not prepare (error 1295) run as plain commands.
+- sqlx labels any column with the BINARY flag as BLOB/VARBINARY, which includes `_bin`-collated text and MariaDB's JSON. `drivers/mysql/decode.rs` reads the collation number (63 = real binary) from the type info's `Debug` output; a conformance test fails if sqlx changes that format.
+- `mysql-rsa` is enabled so plain (non-TLS) logins work against MySQL 8's `caching_sha2_password`.
+- `SELECT SLEEP(n)` interrupted by `KILL QUERY` returns normally instead of failing, so the cancel scenario uses a long join; a separate test checks the spec's `SLEEP(60)` case for timing only.
+- `information_schema_stats_expiry` is set to 0 on metadata connections so row estimates are fresh (ignored on MariaDB). `Driver::ddl` / `introspect_ddl` exposes `SHOW CREATE` output.
+- MariaDB 11 enables TLS by default, like MySQL 8.
+
+### SQLite driver notes (implementation)
+- Built on sqlx-sqlite (not a hand-rolled `spawn_blocking` loop): each connection already runs on its own worker thread. Cancellation installs SQLite's progress handler (every 1000 VM instructions) that aborts the statement with `SQLITE_INTERRUPT` when the session's interrupt flag is set.
+- SQLite is dynamically typed, so values decode by their own storage class; declared types only feed column kinds and the `BOOLEAN` 0/1 mapping. A NULL reports its column's declared type in sqlx, so NULL is checked explicitly.
+- `attach:<name>` options attach extra databases on every session and metadata connection (ATTACH is per connection); they appear next to `main` in the tree.
+- The busy timeout defaults to 5 s and can be shortened with the `busy_timeout_ms` option (the locked-database test uses 300 ms).
+- `rows_affected` is only reported for INSERT/UPDATE/DELETE/REPLACE; for other statements SQLite's `changes()` would be the previous statement's count.
+- In-memory databases are not supported by introspection (each connection would see a different database).
 
 ### Errors
 `DriverError { code: ErrorCode, message, detail: Option<String>, position: Option<u32>, hint: Option<String> }` where `ErrorCode` covers `auth_failed | timeout | connection_lost | query_failed | cancelled | tls_failed | host_key_mismatch | file_not_found | database_locked | access_denied | driver_unavailable | unsupported`.

@@ -1,0 +1,1 @@
+{"dialect": "mysql", "statements": ["SELECT 'it\\'s; ok', `weird;name`", "# hash; comment\nSELECT 2"]}

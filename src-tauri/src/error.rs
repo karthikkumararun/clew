@@ -2,12 +2,15 @@ use serde::Serialize;
 
 /// Typed error that crosses the IPC boundary as `{ code, message, detail? }`.
 /// Never put secrets in any of these fields.
+#[derive(ts_rs::TS)]
+#[ts(export)]
 #[derive(Debug, Clone, Serialize, thiserror::Error)]
 #[error("{code}: {message}")]
 pub struct AppError {
     pub code: String,
     pub message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub detail: Option<String>,
 }
 
