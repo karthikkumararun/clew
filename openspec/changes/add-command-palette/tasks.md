@@ -12,3 +12,8 @@
 - [ ] 2.4 Connect-on-open for disconnected connections
 - [ ] 2.5 Mod+E recent files and saved queries preset (spec: command-palette › Recent files and queries)
 - [ ] 2.6 Test: Vitest for keyboard flows and default vs console actions
+
+## 3. End-to-end
+
+- [ ] 3.1 E2E: add journey J-16 in `e2e/specs/` — Mod+K search across connections, open a table, Alt+Enter opens a console, connect-on-open for a disconnected connection
+- [ ] 3.2 Declare `covers(...)` for the scenarios it exercises (e.g. command-palette › Fuzzy search; command-palette › Result actions) and add the seed/compose service it needs to the matching profile

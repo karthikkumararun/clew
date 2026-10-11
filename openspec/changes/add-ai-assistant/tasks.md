@@ -59,3 +59,8 @@
 ## 8. Shell integration
 
 - [ ] 8.1 Verify the shell's network rule (app-shell › Offline by default): AI traffic goes only to configured endpoints and the consented Copilot download; add a test that no request is made while AI is disabled
+
+## 9. End-to-end
+
+- [ ] 9.1 E2E: add journey J-17 in `e2e/specs/` — against the mock LLM: Edit mode writes a reviewable diff, Keep/Undo per hunk, Keep all, AI never executes SQL, production sends schema only (assert from the mock's request log), ghost-text accept
+- [ ] 9.2 Declare `covers(...)` for the scenarios it exercises (e.g. ai-assistant › Direct edits with review; ai-providers › Data-sharing policy) and add the seed/compose service it needs to the matching profile

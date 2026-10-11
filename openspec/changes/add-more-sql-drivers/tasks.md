@@ -36,3 +36,8 @@
 ## 5. CI
 
 - [ ] 5.1 Extend docker-compose and the integration workflow with SQL Server, Oracle and ClickHouse (Oracle and SQL Server on a schedule) and build caching (spec: driver-framework › Conformance across SQL drivers)
+
+## 6. End-to-end
+
+- [ ] 6.1 E2E: add journey J-18 in `e2e/specs/` — cross-driver parity for SQL Server, Oracle, ClickHouse and DuckDB (connect, run, page, cancel, edit where supported) on the shared `shop` seed; heavy profile, nightly
+- [ ] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. driver-framework › Conformance across SQL drivers) and add the seed/compose service it needs to the matching profile
