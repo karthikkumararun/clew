@@ -125,6 +125,25 @@ describe("rendering", () => {
     expect(container.querySelector('[title="12,480 rows · exact"]')).not.toBeNull();
   });
 
+  it("groups connections by environment when there are no groups of their own", () => {
+    useConnections.setState({
+      file: file([
+        conn("c7", "local-db", { environment: "local" }),
+        conn("c8", "prod-db", { environment: "production" }),
+        conn("c9", "other-prod", { environment: "production" }),
+      ]),
+    });
+    render(<ExplorerPanel />);
+    const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
+    expect(labels).toEqual([
+      "PRODUCTION",
+      expect.stringContaining("prod-db"),
+      expect.stringContaining("other-prod"),
+      "LOCAL",
+      expect.stringContaining("local-db"),
+    ]);
+  });
+
   it("shows the empty state with New connection and Import", () => {
     useConnections.setState({ file: file([]) });
     render(<ExplorerPanel />);

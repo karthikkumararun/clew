@@ -96,6 +96,9 @@ export interface FlattenInput {
 
 export const UNGROUPED = "__ungrouped__";
 
+/** Default groups when the user has made none, most careful first. */
+const ENVIRONMENT_ORDER = ["production", "staging", "development", "local"] as const;
+
 /** Cap on children rendered per node; a hint row tells the user to filter. */
 export const CHILD_CAP = 5000;
 
@@ -229,19 +232,34 @@ export function flatten(input: FlattenInput): Row[] {
   };
 
   const buckets = bucketConnections(input.file);
-  const sections = [
-    ...sortedGroups(input.file).map((g) => ({
-      key: g.id,
-      label: g.name,
-      groupId: g.id as string | null,
-      items: buckets.get(g.id) ?? [],
-    })),
-    { key: UNGROUPED, label: "Ungrouped", groupId: null, items: buckets.get(null) ?? [] },
-  ];
-  const showHeads = input.file.groups.length > 0;
+  // With no groups of their own, connections sit under default groups by environment.
+  const byEnvironment = input.file.groups.length === 0;
+  const sections = byEnvironment
+    ? ENVIRONMENT_ORDER.map((env) => ({
+        key: `env:${env}`,
+        label: env.toUpperCase(),
+        groupId: null as string | null,
+        items: (buckets.get(null) ?? []).filter((c) => c.environment === env),
+      }))
+    : [
+        ...sortedGroups(input.file).map((g) => ({
+          key: g.id,
+          label: g.name,
+          groupId: g.id as string | null,
+          items: buckets.get(g.id) ?? [],
+        })),
+        { key: UNGROUPED, label: "Ungrouped", groupId: null, items: buckets.get(null) ?? [] },
+      ];
+  const showHeads = true;
   for (const s of sections) {
     const visibleItems = sets ? s.items.filter((c) => sets.keep.has(c.id)) : s.items;
-    if (sets ? visibleItems.length === 0 : s.items.length === 0 && s.key === UNGROUPED) continue;
+    if (
+      sets
+        ? visibleItems.length === 0
+        : s.items.length === 0 && (byEnvironment || s.key === UNGROUPED)
+    ) {
+      continue;
+    }
     const collapsed = !sets && input.collapsedGroups.has(s.key);
     if (showHeads) {
       rows.push({
