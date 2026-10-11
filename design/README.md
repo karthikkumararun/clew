@@ -23,6 +23,7 @@ This folder is the source of truth for implementation:
 | New connection dialog | `canvas/ConnectionDialog.dc.html` | `add-connection-management` |
 | Command palette | `canvas/CommandPalette.dc.html` | `add-command-palette` |
 | Import / export connections (encrypted export, DataGrip import with SQL consoles) | `canvas/ImportExport.dc.html` | `add-connection-management` |
+| App icon (macOS, Windows, small sizes), in-app mark, dev-build badge | `canvas/AppIcon.dc.html` | `add-app-icon` |
 | AI assistant side panel, inline diff review, Fix with AI | `canvas/AIAssistant.dc.html` | `add-ai-assistant` (panel slot: `add-app-shell`) |
 | Settings › AI assistant (providers, sign-in, routing, privacy); also the layout for every Settings section | `canvas/AIProviders.dc.html` | `add-ai-assistant`, `add-app-shell` (Settings layout) |
 
@@ -37,6 +38,10 @@ This folder is the source of truth for implementation:
 - **AI:** the AI uses the same gold accent with a four-point star icon. AI edits appear as an inline diff in the editor (removed = `--grid-deleted-row` + strikethrough + red left bar; added = `--grid-inserted-row` + green left bar; changed words on a stronger green), with per-hunk Keep/Undo and a floating amber review bar. AI never runs SQL.
 - **Icons:** inline stroke SVGs, 12–16px, `currentColor`. No emoji, no icon fonts.
 - **Density:** desktop-first. Controls are 28px high (below the 44px touch guideline on purpose; this is a keyboard-and-mouse tool). Every control is still a real `<button>`/`<input>` with a visible focus ring.
+
+## App icon and mark
+
+The brand mark is a golden ball of thread with its end trailing beneath it (a clew). Sources are in `design/icons/` and are the only source of truth: `clew-icon.svg` (macOS master), `clew-icon-windows.svg`, `clew-icon-small.svg` (sizes below 48 px, redrawn rather than scaled) and `clew-mark.svg` (one-colour mark for the toolbar and Welcome screen, takes `currentColor`). Never recolour, outline or add effects; keep 100 px clear on macOS and 48 px on Windows. The icon palette (ground `#1B2028` / `#0F1217` / `#14171C`, gold `#F2C070` / `#E3A64F` / `#C58633`) is documented on the canvas screen and is separate from the UI tokens.
 
 ## Layout metrics
 

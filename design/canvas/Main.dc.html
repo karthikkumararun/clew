@@ -32,7 +32,17 @@ button{font:inherit;color:inherit;cursor:pointer}
   <!-- Title bar / main toolbar -->
   <header style="height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
     <div style="display: flex; align-items: center; gap: 8px">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M4 8c4 1 8 1 12-2M3.5 12c4 1.5 9 1.5 13-2M6 16c3-1 6-3 8-7"/><path d="M15.5 15.5c2 2 4 3 7 3"/></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: {{accent}}" role="img" aria-label="Clew logo: a ball of thread"><defs>
+    <mask id="clew-mark-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+      <circle cx="10.8" cy="10.2" r="7.6" fill="#fff"/>
+      <g fill="none" stroke="#000" stroke-width="1.15">
+        <g transform="rotate(-38 10.8 10.2)"><ellipse cx="10.8" cy="10.2" rx="2.7" ry="8.2"/><ellipse cx="10.8" cy="10.2" rx="5.5" ry="8.2"/></g>
+        <g transform="rotate(34 10.8 10.2)"><ellipse cx="10.8" cy="10.2" rx="3.8" ry="8.2"/></g>
+      </g>
+    </mask>
+  </defs>
+  <circle cx="10.8" cy="10.2" r="7.6" mask="url(#clew-mark-cut)"/>
+  <path d="M10.4 17.6 C10.9 20.6 15 21.6 18 20 C20 18.9 22.2 19.2 22.4 21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
       <span style="display: flex; flex-direction: column; line-height: 1.1">
         <span style="font-weight: 600; letter-spacing: 0.02em">Clew</span>
         <span style="color: {{accent}}; font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em">by ADK</span>

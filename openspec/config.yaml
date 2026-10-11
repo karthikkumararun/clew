@@ -65,6 +65,7 @@ context: |
   - Environment colors: local green, dev blue, staging amber, production red. Production connections
     show a red tab stripe and a "PRODUCTION · READ-ONLY" badge.
   - Never hard-code hex colors in components; use tokens. Never use emoji as icons.
+  - App icon and in-app logo come from design/icons/*.svg (generated assets in src-tauri/icons/ via `pnpm icons`); never edit generated icons by hand or use Tauri's default art.
 
   ## Conventions
   - Platform-aware shortcuts: "Mod" = Cmd on macOS, Ctrl on Windows. Spec text writes Mod+Enter etc.
