@@ -45,5 +45,5 @@ Sources parse and are 1024 viewBox; palette check; gold/strand contrast >= 7:1 f
 ## Open Questions
 
 - **Newest macOS versions** may wrap or restyle icons that lack the newer layered icon format (Apple's Icon Composer `.icon`). Verify on the maintainer's macOS; if the icon is wrapped in a system container, add a layered icon asset in a follow-up change.
-- **Dock icon of `tauri dev` on macOS**: a bare dev binary has no bundle, so the badge may only show in the window/taskbar on Windows and Linux. Check during implementation and note the result here.
+- **Dock icon of `tauri dev` on macOS**: verified by the maintainer: plain `pnpm tauri dev` shows the Clew icon (release artwork, no badge) in the Dock, so the Dock does pick up `bundle.icon` without a bundle. `pnpm dev:app` also verified: the Dock shows the icon with the DEV pill at the lower left.
 - **Licensing of the artwork and name**: should the icon and the name "Clew by ADK" be covered by the project's MIT license, or reserved as a trademark with a short usage note in the README?

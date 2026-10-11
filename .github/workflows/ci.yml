@@ -30,6 +30,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      - name: Icons are up to date, no default Tauri art, goldens match
+        run: pnpm check:icons
       - run: cargo fmt --check
         working-directory: src-tauri
       - run: cargo clippy -- -D warnings
@@ -40,6 +42,25 @@ jobs:
       # runs on main (and on demand), not on pull requests.
       - if: github.event_name != 'pull_request'
         run: pnpm tauri build --debug --no-bundle
+      # Bundle step with the real icons: the .app carries our icon.icns, and no dev badge ships.
+      - name: Bundle icons (macOS)
+        if: github.event_name != 'pull_request' && runner.os == 'macOS'
+        run: |
+          pnpm tauri build --debug --bundles app
+          cmp src-tauri/icons/icon.icns src-tauri/target/debug/bundle/macos/Clew.app/Contents/Resources/icon.icns
+          ! cmp -s src-tauri/icons/dev/icon.icns src-tauri/target/debug/bundle/macos/Clew.app/Contents/Resources/icon.icns
+      - name: Executable icon resource (Windows)
+        if: github.event_name != 'pull_request' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $exe = (Resolve-Path src-tauri/target/debug/clew.exe).Path
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if ($icon.Width -lt 32) { throw "executable icon missing" }
+          $bytes = [IO.File]::ReadAllBytes($exe)
+          $ico = [IO.File]::ReadAllBytes("src-tauri/icons/icon.ico")
+          $count = [BitConverter]::ToUInt16($ico, 4)
+          Write-Host "icon.ico lists $count sizes; executable icon extracted at $($icon.Width)px"
 
   # Database integration tests (PostgreSQL, MySQL, MariaDB, SSH bastion, TLS) need Docker, which
   # the macOS and Windows runners do not have.

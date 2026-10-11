@@ -15,7 +15,10 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "icons": "tsx scripts/build-icons.ts",
+    "check:icons": "tsx scripts/check-icons.ts",
+    "dev:app": "tauri dev --config src-tauri/tauri.dev.conf.json"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -44,12 +47,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@tauri-apps/cli": "^2.12.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/lodash": "^4.17.26",
     "@types/node": "^26.6.4",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.2",
@@ -57,7 +62,10 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.2",
+    "pixelmatch": "^8.0.0",
+    "pngjs": "^7.0.0",
     "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",

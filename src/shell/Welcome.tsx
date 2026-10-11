@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { DRIVER_BADGES, ENV_COLORS, Kbd } from "../components/Badge";
-import { ClewLogo, File, Import, Plus } from "../components/icons";
+import { ClewMark } from "../components/ClewMark";
+import { File, Import, Plus } from "../components/icons";
 import { useConnections } from "../connections/connectionsStore";
 import { appPaths } from "../lib/ipc";
 import type { AppPaths } from "../lib/ipc";
@@ -59,14 +60,7 @@ export function Welcome() {
         <div className={styles.grid}>
           <div className={styles.col}>
             <div className={styles.identity}>
-              <ClewLogo
-                size={56}
-                strokeWidth={1.1}
-                detail
-                role="img"
-                aria-label="Clew logo: a ball of thread"
-                aria-hidden={undefined}
-              />
+              <ClewMark size={56} />
               <div className={styles.titleBlock}>
                 <h1 className={styles.title}>Clew</h1>
                 <span className={styles.byline}>by ADK</span>

@@ -86,34 +86,3 @@ export const Star = makeIcon(
   <path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7l-3.7 2.4 1.1-4.3L2 6l4.4-.3z" />,
   { strokeWidth: 1.4 },
 );
-
-export function ClewLogo({
-  size = 20,
-  strokeWidth = 1.6,
-  detail = false,
-  ...rest
-}: {
-  size?: number;
-  strokeWidth?: number;
-  detail?: boolean;
-} & Omit<React.SVGProps<SVGSVGElement>, "width" | "height" | "strokeWidth">) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      aria-hidden="true"
-      {...rest}
-    >
-      <circle cx="10" cy="10" r="7" />
-      <path
-        d={`M4 8c4 1 8 1 12-2M3.5 12c4 1.5 9 1.5 13-2M6 16c3-1 6-3 8-7${detail ? "M7 4.5c2 2 3 6 2 11" : ""}`}
-      />
-      <path d="M15.5 15.5c2 2 4 3 7 3" />
-    </svg>
-  );
-}

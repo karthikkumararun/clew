@@ -1,5 +1,6 @@
 import { IconButton } from "../components/Button";
-import { ClewLogo, PanelRight, Settings } from "../components/icons";
+import { ClewMark } from "../components/ClewMark";
+import { PanelRight, Settings } from "../components/icons";
 import { isMac } from "../lib/platform";
 import { useLayout } from "../stores/layoutStore";
 import { runCommand } from "./registry/commands";
@@ -29,7 +30,7 @@ export function Toolbar() {
   return (
     <header className={styles.toolbar} data-tauri-drag-region data-overlay={isMac()}>
       <div className={styles.brand} data-tauri-drag-region>
-        <ClewLogo size={20} />
+        <ClewMark size={20} />
         <span className={styles.wordmark} data-tauri-drag-region>
           <span className={styles.name} data-tauri-drag-region>
             Clew

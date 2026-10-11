@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Terminal } from "../components/icons";
 import App from "../App";
 import { setPlatformForTests } from "../lib/platform";
@@ -74,6 +74,15 @@ describe("Welcome screen", () => {
       ),
     );
     expect(screen.getByTestId("welcome")).toHaveTextContent("v0.1.0");
+  });
+
+  it("shows the Clew mark in the toolbar (20 px) and on Welcome (56 px)", () => {
+    render(<App />);
+    const marks = screen.getAllByRole("img", { name: "Clew" });
+    expect(marks.map((m) => m.getAttribute("width"))).toEqual(["20", "56"]);
+    expect(within(screen.getByRole("banner")).getByRole("img", { name: "Clew" })).toBe(marks[0]);
+    expect(within(screen.getByTestId("welcome")).getByRole("img", { name: "Clew" })).toBe(marks[1]);
+    expect(marks.every((m) => m.getAttribute("fill") === "currentColor")).toBe(true);
   });
 
   it("renders platform-specific shortcut hints", () => {
