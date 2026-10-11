@@ -167,6 +167,17 @@ pub fn switch_statement(
             Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
             None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },
+        Dialect::Duckdb => match (database, schema) {
+            (Some(db), Some(schema)) => Ok(format!(
+                "USE {}.{}",
+                quote_ident(dialect, db),
+                quote_ident(dialect, schema)
+            )),
+            (Some(only), None) | (None, Some(only)) => {
+                Ok(format!("USE {}", quote_ident(dialect, only)))
+            }
+            (None, None) => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
         Dialect::Sqlite => Err(DriverError::unsupported("switching database or schema")),
     }
 }

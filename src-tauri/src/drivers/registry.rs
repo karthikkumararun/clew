@@ -32,6 +32,7 @@ impl Registry {
         r.register(Arc::new(super::mysql::MysqlDriver::mysql()));
         r.register(Arc::new(super::mysql::MysqlDriver::mariadb()));
         r.register(Arc::new(super::sqlite::SqliteDriver::new()));
+        r.register(Arc::new(super::duckdb::DuckDbDriver::new()));
         r
     }
 

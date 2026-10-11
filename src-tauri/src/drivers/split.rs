@@ -36,7 +36,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn postgres(&self) -> bool {
-        matches!(self.dialect, Some(Dialect::Postgresql))
+        matches!(self.dialect, Some(Dialect::Postgresql | Dialect::Duckdb))
     }
 
     /// Index just past a quoted run starting at `i` (which holds the opening quote).
