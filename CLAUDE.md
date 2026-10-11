@@ -19,18 +19,20 @@ Implement one change at a time, in this order (each depends on the earlier ones)
 5. `add-sql-console`
 6. `add-data-grid`
 7. `add-production-safeguards`
-8. `add-more-sql-drivers`  (SQL Server, Oracle, ClickHouse, DuckDB)
-9. `add-nosql-browser`
-10. `add-graph-browser`  (Neo4j)
-11. `add-command-palette`
-12. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
-13. `add-release-packaging`
+8. `add-e2e-testing`  (real-app end-to-end harness, seed data, release QA loop)
+9. `add-more-sql-drivers`  (SQL Server, Oracle, ClickHouse, DuckDB)
+10. `add-nosql-browser`
+11. `add-graph-browser`  (Neo4j)
+12. `add-command-palette`
+13. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
+14. `add-release-packaging`
 
 ## Workflow per change
 
 - Start with `/opsx:apply <change>` (or `openspec instructions apply --change <change>`). Work through `tasks.md` in order and tick each `- [ ]` when done.
 - Each task names the requirement it satisfies; each task group ends with tests. Turn the scenarios into the tests.
 - Before calling a change done: `pnpm typecheck && pnpm lint && pnpm test`, `cargo fmt --check && cargo clippy -- -D warnings && cargo test` (in `src-tauri/`), and `openspec validate <change> --strict`.
+- Changes after `add-e2e-testing` also end with an E2E task group: add or extend the journey that drives the real app and declare the covered scenarios (`covers('capability › Scenario')`). E2E suites run on `release/*` branches and nightly, not on PRs; locally use `pnpm qa:up`, `pnpm qa:e2e`, `pnpm qa:down` (see `docs/qa/README.md` once it exists).
 - When a change is fully done, archive it with `/opsx:archive <change>` so its specs merge into `openspec/specs/`.
 - If a spec is wrong or ambiguous, stop and update the change's spec/design (and say why) rather than silently diverging.
 
