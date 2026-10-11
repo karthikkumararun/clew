@@ -24,6 +24,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
             librsvg2-dev libssl-dev pkg-config unzip libaio1t64 || sudo apt-get install -y libaio1
+      - name: libaio name for the Instant Client
+        run: |
+          # Ubuntu 24.04 ships libaio.so.1t64; the client looks for libaio.so.1
+          lib="$(ls /usr/lib/x86_64-linux-gnu/libaio.so.1* | head -1)"
+          [ -e /usr/lib/x86_64-linux-gnu/libaio.so.1 ] || sudo ln -s "$lib" /usr/lib/x86_64-linux-gnu/libaio.so.1
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
         with:
