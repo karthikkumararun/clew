@@ -34,6 +34,7 @@ Implement one change at a time, in this order (each depends on the earlier ones)
 - Before calling a change done: `pnpm typecheck && pnpm lint && pnpm test`, `cargo fmt --check && cargo clippy -- -D warnings && cargo test` (in `src-tauri/`), and `openspec validate <change> --strict`.
 - Changes after `add-e2e-testing` also end with an E2E task group: add or extend the journey that drives the real app and declare the covered scenarios (`covers('capability › Scenario')`). E2E suites run on `release/*` branches and nightly, not on PRs; locally use `pnpm qa:up`, `pnpm qa:e2e`, `pnpm qa:down` (see `docs/qa/README.md` once it exists).
 - When a change is fully done, archive it with `/opsx:archive <change>` so its specs merge into `openspec/specs/`.
+- Fixing a defect (branch `fix/<issue>-<slug>`): write the failing test first at the lowest level that can observe it (layout, visibility and clipping bugs need a real-render test, because jsdom cannot see them); if the behaviour was never specified, add the scenario to the spec; in the PR state the defect class and the guard that prevents the class (see `docs/qa/defect-classes.md` once it exists), or write "No automated test" with the reason.
 - If a spec is wrong or ambiguous, stop and update the change's spec/design (and say why) rather than silently diverging.
 
 ## Rules that matter

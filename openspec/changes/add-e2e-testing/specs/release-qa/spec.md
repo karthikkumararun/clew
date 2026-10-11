@@ -59,8 +59,37 @@ Every defect of severity S1 to S3 SHALL be fixed on its own branch named `fix/<i
 - **WHEN** a fix is merged
 - **THEN** the maintainer re-runs the original steps (or the new test) on their machine before closing the issue
 
+### Requirement: Defect class guards
+Every fixed defect SHALL be classified in the fix pull request (for example C1 invisible to jsdom: layout, clipping, overlap; C2 state with no way back; C3 requirement prose without a scenario; C4 design mismatch; C5 weak test; C6 fix without regression test) and the pull request SHALL state the guard that prevents the whole class from recurring, not only the instance. Classes and their guards SHALL be kept in `docs/qa/defect-classes.md`, and a new class SHALL add an entry and, where possible, a generic automated check.
+
+#### Scenario: Clipped menu fixed
+- **WHEN** a defect where a toolbar clipped a dropdown menu is fixed
+- **THEN** the pull request names class C1, adds the instance's regression test, and points to the shared overlay-integrity check that now covers every menu
+
+#### Scenario: New kind of defect
+- **WHEN** a defect fits no existing class
+- **THEN** the pull request adds a class entry with its guard to `docs/qa/defect-classes.md`
+
+### Requirement: Fix pull request check
+A CI check SHALL run on pull requests from `fix/*` branches or labelled `defect`, failing when the pull request neither changes a test file nor contains a section "No automated test" with a reason, and failing when the description lacks a linked issue, a spec scenario (existing or newly added) and a defect class.
+
+#### Scenario: Fix without a test
+- **WHEN** a `fix/` pull request changes only source files and has no "No automated test" section
+- **THEN** the check fails and says what is missing
+
+#### Scenario: Spec scenario added with the fix
+- **WHEN** the investigation shows the behaviour was never specified
+- **THEN** the pull request adds the missing scenario to the spec (as a change delta) and its test, and the check passes
+
+### Requirement: Exploratory charters
+`docs/qa/charters.md` SHALL hold short exploratory-testing charters used during manual passes, each with a mission, a time box and what to record. It SHALL include at least: hide or close every panel and try to get back; resize to the narrowest window and open every menu; start with each saved layout state; change environments and watch every place that shows them; production flows end to end; kill a database or the network mid-operation; keyboard-only for 15 minutes; compare every screen with its canvas image; import data from a tool you use (DataGrip). New charters SHALL be added from every defect found by hand.
+
+#### Scenario: Charter from a defect
+- **WHEN** a manual pass finds a defect no charter would have found
+- **THEN** a charter that would have found it is added with the fix
+
 ### Requirement: Release gate
-A release SHALL be cut only when: no S1 or S2 defects are open; the `smoke` suite is green on macOS, Windows and Linux and the `full` and `heavy` suites are green on Linux for the release commit; the manual checklist has been completed on macOS and on Windows for the same commit with failures filed as defects; and `docs/qa/coverage.md` shows no scenario of a shipped capability without any test level or manual entry.
+A release SHALL be cut only when: no S1 or S2 defects are open; the design review report shows every state approved or with only filed S4 discrepancies; the `smoke` suite is green on macOS, Windows and Linux and the `full` and `heavy` suites are green on Linux for the release commit; the manual checklist has been completed on macOS and on Windows for the same commit with failures filed as defects; and `docs/qa/coverage.md` shows no scenario of a shipped capability without any test level or manual entry.
 
 #### Scenario: Open S2 defect
 - **WHEN** a release is attempted with one open S2 defect

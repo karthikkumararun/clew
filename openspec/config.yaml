@@ -82,6 +82,10 @@ rules:
   specs:
     - Write requirements from the user's point of view; put library choices in design.md, not specs.
     - Include at least one failure / edge-case scenario per requirement where one exists (timeouts, cancellation, empty states, permission errors).
+    - Every default, enumerated item, state or list mentioned in a requirement's prose needs its own scenario; prose without a scenario is untested.
+    - For anything the user can hide, collapse, close or disable, add a scenario for getting it back at wide and narrow window sizes and after a restart with the state saved.
+    - For any menu, popover, tooltip or dialog, add a scenario that it is fully visible and not clipped by its container.
+    - Scenarios about sizes, visibility, clipping, overlap, focus or colour must be verifiable in the real app; say which suite covers them.
   design:
     - Reference concrete files under src-tauri/ and src/ that will be created or changed.
     - For UI work, cite the exact canvas file and the tokens used; match spacing and sizes in the canvas source.
@@ -89,4 +93,5 @@ rules:
     - Each numbered group ends with a test task (Rust unit/integration or Vitest) that proves the group's scenarios.
     - Tasks reference the spec requirement they satisfy, e.g. "(spec: sql-console › Run current statement)".
     - Keep each task small enough for one focused session; never combine backend and frontend work in one task.
+    - UI tasks cite the canvas screen and state (design/states.json) and add or update `data-metric` regions and the state's fixture; layout assertions are made on rendered boxes in the design suite, never on token declarations or in jsdom.
     - Every change with user-visible behaviour ends with an "E2E" task group: add or extend the numbered journey (e2e/specs/J-nn-*.e2e.ts) that drives the real app, and declare the spec scenarios it covers with covers('capability › Scenario'). Journeys needing a database use the shared `shop` seed and the docker-compose profile for that database.
