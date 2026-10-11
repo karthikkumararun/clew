@@ -606,6 +606,7 @@ export class ConsoleRuntime {
       case "mariadb":
         return "START TRANSACTION";
       case "sqlserver":
+      case "oracle":
         return "BEGIN TRANSACTION";
       default:
         return "BEGIN";

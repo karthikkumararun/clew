@@ -1,6 +1,6 @@
 # Integration-test databases. Test-only credentials; never use these anywhere real.
 #   scripts/gen-test-certs.sh   (once, creates docker/postgres-tls/certs and docker/bastion/keys)
-#   docker compose up -d --build --wait
+#   docker compose up -d --build --wait            (add --profile heavy for SQL Server and Oracle)
 #   cargo test --features integration   (in src-tauri/)
 services:
   postgres:
@@ -58,6 +58,55 @@ services:
       interval: 3s
       timeout: 3s
       retries: 40
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_DB: clew
+      CLICKHOUSE_USER: clew
+      CLICKHOUSE_PASSWORD: clew
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports: ["8123:8123"]
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8123/ping || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  mssql:
+    profiles: [heavy]
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Clew_test_1"
+      MSSQL_PID: Developer
+    ports: ["14331:1433"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Clew_test_1 -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  oracle:
+    profiles: [heavy]
+    image: gvenzl/oracle-free:23-slim-faststart
+    environment:
+      ORACLE_PASSWORD: clew
+      APP_USER: clew
+      APP_USER_PASSWORD: clew
+    ports: ["15211:1521"]
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
 
   mariadb:
     image: mariadb:11

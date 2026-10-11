@@ -3,7 +3,7 @@ import { registerCommand } from "../../shell/registry/commands";
 import { registerShortcut } from "../../shell/registry/shortcuts";
 import { useNoticesStore } from "./notices";
 import { formatSql } from "./editor/format";
-import { splitDialect } from "./editor/dialects";
+import { splitDialect, supportsTransactions } from "./editor/dialects";
 import { splitStatements, statementAt } from "./editor/statements";
 import { getRuntime } from "./runtime";
 import { submitExplain, submitRun } from "./run";
@@ -35,8 +35,8 @@ export async function openConsole(args: NewConsoleArgs = {}): Promise<string | n
   const connectionId = args.connectionId ?? connectionInContext() ?? (await pickConnection());
   if (!connectionId) return null;
   // "Manual commit" connections start every console in Manual transaction mode.
-  const manual = useConnections.getState().file.connections.find((c) => c.id === connectionId)
-    ?.safeguards.manualCommit;
+  const saved = useConnections.getState().file.connections.find((c) => c.id === connectionId);
+  const manual = saved?.safeguards.manualCommit && supportsTransactions(saved.driver);
   const state: ConsoleState = {
     connectionId,
     database: args.database,

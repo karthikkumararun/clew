@@ -18,6 +18,13 @@ pub fn hold_quit(app: &AppHandle) -> bool {
             .is_some_and(|s| s.sessions.any_in_transaction())
 }
 
+/// Whether an Oracle Instant Client can be found, and where. `dir` previews a folder that hasn't
+/// been saved yet.
+#[tauri::command]
+pub fn oracle_client_status(dir: Option<String>) -> crate::drivers::oracle::client::ClientStatus {
+    crate::drivers::oracle::client::status(dir.as_deref())
+}
+
 /// Quit now: the frontend asked about the open transactions and the user settled them.
 #[tauri::command]
 pub fn app_quit_confirmed(app: AppHandle) {

@@ -2,10 +2,13 @@
 //! ever talks to these types (through the Tauri commands in `commands/`).
 
 pub mod batch;
+pub mod clickhouse;
 pub mod duckdb;
 pub mod error;
 pub mod introspect;
+pub mod mssql;
 pub mod mysql;
+pub mod oracle;
 pub mod paging;
 pub mod postgres;
 pub mod registry;
@@ -64,6 +67,9 @@ pub enum Dialect {
     Mariadb,
     Sqlite,
     Duckdb,
+    Clickhouse,
+    Tsql,
+    Oracle,
 }
 
 #[derive(ts_rs::TS)]
@@ -519,6 +525,12 @@ pub trait Session: Send {
 
     /// Server identification for the status bar.
     fn server_info(&self) -> ServerInfo;
+
+    /// False once the session's connection has been given up (e.g. after a cancel the protocol
+    /// could not recover from); the session manager then reconnects before the next statement.
+    fn is_alive(&self) -> bool {
+        true
+    }
 
     async fn close(self: Box<Self>) -> DriverResult<()>;
 }

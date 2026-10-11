@@ -7,6 +7,8 @@ export interface Settings {
   confirmCloseUnsaved: boolean;
   /** Opt-in update check. */
   checkForUpdates: boolean;
+  /** Folder of the Oracle Instant Client, when it isn't in a place Clew looks. */
+  oracleClientDir: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -14,4 +16,5 @@ export const DEFAULT_SETTINGS: Settings = {
   gridPageSize: 500,
   confirmCloseUnsaved: true,
   checkForUpdates: false,
+  oracleClientDir: "",
 };

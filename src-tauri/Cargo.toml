@@ -47,6 +47,10 @@ quick-xml = "0.37"
 keepass = { version = "0.15.0", features = ["save_kdbx4"] }
 sqlparser = { version = "0.63.0", features = ["visitor"] }
 duckdb = { version = "1.10506.0", features = ["bundled"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "stream", "json", "query"] }
+tiberius = { version = "0.13.0", default-features = false, features = ["tds73", "rustls", "chrono", "rust_decimal"] }
+tokio-util = { version = "0.7.20", features = ["compat"] }
+oracle = "0.6.3"
 
 [profile.release]
 codegen-units = 1
@@ -58,6 +62,8 @@ strip = true
 [features]
 # Integration tests that need the docker-compose services (see docker-compose.yml).
 integration = []
+# SQL Server and Oracle: big images, run on a schedule (see .github/workflows/heavy-integration.yml).
+integration-heavy = ["integration"]
 
 [dev-dependencies]
 rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"] }
@@ -65,3 +71,11 @@ tempfile = "3.27.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "3"
+
+[target."cfg(windows)".dependencies]
+tiberius = { version = "0.13.0", default-features = false, features = ["winauth"] }
+
+# Dependencies don't need debug info in dev builds. DuckDB's bundled C++ alone makes the debug
+# artifacts huge, which slows linking every test binary and every CI cache save.
+[profile.dev.package."*"]
+debug = false

@@ -47,7 +47,7 @@ pub fn qualified_name(driver: &str, path: &NodePath) -> String {
     let flavor = SqlFlavor::of_driver(driver);
     let table = path.0.last().map(|s| s.name.as_str()).unwrap_or_default();
     // DuckDB can have several catalogs attached, so its names carry the catalog too.
-    if driver == "duckdb" {
+    if driver == "duckdb" || driver == "sqlserver" {
         let parts: Vec<&str> = [
             path.find(NodeKind::Database),
             path.find(NodeKind::Schema),
@@ -223,7 +223,7 @@ mod tests {
         ms.default_order = vec![];
         assert_eq!(
             build("sqlserver", &ms).select,
-            "SELECT * FROM [public].[orders] ORDER BY (SELECT NULL)"
+            "SELECT * FROM [analytics].[public].[orders] ORDER BY (SELECT NULL)"
         );
     }
 
@@ -239,7 +239,7 @@ mod tests {
         r.offset = 50;
         assert_eq!(
             build("sqlserver", &r).select,
-            "SELECT * FROM [dbo].[orders] ORDER BY (SELECT NULL) OFFSET 50 ROWS FETCH NEXT 100 ROWS ONLY"
+            "SELECT * FROM [shop].[dbo].[orders] ORDER BY (SELECT NULL) OFFSET 50 ROWS FETCH NEXT 100 ROWS ONLY"
         );
         assert_eq!(
             build("oracle", &r).select,

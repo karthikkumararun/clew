@@ -28,6 +28,7 @@ import type { Draft, Errors } from "./draft";
 import { AdvancedTab, SshTab, TlsTab } from "./ExtraTabs";
 import { GeneralForm } from "./GeneralForms";
 import { pickFile } from "./files";
+import { useOracleClient } from "./oracleClient";
 import styles from "./ConnectionDialog.module.css";
 
 type TabId = "general" | "ssh" | "tls" | "advanced";
@@ -270,6 +271,8 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
   };
 
   const passwordSaved = Boolean(secrets?.password) && !draft.clearPassword;
+  const oracleClient = useOracleClient(draft.driver === "oracle");
+  const oracleMissing = draft.driver === "oracle" && oracleClient.status?.found === false;
 
   return (
     <Dialog title={request.title} onClose={closeDialog}>
@@ -398,6 +401,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                   setPort={(port) => patch({ port, portEdited: true })}
                   pickFile={() => void choose()}
                   passwordSaved={passwordSaved}
+                  oracleClient={oracleClient}
                 />
                 <div className={styles.fld}>
                   <span className={styles.lbl}>URL</span>
@@ -429,7 +433,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                 </div>
                 <Checkbox
                   label="Open read-only by default"
-                  description="Switch to read-write per session from the toolbar."
+                  description={readOnlyNote(draft.driver)}
                   checked={draft.safeguards.readOnlyByDefault}
                   onChange={(e) =>
                     patch({
@@ -464,7 +468,8 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
               <Button
                 variant="default"
                 onClick={() => void runTest()}
-                disabled={test.phase === "running"}
+                disabled={test.phase === "running" || oracleMissing}
+                title={oracleMissing ? "Install the Oracle Instant Client first" : undefined}
               >
                 {test.phase === "running" ? "Testing…" : "Test connection"}
               </Button>
@@ -523,4 +528,16 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
 export function ConnectionDialogHost() {
   const dialog = useConnections((s) => s.dialog);
   return dialog ? <ConnectionDialog key={dialog.initial.id || "new"} request={dialog} /> : null;
+}
+
+/** What "read-only" means for a driver, for the line under the checkbox. */
+export function readOnlyNote(driver: string): string {
+  switch (driver) {
+    case "sqlserver":
+      return "SQL Server has no session-level read-only mode, so Clew blocks writes itself. Switch to read-write per session from the toolbar.";
+    case "duckdb":
+      return "DuckDB opens the file read-only; to write, reconnect with this off.";
+    default:
+      return "Switch to read-write per session from the toolbar.";
+  }
 }

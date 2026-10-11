@@ -21,6 +21,8 @@ pub struct Settings {
     pub confirm_close_unsaved: bool,
     /// Opt-in update check.
     pub check_for_updates: bool,
+    /// Folder of the Oracle Instant Client, when it isn't somewhere Clew looks by itself.
+    pub oracle_client_dir: String,
 }
 
 impl Default for Settings {
@@ -31,6 +33,7 @@ impl Default for Settings {
             grid_page_size: 500,
             confirm_close_unsaved: true,
             check_for_updates: false,
+            oracle_client_dir: String::new(),
         }
     }
 }
@@ -41,6 +44,7 @@ impl Settings {
         let defaults = Settings::default();
         self.version = SETTINGS_VERSION;
         self.editor_font_size = self.editor_font_size.clamp(11, 20);
+        self.oracle_client_dir = self.oracle_client_dir.trim().to_string();
         if !GRID_PAGE_SIZES.contains(&self.grid_page_size) {
             self.grid_page_size = defaults.grid_page_size;
         }

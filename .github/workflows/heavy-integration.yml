@@ -1,0 +1,54 @@
+name: Heavy integration (SQL Server, Oracle)
+
+# Big images that are slow to start: run weekly and on demand, not on every push.
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src-tauri/src/drivers/mssql/**"
+      - "src-tauri/src/drivers/oracle/**"
+      - "src-tauri/tests/mssql.rs"
+      - "src-tauri/tests/oracle.rs"
+      - ".github/workflows/heavy-integration.yml"
+
+jobs:
+  heavy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: System libraries for Tauri
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev pkg-config unzip libaio1t64 || sudo apt-get install -y libaio1
+      - name: libaio name for the Instant Client
+        run: |
+          # Ubuntu 24.04 ships libaio.so.1t64; the client looks for libaio.so.1
+          lib="$(ls /usr/lib/x86_64-linux-gnu/libaio.so.1* | head -1)"
+          [ -e /usr/lib/x86_64-linux-gnu/libaio.so.1 ] || sudo ln -s "$lib" /usr/lib/x86_64-linux-gnu/libaio.so.1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Oracle Instant Client
+        run: |
+          curl -fsSL -o ic.zip https://download.oracle.com/otn_software/linux/instantclient/instantclient-basiclite-linuxx64.zip
+          sudo mkdir -p /opt/oracle && sudo unzip -q ic.zip -d /opt/oracle
+          dir="$(ls -d /opt/oracle/instantclient_* | head -1)"
+          echo "ORACLE_HOME=$dir" >> "$GITHUB_ENV"
+          # libclntsh needs its sibling libraries (libnnz) found at load time
+          echo "LD_LIBRARY_PATH=$dir" >> "$GITHUB_ENV"
+      - name: Start SQL Server and Oracle
+        run: docker compose --profile heavy up -d --wait mssql oracle
+      - name: Integration tests
+        run: cargo test --features integration-heavy --test mssql --test oracle
+        working-directory: src-tauri
+      - name: Container logs
+        if: failure()
+        run: docker compose --profile heavy logs --no-color --tail=200
+      - name: Stop the databases
+        if: always()
+        run: docker compose --profile heavy down -v

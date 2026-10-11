@@ -398,3 +398,12 @@ describe("toolbar chip", () => {
     ]);
   });
 });
+
+describe("read-only note", () => {
+  it("explains what read-only means for SQL Server and DuckDB", async () => {
+    const { readOnlyNote } = await import("./ConnectionDialog");
+    expect(readOnlyNote("sqlserver")).toMatch(/no session-level read-only/);
+    expect(readOnlyNote("duckdb")).toMatch(/reconnect/);
+    expect(readOnlyNote("postgres")).toMatch(/per session/);
+  });
+});

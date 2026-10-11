@@ -209,6 +209,13 @@ impl ServerCertVerifier for AcceptAnyVerifier {
     }
 }
 
+/// Make `ring` the process-wide default. Clew's own TLS code names its provider explicitly, but
+/// reqwest and tiberius bring `aws-lc-rs` along, and with two compiled in rustls refuses to guess
+/// for code that doesn't name one.
+pub fn install_default_provider() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+}
+
 fn provider() -> Arc<rustls::crypto::CryptoProvider> {
     Arc::new(rustls::crypto::ring::default_provider())
 }

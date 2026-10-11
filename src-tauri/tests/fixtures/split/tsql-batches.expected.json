@@ -1,0 +1,1 @@
+{"dialect":"tsql","statements":["SELECT 1","SELECT 2","DECLARE @x INT = 41;\nSELECT @x + 1 AS answer;","CREATE PROCEDURE p AS\nBEGIN\n  SELECT 'a\nGO\nb';\n  SELECT 2;\nEND","/*\nGO\n*/\nSELECT 3 AS go"]}

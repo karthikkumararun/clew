@@ -5,6 +5,8 @@ import type { ConnectBy, Draft, Errors } from "./draft";
 import { Field } from "./Field";
 import type { PasswordMode } from "../lib/ipc/generated/PasswordMode";
 import styles from "./ConnectionDialog.module.css";
+import { INSTANT_CLIENT_URL } from "./oracleClient";
+import type { OracleClient } from "./oracleClient";
 
 export interface FormProps {
   draft: Draft;
@@ -15,6 +17,8 @@ export interface FormProps {
   pickFile: () => void;
   /** Whether a password is already saved for this connection. */
   passwordSaved: boolean;
+  /** The Oracle Instant Client, for the Oracle form. */
+  oracleClient?: OracleClient;
 }
 
 const SAVE_MODES: { value: PasswordMode; label: string }[] = [
@@ -138,6 +142,62 @@ const CONNECT_BY: { value: ConnectBy; label: string; field: string }[] = [
   { value: "easyConnect", label: "Easy Connect string", field: "Easy Connect string" },
 ];
 
+/** What the Oracle form says about the Instant Client, and how to fix it when it is missing. */
+export function InstantClientStatus({ client }: { client?: OracleClient }) {
+  const status = client?.status ?? null;
+  if (status && !status.found) {
+    return (
+      <div
+        className={styles.note}
+        data-testid="instant-client-status"
+        data-state="missing"
+        role="alert"
+      >
+        <span className={styles.noteDot} data-bad />
+        <span style={{ flex: 1 }}>
+          <strong>Oracle needs the free Oracle Instant Client.</strong> Download “Basic” or “Basic
+          Light” for your system from <span className="mono">{INSTANT_CLIENT_URL}</span>, then:
+          <br />
+          macOS — unzip it, use the ARM64 build on Apple Silicon.
+          <br />
+          Windows — unzip to <span className="mono">C:\oracle\instantclient_*</span>.
+          <br />
+          Linux — unzip to <span className="mono">/opt/oracle/instantclient_*</span>.
+          <br />
+          Clew finds it in the usual places; otherwise choose its folder.
+        </span>
+        <Button variant="default" onClick={() => void client?.choose()}>
+          Choose folder…
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div
+      className={styles.note}
+      data-testid="instant-client-status"
+      data-state={status ? "found" : "unknown"}
+    >
+      <span className={styles.noteDot} />
+      <span style={{ flex: 1 }}>
+        {status ? (
+          <>
+            Oracle Instant Client{status.version ? ` ${status.version}` : ""} found in{" "}
+            <span className="mono">{status.dir}</span>
+          </>
+        ) : (
+          "Oracle Instant Client is checked when you connect"
+        )}
+      </span>
+      {status ? (
+        <Button variant="default" onClick={() => void client?.choose()}>
+          Choose folder…
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 export function OracleForm(props: FormProps) {
   const { draft, errors, patch } = props;
   const by = CONNECT_BY.find((c) => c.value === draft.connectBy) ?? CONNECT_BY[0];
@@ -198,10 +258,7 @@ export function OracleForm(props: FormProps) {
           />
         )}
       </Field>
-      <div className={styles.note} data-testid="instant-client-status">
-        <span className={styles.noteDot} />
-        <span style={{ flex: 1 }}>Oracle Instant Client is checked when you connect</span>
-      </div>
+      <InstantClientStatus client={props.oracleClient} />
     </div>
   );
 }

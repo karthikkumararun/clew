@@ -115,6 +115,25 @@ async fn with_connect_timeout<T>(
     }
 }
 
+/// Like [`transaction_effect`], but knowing the dialect: in Oracle and T-SQL a bare `BEGIN` opens a
+/// PL/SQL / T-SQL block, so only `BEGIN TRANSACTION` opens a transaction there.
+pub fn transaction_effect_for(dialect: Option<Dialect>, sql: &str) -> Option<bool> {
+    let effect = transaction_effect(sql);
+    if effect == Some(true) && matches!(dialect, Some(Dialect::Oracle | Dialect::Tsql)) {
+        let mut words = sql
+            .trim_start()
+            .split(|c: char| !c.is_ascii_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .map(str::to_ascii_uppercase);
+        let first = words.next();
+        let second = words.next();
+        return (first.as_deref() == Some("BEGIN")
+            && matches!(second.as_deref(), Some("TRAN" | "TRANSACTION")))
+        .then_some(true);
+    }
+    effect
+}
+
 /// Does this statement start or end a transaction? Some(true) = opens, Some(false) = closes.
 pub fn transaction_effect(sql: &str) -> Option<bool> {
     let mut rest = sql.trim_start();
@@ -144,7 +163,10 @@ pub fn transaction_effect(sql: &str) -> Option<bool> {
 
 fn quote_ident(dialect: Dialect, name: &str) -> String {
     match dialect {
-        Dialect::Mysql | Dialect::Mariadb => format!("`{}`", name.replace('`', "``")),
+        Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => {
+            format!("`{}`", name.replace('`', "``"))
+        }
+        Dialect::Tsql => format!("[{}]", name.replace(']', "]]")),
         _ => format!("\"{}\"", name.replace('"', "\"\"")),
     }
 }
@@ -163,7 +185,18 @@ pub fn switch_statement(
             )),
             (None, None) => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },
-        Dialect::Mysql | Dialect::Mariadb => match database.or(schema) {
+        Dialect::Oracle => match schema.or(database) {
+            Some(s) => Ok(format!("ALTER SESSION SET CURRENT_SCHEMA = {}", quote_ident(dialect, s))),
+            None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
+        Dialect::Tsql => match database {
+            Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
+            None if schema.is_some() => Err(DriverError::unsupported(
+                "switching schema (SQL Server has no default-schema switch per session)",
+            )),
+            None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
+        Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => match database.or(schema) {
             Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
             None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },
@@ -208,6 +241,7 @@ async fn run_on_connect(session: &mut dyn Session, cfg: &ResolvedConfig) -> Driv
 
 impl SessionManager {
     pub fn new(registry: Arc<Registry>, ssh_env: SshEnv) -> Self {
+        tls::install_default_provider();
         Self {
             registry,
             ssh_env,
@@ -648,6 +682,12 @@ impl SessionManager {
         let mut first_error: Option<DriverError> = None;
 
         for (index, sql) in statements.into_iter().enumerate() {
+            // A session that gave up its connection (see `Session::is_alive`) is replaced.
+            if st.session.as_ref().is_some_and(|s| !s.is_alive()) {
+                if let Some(dead) = st.session.take() {
+                    let _ = dead.close().await;
+                }
+            }
             if st.session.is_none() {
                 if let Err(e) = Self::reconnect(&entry, &mut st, &emit).await {
                     emit(ResultEvent::Error {
@@ -689,7 +729,7 @@ impl SessionManager {
             let _ = pump.await;
             if let Some(history) = &sink {
                 // Transaction control is the console's own plumbing, not something to look up later.
-                if transaction_effect(&sql).is_none() {
+                if transaction_effect_for(dialect, &sql).is_none() {
                     let (outcome, rows) = match &result {
                         Ok(s) => (
                             Outcome::Ok,
@@ -718,7 +758,7 @@ impl SessionManager {
 
             match result {
                 Ok(summary) => {
-                    if let Some(open) = transaction_effect(&sql) {
+                    if let Some(open) = transaction_effect_for(dialect, &sql) {
                         st.in_transaction = open;
                     }
                     last = Some(summary);
@@ -958,6 +998,37 @@ async fn run_with_timeout(
                 other => other,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod dialect_tests {
+    use super::*;
+
+    #[test]
+    fn a_bare_begin_is_a_block_in_oracle_and_tsql() {
+        for d in [Dialect::Oracle, Dialect::Tsql] {
+            assert_eq!(transaction_effect_for(Some(d), "BEGIN NULL; END;"), None);
+            assert_eq!(
+                transaction_effect_for(Some(d), "BEGIN TRY SELECT 1 END TRY BEGIN CATCH END CATCH"),
+                None
+            );
+            assert_eq!(
+                transaction_effect_for(Some(d), "BEGIN TRANSACTION"),
+                Some(true)
+            );
+            assert_eq!(transaction_effect_for(Some(d), "begin tran;"), Some(true));
+            assert_eq!(transaction_effect_for(Some(d), "COMMIT"), Some(false));
+        }
+        assert_eq!(
+            transaction_effect_for(Some(Dialect::Postgresql), "BEGIN"),
+            Some(true)
+        );
+        assert_eq!(
+            transaction_effect_for(Some(Dialect::Sqlite), "BEGIN IMMEDIATE"),
+            Some(true)
+        );
+        assert_eq!(transaction_effect_for(None, "ROLLBACK"), Some(false));
     }
 }
 

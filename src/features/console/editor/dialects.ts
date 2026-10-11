@@ -37,6 +37,10 @@ export function splitDialect(driver: string): SplitDialect {
     case "postgres":
     case "duckdb": // dollar-quoted strings work the same
       return "postgresql";
+    case "sqlserver":
+      return "tsql"; // GO-separated batches
+    case "oracle":
+      return "oracle"; // PL/SQL units end at a `/` line
     case "mysql":
     case "mariadb":
     case "sqlite":
@@ -66,6 +70,9 @@ export function formatterLanguage(driver: string) {
       return "sql" as const;
   }
 }
+
+/** ClickHouse has no transactions: consoles there are always auto-commit. */
+export const supportsTransactions = (driver: string) => driver !== "clickhouse";
 
 /** Human name used in the status bar: "SQL · PostgreSQL dialect". */
 export function dialectLabel(driver: string): string {

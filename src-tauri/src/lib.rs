@@ -152,6 +152,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app::app_paths,
             commands::app::app_quit_confirmed,
+            commands::app::oracle_client_status,
             commands::drivers::drivers_list,
             commands::sessions::connection_test,
             commands::sessions::connection_connect,

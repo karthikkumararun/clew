@@ -1,0 +1,17 @@
+SELECT 1; SELECT 2;
+GO
+DECLARE @x INT = 41;
+SELECT @x + 1 AS answer;
+GO 2
+CREATE PROCEDURE p AS
+BEGIN
+  SELECT 'a
+GO
+b';
+  SELECT 2;
+END
+GO -- done
+/*
+GO
+*/
+SELECT 3 AS go
