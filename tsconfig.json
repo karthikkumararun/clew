@@ -11,12 +11,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "types": ["node", "vite/client", "vitest/globals", "@testing-library/jest-dom"],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": false
   },
-  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "scripts/*.ts", "vite.config.ts", "vitest.config.ts"]
 }
