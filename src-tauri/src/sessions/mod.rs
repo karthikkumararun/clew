@@ -144,7 +144,9 @@ pub fn transaction_effect(sql: &str) -> Option<bool> {
 
 fn quote_ident(dialect: Dialect, name: &str) -> String {
     match dialect {
-        Dialect::Mysql | Dialect::Mariadb => format!("`{}`", name.replace('`', "``")),
+        Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => {
+            format!("`{}`", name.replace('`', "``"))
+        }
         _ => format!("\"{}\"", name.replace('"', "\"\"")),
     }
 }
@@ -163,7 +165,7 @@ pub fn switch_statement(
             )),
             (None, None) => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },
-        Dialect::Mysql | Dialect::Mariadb => match database.or(schema) {
+        Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => match database.or(schema) {
             Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
             None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },

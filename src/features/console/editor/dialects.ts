@@ -67,6 +67,9 @@ export function formatterLanguage(driver: string) {
   }
 }
 
+/** ClickHouse has no transactions: consoles there are always auto-commit. */
+export const supportsTransactions = (driver: string) => driver !== "clickhouse";
+
 /** Human name used in the status bar: "SQL · PostgreSQL dialect". */
 export function dialectLabel(driver: string): string {
   const names: Record<string, string> = {

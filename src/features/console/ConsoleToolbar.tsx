@@ -6,6 +6,7 @@ import { formatShortcut } from "../../lib/platform";
 import { useConnections } from "../../connections/connectionsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
+import { supportsTransactions } from "./editor/dialects";
 import {
   cancelActive,
   endActiveTransaction,
@@ -40,6 +41,10 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
   const txOpen = useStore(runtime.store, (s) => s.txOpen);
   const txPending = useStore(runtime.store, (s) => s.txPending);
   const readOnly = useStore(runtime.store, (s) => s.readOnly);
+  const driverId = useConnections(
+    (s) => s.file.connections.find((c) => c.id === connectionId)?.driver ?? "",
+  );
+  const transactional = supportsTransactions(driverId);
   const connection = useConnections((s) => s.file.connections.find((c) => c.id === connectionId));
   return (
     <>
@@ -114,42 +119,44 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
           </>
         ) : null}
       </span>
-      <span className={styles.splitButton}>
-        <button
-          type="button"
-          className={styles.tbButton}
-          aria-haspopup="menu"
-          aria-expanded={txMenu}
-          onClick={() => setTxMenu((o) => !o)}
-        >
-          Tx: {txMode === "manual" ? "Manual" : "Auto-commit"}
-          <ChevronDown size={12} />
-        </button>
-        {txMenu ? (
-          <>
-            <div
-              className={styles.menuScrim}
-              onMouseDown={() => setTxMenu(false)}
-              aria-hidden="true"
-            />
-            <div className={styles.explainMenu}>
-              <Menu
-                aria-label="Transaction mode"
-                items={[
-                  { id: "auto", label: `${txMode === "auto" ? "✓ " : ""}Auto-commit` },
-                  { id: "manual", label: `${txMode === "manual" ? "✓ " : ""}Manual` },
-                ]}
-                onClose={() => setTxMenu(false)}
-                onSelect={(id) => {
-                  setTxMenu(false);
-                  void setTxMode(tabId, id as "auto" | "manual");
-                }}
+      {transactional ? (
+        <span className={styles.splitButton}>
+          <button
+            type="button"
+            className={styles.tbButton}
+            aria-haspopup="menu"
+            aria-expanded={txMenu}
+            onClick={() => setTxMenu((o) => !o)}
+          >
+            Tx: {txMode === "manual" ? "Manual" : "Auto-commit"}
+            <ChevronDown size={12} />
+          </button>
+          {txMenu ? (
+            <>
+              <div
+                className={styles.menuScrim}
+                onMouseDown={() => setTxMenu(false)}
+                aria-hidden="true"
               />
-            </div>
-          </>
-        ) : null}
-      </span>
-      {txMode === "manual" ? (
+              <div className={styles.explainMenu}>
+                <Menu
+                  aria-label="Transaction mode"
+                  items={[
+                    { id: "auto", label: `${txMode === "auto" ? "✓ " : ""}Auto-commit` },
+                    { id: "manual", label: `${txMode === "manual" ? "✓ " : ""}Manual` },
+                  ]}
+                  onClose={() => setTxMenu(false)}
+                  onSelect={(id) => {
+                    setTxMenu(false);
+                    void setTxMode(tabId, id as "auto" | "manual");
+                  }}
+                />
+              </div>
+            </>
+          ) : null}
+        </span>
+      ) : null}
+      {transactional && txMode === "manual" ? (
         <>
           <button
             type="button"

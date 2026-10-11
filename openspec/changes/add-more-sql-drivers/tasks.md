@@ -21,10 +21,10 @@
 
 ## 3. ClickHouse
 
-- [ ] 3.1 HTTP driver with session_id emulation, RowBinaryWithNamesAndTypes streaming, KILL QUERY cancel (spec: driver-framework › ClickHouse driver)
-- [ ] 3.2 Type mapping (Nullable, LowCardinality, Array, Map, Tuple, DateTime64, Decimal)
-- [ ] 3.3 Introspection with engine detail; readonly=1 for read-only sessions; editing disabled
-- [ ] 3.4 Test: conformance suite (minus editing) against clickhouse-server
+- [x] 3.1 HTTP driver with session_id emulation, RowBinaryWithNamesAndTypes streaming, KILL QUERY cancel (spec: driver-framework › ClickHouse driver)
+- [x] 3.2 Type mapping (Nullable, LowCardinality, Array, Map, Tuple, DateTime64, Decimal)
+- [x] 3.3 Introspection with engine detail; readonly=1 for read-only sessions; editing disabled
+- [x] 3.4 Test: conformance suite (minus editing) against clickhouse-server
 
 ## 4. DuckDB
 
