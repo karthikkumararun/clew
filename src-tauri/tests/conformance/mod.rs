@@ -515,8 +515,9 @@ pub async fn a_killed_connection_is_reported_then_reconnected(s: &Suite) {
     let back = c.run("SELECT 2").await;
     assert_eq!(back.scalar_int(), 2, "the next execute reconnects");
     assert!(back.notices().iter().any(|n| n.contains("re-established")));
-    let new_id = c.must(id_sql).await.scalar_int().to_string();
-    assert_ne!(new_id, id, "a new physical connection");
+    // The notice proves a new connection was made. Its id may even equal the old one: SQL Server
+    // hands out session ids from a small pool and reuses them at once.
+    c.must(id_sql).await;
 }
 
 pub async fn an_open_transaction_is_reported_rolled_back_after_a_kill(s: &Suite) {
