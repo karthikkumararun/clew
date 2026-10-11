@@ -64,8 +64,35 @@
 - [ ] 8.6 `scripts/release-gate.ts` checking open S1/S2 issues, workflow results for the commit, checklist run files and coverage (spec: release-qa › Release gate)
 - [ ] 8.7 Test: diagnostics redaction unit tests; gate script against fixture states
 
-## 9. Process updates
+## 9. Design conformance
 
-- [x] 9.1 Add task rules to `openspec/config.yaml`: every change with user-visible behaviour ends with "E2E: add or extend journey J-nn" and lists the scenarios it covers
-- [x] 9.2 Update `CLAUDE.md` workflow with the end-to-end requirement and the QA loop pointer
-- [x] 9.3 Append an E2E task group to the unbuilt changes (`add-more-sql-drivers`, `add-nosql-browser`, `add-graph-browser`, `add-command-palette`, `add-ai-assistant`, `add-release-packaging`)
+- [ ] 9.1 Add `data-metric` attributes to the main regions (toolbar, tab strip, status bar, sidebar, side panel, tree row, grid row, dialogs) and write `design/metrics.json` from `design/README.md`; script that cross-checks it with `tokens.css` (spec: design-conformance › Machine-readable design metrics)
+- [ ] 9.2 Replace token-declaration assertions in `src/shell/layout.test.tsx` and similar with rendered-box measurements in the design suite
+- [ ] 9.3 Token lint (stylelint + ESLint rule) in PR CI; fix existing violations (spec: design-conformance › Token conformance)
+- [ ] 9.4 Write `design/states.json` for all canvas screens and the fixtures under `e2e/fixtures/states/` reproducing canvas sample data (spec: design-conformance › Screen state matrix)
+- [ ] 9.5 Maintainer exports `design/screens/<Screen>.png` from the canvas (Share › Export) and commits them
+- [ ] 9.6 `pnpm qa:design`: capture each state, produce the side-by-side HTML report with overlay and metric results; `docs/qa/design-review-prompt.md` (spec: design-conformance › Side-by-side design review)
+- [ ] 9.7 Per-platform baselines, masks and `--update` flow (spec: design-conformance › Visual regression baselines)
+- [ ] 9.8 Overlay-integrity helper wired into page-object `openMenu/openDialog/openPopover`; J-21 overlay sweep (spec: design-conformance › Overlay integrity)
+- [ ] 9.9 Window-size and display-scale matrix runner; Windows 125%/150% and macOS Retina legs (spec: design-conformance › Window-size and scale matrix)
+- [ ] 9.10 axe-core scan, tab-order walk and focus-ring check per state (spec: design-conformance › Accessibility checks)
+- [ ] 9.11 Add the `design` suite to the e2e workflow (release branches, nightly, dispatch) (spec: e2e-testing › Suites and triggers)
+- [ ] 9.12 Test: a deliberately clipped menu, a 6px-shifted element and a missing accessible name each fail the matching check (use fixtures, then remove the fixture)
+
+## 10. Guards for the defects found by hand
+
+- [ ] 10.1 Implement the persisted-state seeding helper and J-20 hidden-state sweep (spec: e2e-testing › Persisted-state sweep; app-shell › Hidden areas can always be restored)
+- [ ] 10.2 Make the app satisfy the new `app-shell` scenarios: sidebar, side-panel, results-panel and record-panel restore controls at wide and narrow widths; overlays reposition inside the window (spec: app-shell › Overlays are fully visible)
+- [ ] 10.3 Make the explorer satisfy the new default-grouping scenarios and test them in the component tests and in J-01/J-20 (spec: database-explorer › Default grouping by environment)
+- [ ] 10.4 Test-level policy in the coverage script: classify scenarios as layout-class and report those covered only by jsdom (spec: e2e-testing › Test-level policy)
+- [ ] 10.5 `scripts/check-spec-completeness.ts`, `docs/qa/known-gaps.json` baseline and `docs/qa/spec-audit-prompt.md`; run the audit on every finished capability and add the missing scenarios (spec: e2e-testing › Spec-to-test completeness)
+- [ ] 10.6 `docs/qa/defect-classes.md` (C1–C6 with guards) and `docs/qa/charters.md` (spec: release-qa › Defect class guards, Exploratory charters)
+- [ ] 10.7 Fix-PR check workflow and PR template section (class, guard, scenario, test or "No automated test") (spec: release-qa › Fix pull request check)
+- [ ] 10.8 Add the design-review result to `scripts/release-gate.ts` (spec: release-qa › Release gate)
+
+## 11. Process updates
+
+- [x] 11.1 Add task rules to `openspec/config.yaml`: every change with user-visible behaviour ends with "E2E: add or extend journey J-nn" and lists the scenarios it covers
+- [x] 11.2 Update `CLAUDE.md` workflow with the end-to-end requirement and the QA loop pointer
+- [x] 11.3 Append an E2E task group to the unbuilt changes (`add-more-sql-drivers`, `add-nosql-browser`, `add-graph-browser`, `add-command-palette`, `add-ai-assistant`, `add-release-packaging`)
+- [x] 11.4 Add the spec-writing and design-conformance rules to `openspec/config.yaml` and the fix-PR requirements to `CLAUDE.md`

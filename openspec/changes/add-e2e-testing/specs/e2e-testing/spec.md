@@ -78,6 +78,8 @@ The project SHALL keep a catalogue of numbered end-to-end journeys (J-01…), ea
 - J-11 restart restores tabs, sidebar width and explorer expansion;
 - J-12 cross-driver parity: the same queries on every available SQL driver give the same grid values;
 - J-13 keyboard-only operation of tabs, explorer and dialogs.
+- J-20 hidden-state sweep: every combination of saved layout state at wide and narrow widths still offers a visible way to restore each hidden area;
+- J-21 overlay sweep: every menu, popover, context menu, completion list and dialog reachable from the command registry is opened at each window size and checked for integrity.
 Each later change SHALL add the journeys for its own features (for example J-14 NoSQL, J-15 Neo4j graph, J-16 command palette, J-17 AI assistant against the mock LLM, J-18 Oracle, SQL Server, ClickHouse and DuckDB parity).
 
 #### Scenario: Journey fails the run
@@ -89,11 +91,11 @@ Each later change SHALL add the journeys for its own features (for example J-14 
 - **THEN** the coverage check reports the uncovered scenarios and the change's task list contains an explicit task to add the journey
 
 ### Requirement: Suites and triggers
-The suites SHALL be: `smoke` (no containers; macOS, Windows, Linux), `full` (Docker `core` and `nosql` profiles; Linux) and `heavy` (Docker `heavy` profile and Neo4j-dependent journeys; Linux). They SHALL run on pushes to `release/*` branches, on a nightly schedule and on manual dispatch, and SHALL NOT run on ordinary pull requests, where only unit, component and Rust integration tests run.
+The suites SHALL be: `smoke` (no containers; macOS, Windows, Linux), `design` (the design-conformance checks of every state that needs no containers on macOS, Windows and Linux, and the container-backed states on Linux), `full` (Docker `core` and `nosql` profiles; Linux) and `heavy` (Docker `heavy` profile and Neo4j-dependent journeys; Linux). They SHALL run on pushes to `release/*` branches, on a nightly schedule and on manual dispatch, and SHALL NOT run on ordinary pull requests, where only unit, component and Rust integration tests run.
 
 #### Scenario: Release branch push
 - **WHEN** a commit is pushed to `release/0.1`
-- **THEN** `smoke` runs on all three platforms and `full` runs on Linux, and the branch's status shows both
+- **THEN** `smoke` and `design` run on all three platforms and `full` runs on Linux, and the branch's status shows all of them
 
 #### Scenario: Ordinary pull request
 - **WHEN** a pull request targets `main` from a feature branch
@@ -101,7 +103,7 @@ The suites SHALL be: `smoke` (no containers; macOS, Windows, Linux), `full` (Doc
 
 #### Scenario: Nightly
 - **WHEN** the nightly schedule fires
-- **THEN** `smoke`, `full` and `heavy` all run against `main` and failures open or update a single tracking issue
+- **THEN** `smoke`, `design`, `full` and `heavy` all run against `main` and failures open or update a single tracking issue
 
 ### Requirement: Failure artifacts
 When an end-to-end test fails, the run SHALL keep a screenshot of the window, the app's log, the browser console log, the Docker logs of services used and the test's step trace, and SHALL upload them as CI artifacts or write them under `e2e/artifacts/` for local runs. Logs SHALL not contain secrets.
@@ -131,3 +133,37 @@ End-to-end tests SHALL declare the spec scenarios they cover as `capability › 
 #### Scenario: Coverage report
 - **WHEN** the coverage script runs
 - **THEN** `docs/qa/coverage.md` lists every scenario of the finished capabilities with its test levels and highlights those with none
+
+### Requirement: Test-level policy
+Each spec scenario SHALL be verified at a level that can actually observe it. Scenarios about layout, sizes, visibility, clipping, overlap, scrolling, focus, colour or window-size behaviour SHALL be covered by a real-rendering test (end-to-end or design suite); jsdom component tests SHALL NOT count for them because jsdom performs no layout. Scenarios about logic may be covered at any level. The coverage report SHALL show the level of each covering test and flag layout-class scenarios covered only by jsdom tests.
+
+#### Scenario: Layout scenario with only a component test
+- **WHEN** the scenario "Default layout" is covered only by a Vitest test
+- **THEN** the coverage report marks it "needs real-render test"
+
+#### Scenario: Token declaration is not enough
+- **WHEN** a test asserts that `tokens.css` contains `--h-tabstrip: 36px` but does not measure the rendered tab strip
+- **THEN** the test does not count as covering the layout scenario
+
+### Requirement: Persisted-state sweep
+The harness SHALL be able to start the app with any saved layout and UI state by writing it into the test data directory, so tests can sweep combinations (sidebar shown or hidden, side panel open or closed, results panel collapsed, tabs overflowing, explorer fully collapsed) at several window sizes without driving the UI into each state by hand.
+
+#### Scenario: Seed a saved state
+- **WHEN** a test writes `sidebar: hidden` and `sidePanel: open` into the data directory and launches the app
+- **THEN** the app starts with the sidebar hidden and the side panel open
+
+### Requirement: Spec-to-test completeness
+A script SHALL check each requirement of the finished capabilities and of active changes: every scenario must be covered by at least one test at an appropriate level or be listed as manual; requirement prose that enumerates items, defaults or states (lists, "such as", "default", "for each") with fewer scenarios than enumerated items SHALL be reported as probably under-specified; and the report SHALL list requirements without any scenario. Known gaps SHALL be recorded in `docs/qa/known-gaps.json`, which can shrink but not grow without a documented reason. Before implementation of a change starts, a spec audit (the agent prompt `docs/qa/spec-audit-prompt.md`) SHALL map every SHALL clause and every enumerated item in each requirement to a scenario and add the missing scenarios.
+
+#### Scenario: Prose claim without a scenario
+- **WHEN** a requirement says "default groups follow environment" and no scenario exercises default grouping
+- **THEN** the completeness report lists the requirement as probably under-specified with the unmatched phrase
+
+#### Scenario: Known gaps cannot grow silently
+- **WHEN** a new uncovered scenario appears that is not in `docs/qa/known-gaps.json`
+- **THEN** the check fails and names the scenario
+
+#### Scenario: Spec audit before implementation
+- **WHEN** a change moves from specs to implementation
+- **THEN** the audit output is attached to the change and every unmatched clause either gains a scenario or is recorded as intentionally untested with a reason
+
