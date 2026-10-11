@@ -33,3 +33,8 @@
 - [ ] 5.1 Cypher classifier (updating clauses, read-only procedure allow-list, dangerous unfiltered DELETE) wired into the guard (spec: graph-browser › Cypher safeguards)
 - [ ] 5.2 Command palette indexing of labels and relationship types; AI assistant `cypher` dialect and graph-schema context (spec: graph-browser › Explorer, palette and AI integration)
 - [ ] 5.3 Test: classifier table (CREATE/MERGE/SET/DELETE/LOAD CSV/CALL); `MATCH (n) DETACH DELETE n` on production requires typed confirmation
+
+## 6. End-to-end
+
+- [ ] 6.1 E2E: add journey J-15 in `e2e/specs/` — run a Cypher query, see the graph, expand neighbours, inspect a node; unfiltered DETACH DELETE on production needs typed confirmation
+- [ ] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. graph-browser › Graph view; graph-browser › Cypher safeguards) and add the seed/compose service it needs to the matching profile

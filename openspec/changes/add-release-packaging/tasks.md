@@ -27,3 +27,8 @@
 ## 5. Project files
 
 - [ ] 5.1 LICENSE (MIT), README (screenshots from the canvas, install, build, databases, AI & privacy), CONTRIBUTING (OpenSpec workflow), CODE_OF_CONDUCT, SECURITY.md, issue/PR templates (spec: release-packaging › Open-source project files)
+
+## 6. End-to-end
+
+- [ ] 6.1 E2E: add journey J-19 in `e2e/specs/` — install the built package on macOS and Windows, launch, About shows the version and commit, Copy diagnostics is redacted, update check is off by default
+- [ ] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. release-packaging › About dialog) and add the seed/compose service it needs to the matching profile

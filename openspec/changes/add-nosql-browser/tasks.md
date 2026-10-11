@@ -31,3 +31,8 @@
 - [ ] 4.3 Redis console mode with command completion and typed replies; refuse blocking commands (spec: key-value-browser › Redis command console)
 - [ ] 4.4 Extend safeguard classification for Mongo and Redis writes and dangerous commands
 - [ ] 4.5 Test: SCAN never calls KEYS; FLUSHDB on production requires typed confirmation
+
+## 5. End-to-end
+
+- [ ] 5.1 E2E: add journey J-14 in `e2e/specs/` — open a MongoDB collection, filter, edit a field and save; scan Redis keys and edit a hash; production FLUSHDB typed confirmation
+- [ ] 5.2 Declare `covers(...)` for the scenarios it exercises (e.g. document-browser › Edit documents; key-value-browser › Key viewer and editor) and add the seed/compose service it needs to the matching profile

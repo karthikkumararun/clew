@@ -89,3 +89,4 @@ rules:
     - Each numbered group ends with a test task (Rust unit/integration or Vitest) that proves the group's scenarios.
     - Tasks reference the spec requirement they satisfy, e.g. "(spec: sql-console › Run current statement)".
     - Keep each task small enough for one focused session; never combine backend and frontend work in one task.
+    - Every change with user-visible behaviour ends with an "E2E" task group: add or extend the numbered journey (e2e/specs/J-nn-*.e2e.ts) that drives the real app, and declare the spec scenarios it covers with covers('capability › Scenario'). Journeys needing a database use the shared `shop` seed and the docker-compose profile for that database.
