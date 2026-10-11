@@ -79,5 +79,9 @@ tiberius = { version = "0.13.0", default-features = false, features = ["winauth"
 
 # Dependencies don't need debug info in dev builds. DuckDB's bundled C++ alone makes the debug
 # artifacts huge, which slows linking every test binary and every CI cache save.
+# Line tables are enough for backtraces and keep target/ (and link times) small.
+[profile.dev]
+debug = "line-tables-only"
+
 [profile.dev.package."*"]
 debug = false
