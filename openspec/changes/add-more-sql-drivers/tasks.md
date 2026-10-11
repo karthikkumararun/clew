@@ -28,10 +28,10 @@
 
 ## 4. DuckDB
 
-- [ ] 4.1 Bundled DuckDB driver on a blocking thread with interrupt cancel; file and in-memory modes (spec: driver-framework › DuckDB driver)
-- [ ] 4.2 Type mapping (HUGEINT, LIST, STRUCT, MAP, INTERVAL, UUID)
-- [ ] 4.3 Introspection, READ_ONLY access mode, direct file queries
-- [ ] 4.4 Test: conformance suite on a temp file; Parquet query fixture
+- [x] 4.1 Bundled DuckDB driver on a blocking thread with interrupt cancel; file and in-memory modes (spec: driver-framework › DuckDB driver)
+- [x] 4.2 Type mapping (HUGEINT, LIST, STRUCT, MAP, INTERVAL, UUID)
+- [x] 4.3 Introspection, READ_ONLY access mode, direct file queries
+- [x] 4.4 Test: conformance suite on a temp file; Parquet query fixture
 
 ## 5. CI
 

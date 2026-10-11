@@ -46,6 +46,22 @@ pub struct TableQuery {
 pub fn qualified_name(driver: &str, path: &NodePath) -> String {
     let flavor = SqlFlavor::of_driver(driver);
     let table = path.0.last().map(|s| s.name.as_str()).unwrap_or_default();
+    // DuckDB can have several catalogs attached, so its names carry the catalog too.
+    if driver == "duckdb" {
+        let parts: Vec<&str> = [
+            path.find(NodeKind::Database),
+            path.find(NodeKind::Schema),
+            Some(table),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        return parts
+            .iter()
+            .map(|p| flavor.quote_ident(p))
+            .collect::<Vec<_>>()
+            .join(".");
+    }
     let parent = path.find(NodeKind::Schema).or_else(|| {
         (flavor == SqlFlavor::Mysql || flavor == SqlFlavor::Sqlite)
             .then(|| path.find(NodeKind::Database))

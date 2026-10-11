@@ -35,6 +35,7 @@ export function editorDialect(driver: string): SQLDialect {
 export function splitDialect(driver: string): SplitDialect {
   switch (driver) {
     case "postgres":
+    case "duckdb": // dollar-quoted strings work the same
       return "postgresql";
     case "mysql":
     case "mariadb":

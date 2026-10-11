@@ -2,6 +2,7 @@
 //! ever talks to these types (through the Tauri commands in `commands/`).
 
 pub mod batch;
+pub mod duckdb;
 pub mod error;
 pub mod introspect;
 pub mod mysql;
@@ -62,6 +63,7 @@ pub enum Dialect {
     Mysql,
     Mariadb,
     Sqlite,
+    Duckdb,
 }
 
 #[derive(ts_rs::TS)]
