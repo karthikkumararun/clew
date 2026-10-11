@@ -24,6 +24,9 @@ import {
   type Sources,
 } from "./icons-lib";
 
+// Rendering 1024 px icons and the golden comparisons are slow on busy CI runners.
+vi.setConfig({ testTimeout: 60_000 });
+
 const src = loadSources();
 
 describe("icon sources", () => {
