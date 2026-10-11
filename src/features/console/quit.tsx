@@ -40,14 +40,21 @@ let asking = false;
 
 /** Listen for the backend holding a quit because a transaction is open. Returns a disposer. */
 export function installQuitGuard(): () => void {
-  const off = listen("quit-requested", async () => {
-    if (asking) return;
-    asking = true;
-    try {
-      if (await settleTransactionsBeforeQuit()) await invoke("app_quit_confirmed");
-    } finally {
-      asking = false;
-    }
-  });
-  return () => void off.then((f) => f());
+  let off: Promise<() => void> | null = null;
+  try {
+    off = listen("quit-requested", async () => {
+      if (asking) return;
+      asking = true;
+      try {
+        if (await settleTransactionsBeforeQuit()) await invoke("app_quit_confirmed");
+      } finally {
+        asking = false;
+      }
+    });
+    // Outside the desktop app (tests, a plain browser) there is no event bridge: nothing to guard.
+    off.catch(() => {});
+  } catch {
+    off = null;
+  }
+  return () => void off?.then((f) => f()).catch(() => {});
 }
