@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useStore } from "zustand";
 import { Button } from "../../components/Button";
 import { Checkbox, Input } from "../../components/Input";
+import { askChoice } from "../console/prompts";
+import { DocViewSwitch, DocumentsResult } from "./DocResult";
+import type { DocResultView } from "./DocResult";
 import { toShell } from "./ejson";
 import type { EJson } from "./ejson";
 import { messageOf } from "./runtime";
@@ -85,6 +88,23 @@ export function IndexesPane({ runtime }: { runtime: CollectionRuntime }) {
   const [ttl, setTtl] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
+  const drop = async (indexName: string) => {
+    const choice = await askChoice({
+      title: `Drop index ${indexName}?`,
+      body: <p>Queries that relied on it may become much slower.</p>,
+      choices: [
+        { id: "cancel", label: "Cancel" },
+        { id: "drop", label: "Drop index", variant: "primary" },
+      ],
+    });
+    if (choice !== "drop") return;
+    try {
+      await runtime.dropIndex(indexName);
+    } catch (e) {
+      setFormError(messageOf(e));
+    }
+  };
+
   const create = async () => {
     setFormError(null);
     const seconds = ttl.trim() === "" ? null : Number(ttl);
@@ -148,9 +168,7 @@ export function IndexesPane({ runtime }: { runtime: CollectionRuntime }) {
                       variant="ghost"
                       disabled={readOnly}
                       aria-label={`Drop index ${i.name}`}
-                      onClick={() =>
-                        void runtime.dropIndex(i.name).catch((e) => setFormError(messageOf(e)))
-                      }
+                      onClick={() => void drop(i.name)}
                     >
                       Drop
                     </Button>
@@ -201,6 +219,81 @@ export function IndexesPane({ runtime }: { runtime: CollectionRuntime }) {
       {formError ? (
         <div role="alert" className={styles.fieldError}>
           {formError}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The Aggregation view: a pipeline and its results as a tree or JSON. */
+export function AggregationPane({
+  runtime,
+  pipeline,
+  onPipeline,
+  registerRun,
+}: {
+  runtime: CollectionRuntime;
+  pipeline: string;
+  onPipeline: (text: string) => void;
+  /** Lets the Find shortcut run the pipeline while this view is up. */
+  registerRun: (run: (() => void) | null) => void;
+}) {
+  const agg = useStore(runtime.store, (s) => s.agg);
+  const [view, setView] = useState<Exclude<DocResultView, "table">>("tree");
+  const run = () => void runtime.aggregate(pipeline);
+  // `run` closes over the current text, so hand the shortcut a fresh one each render
+  registerRun(run);
+  return (
+    <div className={styles.panel}>
+      <textarea
+        className={styles.textarea}
+        aria-label="Pipeline"
+        spellCheck={false}
+        value={pipeline}
+        onChange={(e) => onPipeline(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            run();
+          }
+        }}
+      />
+      <div className={styles.formRow}>
+        <Button variant="primary" disabled={agg.loading} onClick={run}>
+          Run pipeline
+        </Button>
+        <DocViewSwitch value={view} onChange={(v) => v !== "table" && setView(v)} omitTable />
+        <span className={styles.stats} aria-live="polite">
+          {agg.loading
+            ? "Running…"
+            : agg.elapsedMs !== null
+              ? `${agg.docs.length.toLocaleString()}${agg.hasMore ? "+" : ""} ${agg.docs.length === 1 ? "document" : "documents"} · ${agg.elapsedMs} ms`
+              : ""}
+        </span>
+      </div>
+      {agg.error ? (
+        <div role="alert" className={styles.fieldError}>
+          {agg.error.message}
+          {agg.error.position ? ` (at character ${agg.error.position})` : ""}
+        </div>
+      ) : null}
+      {agg.elapsedMs !== null && agg.docs.length === 0 && !agg.loading && !agg.error ? (
+        <div className={styles.empty}>The pipeline returned no documents.</div>
+      ) : null}
+      {agg.docs.length > 0 ? (
+        <div>
+          <DocumentsResult docs={agg.docs} view={view} version={agg.version} />
+          {agg.hasMore ? (
+            <div className={styles.more}>
+              <Button
+                variant="default"
+                disabled={agg.fetching}
+                onClick={() => void runtime.aggregateMore()}
+              >
+                {agg.fetching ? "Loading…" : "Load more"}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

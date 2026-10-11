@@ -324,24 +324,40 @@ impl SessionManager {
         let Some(ssh) = &cfg.ssh else {
             return Ok((cfg.clone(), None));
         };
-        let Target::Network { host, port } = &cfg.target else {
-            return Err(DriverError::new(
-                ErrorCode::Unsupported,
-                "An SSH tunnel needs a host and port to forward to",
-            ));
+        // A MongoDB URI names its hosts itself; the first one is what the tunnel reaches.
+        let (host, port) = match &cfg.target {
+            Target::Network { host, port } => (host.clone(), *port),
+            Target::Uri { uri } if cfg.driver == "mongodb" => {
+                crate::drivers::mongodb::uri::first_host(uri)?
+            }
+            _ => {
+                return Err(DriverError::new(
+                    ErrorCode::Unsupported,
+                    "An SSH tunnel needs a host and port to forward to",
+                ))
+            }
         };
         let tunnel = SshTunnel::open(
             ssh,
-            host,
-            *port,
+            &host,
+            port,
             self.ssh_env.clone(),
             Duration::from_secs(cfg.connect_timeout_secs.max(1)),
         )
         .await?;
         let mut effective = cfg.clone();
-        effective.target = Target::Network {
-            host: "127.0.0.1".to_string(),
-            port: tunnel.local_port(),
+        effective.target = match &cfg.target {
+            Target::Uri { uri } => Target::Uri {
+                uri: crate::drivers::mongodb::uri::through_tunnel(
+                    uri,
+                    "127.0.0.1",
+                    tunnel.local_port(),
+                )?,
+            },
+            _ => Target::Network {
+                host: "127.0.0.1".to_string(),
+                port: tunnel.local_port(),
+            },
         };
         effective.ssh = None;
         Ok((effective, Some(Arc::new(tunnel))))

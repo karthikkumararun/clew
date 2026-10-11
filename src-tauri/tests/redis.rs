@@ -497,3 +497,54 @@ async fn flushdb_on_production_needs_the_connection_name_typed() {
     assert_eq!(c.run("SET k x").await.err().code, ErrorCode::ReadOnly);
     assert!(c.run("GET k").await.result.is_ok());
 }
+
+#[tokio::test]
+async fn an_ssh_tunnel_reaches_the_server_redis() {
+    use clew_lib::drivers::{Secret, SshAuth, SshConfig};
+    use clew_lib::transport::hostkey::{HostKeyPrompt, HostKeyPrompter, KnownHosts};
+    use clew_lib::transport::ssh::SshEnv;
+
+    struct Yes;
+    #[async_trait::async_trait]
+    impl HostKeyPrompter for Yes {
+        async fn confirm(&self, _: HostKeyPrompt) -> bool {
+            true
+        }
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let env = SshEnv {
+        known_hosts: KnownHosts {
+            user_file: None,
+            app_file: dir.path().join("kh"),
+        },
+        prompter: std::sync::Arc::new(Yes),
+    };
+    let mgr = std::sync::Arc::new(clew_lib::sessions::SessionManager::new(
+        std::sync::Arc::new(Registry::with_defaults()),
+        env,
+    ));
+    let mut cfg = cfg(false);
+    // the compose service name, resolvable from the bastion only
+    cfg.target = Target::Network {
+        host: "redis".into(),
+        port: 6379,
+    };
+    cfg.ssh = Some(SshConfig {
+        host: "127.0.0.1".into(),
+        port: 2222,
+        user: "tunnel".into(),
+        auth: SshAuth::Password {
+            password: Secret::new("tunnelpw"),
+        },
+    });
+    let info = mgr
+        .test_connection(&cfg)
+        .await
+        .expect("test through the tunnel");
+    assert_eq!(info.product, "Redis");
+    mgr.connect("t", cfg)
+        .await
+        .expect("connect through the tunnel");
+    let opened = mgr.open_session("t").await.expect("open");
+    assert_eq!(opened.transport.as_deref(), Some("via SSH 127.0.0.1"));
+}

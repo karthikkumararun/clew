@@ -25,6 +25,7 @@ const api = vi.hoisted(() => ({
   sessionOpen: vi.fn(),
   sessionClose: vi.fn(),
   queryCancel: vi.fn(),
+  introspect: vi.fn(),
 }));
 
 vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
@@ -38,6 +39,7 @@ vi.mock("../../lib/ipc/drivers", () => ({
   sessionOpen: (...a: unknown[]) => api.sessionOpen(...a),
   sessionClose: (...a: unknown[]) => api.sessionClose(...a),
   queryCancel: (...a: unknown[]) => api.queryCancel(...a),
+  introspectChildren: (...a: unknown[]) => api.introspect(...a),
 }));
 vi.mock("../grid/ResultGrid", async () => {
   const { FakeResultGrid } = await import("../grid/testing");
@@ -191,6 +193,11 @@ beforeEach(() => {
   });
   api.sessionClose.mockResolvedValue(undefined);
   api.queryCancel.mockResolvedValue(undefined);
+  api.introspect.mockResolvedValue([
+    { name: "carts", detail: "1.2k", kind: "table", hasChildren: false, path: [] },
+    { name: "events", detail: "418k", kind: "table", hasChildren: false, path: [] },
+    { name: "users", detail: "8.1k", kind: "table", hasChildren: false, path: [] },
+  ]);
   api.docSafetyCheck.mockResolvedValue({
     decision: "allow",
     connection: "",
@@ -304,11 +311,16 @@ describe("views", () => {
     expect(screen.getByText("true")).toBeInTheDocument();
   });
 
-  it("shows the JSON view in shell syntax", async () => {
+  it("shows the JSON view in shell syntax and folds objects", async () => {
     mount({ docView: "json" });
-    const pre = await screen.findAllByText(/_id: ObjectId\("/);
-    expect(pre.length).toBe(2);
-    expect(pre[0].textContent).toContain('ts: ISODate("2026-10-01T12:30:00.000Z")');
+    const ids = await screen.findAllByText(/^_id: ObjectId\("/);
+    expect(ids.length).toBe(2);
+    expect(screen.getAllByText(/^ts: ISODate\("2026-10-01T12:30:00.000Z"\)$/).length).toBe(1);
+    expect(screen.getAllByText('plan: "pro",').length).toBeGreaterThan(0);
+    // fold the first document's `user` object
+    const user = screen.getAllByText("user: {")[0];
+    fireEvent.click(within(user.parentElement!).getByRole("button", { name: "Fold" }));
+    expect(screen.getByText("user: { … 3 fields },")).toBeInTheDocument();
   });
 
   it("shows the table view with one column per top-level field", async () => {
@@ -525,5 +537,120 @@ describe("paging", () => {
     expect(await screen.findByText(/^\(2\)/)).toBeInTheDocument();
     expect(api.docFetchMore).toHaveBeenCalledWith("s1", 1, 50, expect.any(Function));
     expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+  });
+});
+
+describe("the side list and the aggregation view", () => {
+  it("lists the database's collections with counts and opens another", async () => {
+    mount();
+    const aside = await screen.findByRole("complementary", { name: "Collections" });
+    expect(within(aside).getByText("SHOP · COLLECTIONS")).toBeInTheDocument();
+    expect(await within(aside).findByText("418k")).toBeInTheDocument();
+    const current = within(aside).getByRole("button", { name: /events/ });
+    expect(current).toHaveAttribute("aria-current", "page");
+    fireEvent.click(within(aside).getByRole("button", { name: /users/ }));
+    await waitFor(() =>
+      expect(
+        useWorkspace
+          .getState()
+          .tabs.some((t) => (t.state as { collection?: string }).collection === "users"),
+      ).toBe(true),
+    );
+  });
+
+  it("runs a pipeline and shows the grouped results", async () => {
+    api.docCall.mockImplementation(
+      async (_s: string, req: DocRequest, onDocs?: (id: number, d: EJson[]) => void) => {
+        if (req.op === "aggregate") {
+          onDocs?.(7, [
+            { _id: "checkout", n: int(12) },
+            { _id: "view", n: int(30) },
+          ]);
+          return found({ result_id: 7 });
+        }
+        if (req.op === "find") {
+          onDocs?.(1, docs);
+          return found();
+        }
+        return { kind: "count", count: 2, capped: false } as DocReply;
+      },
+    );
+    mount({ pane: "aggregation" });
+    const box = await screen.findByLabelText("Pipeline");
+    fireEvent.change(box, {
+      target: { value: '[{ $group: { _id: "$type", n: { $sum: 1 } } }]' },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run pipeline" }));
+    expect(await screen.findByText(/^\(1\) "checkout"/)).toBeInTheDocument();
+    expect(screen.getByText("2 documents · 12 ms")).toBeInTheDocument();
+    const sent = calls("aggregate")[0] as { pipeline: string; collection: string };
+    expect(sent.collection).toBe("events");
+    expect(sent.pipeline).toContain("$group");
+  });
+
+  it("runs the pipeline with Mod+Enter instead of a find", async () => {
+    mount({ pane: "aggregation" });
+    await screen.findByLabelText("Pipeline");
+    const before = calls("find").length;
+    fireEvent.keyDown(screen.getByLabelText("Pipeline"), { key: "Enter", metaKey: true });
+    await waitFor(() => expect(calls("aggregate").length).toBeGreaterThan(0));
+    expect(calls("find").length).toBe(before);
+  });
+});
+
+describe("more of the spec", () => {
+  it("changes a field's type through the type menu", async () => {
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Expand all" }));
+    fireEvent.doubleClick((await screen.findByText("1042")).closest("tr")!);
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Type"), { target: { value: "String" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stage change" }));
+    // the pending value is now a string
+    expect(await screen.findByText('"1042"')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    await waitFor(() => expect(calls("update")).toHaveLength(1));
+    expect(calls("update")[0]).toMatchObject({ set: { "user.id": "1042" } });
+  });
+
+  it("asks before dropping an index", async () => {
+    api.docCall.mockImplementation(async (_s: string, req: DocRequest): Promise<DocReply> => {
+      if (req.op === "indexes" || req.op === "drop_index") {
+        return {
+          kind: "indexes",
+          items: [
+            {
+              name: "_id_",
+              keys: { _id: int(1) },
+              unique: false,
+              sparse: false,
+              ttl_seconds: null,
+              size_bytes: null,
+            },
+            {
+              name: "ts_-1",
+              keys: { ts: int(-1) },
+              unique: false,
+              sparse: false,
+              ttl_seconds: null,
+              size_bytes: null,
+            },
+          ],
+        };
+      }
+      return found();
+    });
+    mount({ pane: "indexes" });
+    fireEvent.click(await screen.findByRole("button", { name: "Drop index ts_-1" }));
+    const ask = await screen.findByRole("dialog");
+    expect(within(ask).getByText("Drop index ts_-1?")).toBeInTheDocument();
+    fireEvent.click(within(ask).getByRole("button", { name: "Cancel" }));
+    expect(calls("drop_index")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Drop index ts_-1" }));
+    fireEvent.click(
+      await within(await screen.findByRole("dialog")).findByRole("button", { name: "Drop index" }),
+    );
+    await waitFor(() => expect(calls("drop_index")).toHaveLength(1));
+    expect(calls("drop_index")[0]).toMatchObject({ name: "ts_-1" });
   });
 });

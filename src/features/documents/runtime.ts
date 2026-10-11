@@ -6,7 +6,7 @@
 import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand/vanilla";
 import { useConnections } from "../../connections/connectionsStore";
-import { queryCancel, sessionClose, sessionOpen } from "../../lib/ipc/drivers";
+import { introspectChildren, queryCancel, sessionClose, sessionOpen } from "../../lib/ipc/drivers";
 import { askChoice } from "../console/prompts";
 import { confirmGuarded } from "../safety/confirm";
 import { sessionReadOnly, setSessionReadOnly } from "../safety/ipc";
@@ -52,6 +52,20 @@ export interface CollectionRuntimeState {
   schemaError: string | null;
   indexes: IndexInfo[] | null;
   indexesError: string | null;
+  /** The Aggregation view's last run. */
+  agg: {
+    docs: EJson[];
+    resultId: number | null;
+    hasMore: boolean;
+    loading: boolean;
+    fetching: boolean;
+    error: QueryError | null;
+    elapsedMs: number | null;
+    /** Bumped as pages arrive, so views notice the array growing in place. */
+    version: number;
+  };
+  /** The other collections of the database, for the side list. */
+  siblings: { name: string; count: string | null }[] | null;
 }
 
 const INITIAL: CollectionRuntimeState = {
@@ -75,6 +89,17 @@ const INITIAL: CollectionRuntimeState = {
   schemaError: null,
   indexes: null,
   indexesError: null,
+  agg: {
+    docs: [],
+    resultId: null,
+    hasMore: false,
+    loading: false,
+    fetching: false,
+    error: null,
+    elapsedMs: null,
+    version: 0,
+  },
+  siblings: null,
 };
 
 /** Counting stops here; "100,000+" is as exact as anyone needs. */
@@ -125,6 +150,7 @@ export class CollectionRuntime {
   readonly pending = new Map<string, PendingDoc>();
   private opening: Promise<string> | null = null;
   private runId = 0;
+  private aggId = 0;
   private closed = false;
   private lastQuery: Pick<CollectionTabState, "filter" | "project" | "sort" | "limit"> | null =
     null;
@@ -196,7 +222,10 @@ export class CollectionRuntime {
   }
 
   /** Run a request that writes: ask the safeguards first, then send it with their token. */
-  private async guarded(request: DocRequest): Promise<DocReply | null> {
+  private async guarded(
+    request: DocRequest,
+    onDocuments?: (resultId: number, docs: EJson[]) => void,
+  ): Promise<DocReply | null> {
     const sessionId = await this.ensureSession();
     const report = await docSafetyCheck(sessionId, request);
     if (report.decision === "block") {
@@ -207,7 +236,7 @@ export class CollectionRuntime {
       if (!(await confirmGuarded(report))) return null;
       token = report.token;
     }
-    return this.call(request, undefined, token);
+    return this.call(request, onDocuments, token);
   }
 
   /** Load the first page unless it is already what is on screen (switching back to the tab). */
@@ -608,6 +637,88 @@ export class CollectionRuntime {
     if (!reply) return false;
     if (reply.kind === "indexes") this.store.setState({ indexes: reply.items, indexesError: null });
     return true;
+  }
+
+  // ---- aggregation ----------------------------------------------------------------------------------
+
+  async aggregate(pipeline: string): Promise<void> {
+    const id = ++this.aggId;
+    this.store.setState((s) => ({ agg: { ...s.agg, loading: true, error: null } }));
+    const docs: EJson[] = [];
+    try {
+      const reply = await this.guarded(
+        {
+          op: "aggregate",
+          database: this.database,
+          collection: this.collection,
+          pipeline,
+          page_size: PAGE_SIZE,
+        },
+        (_r, d) => docs.push(...d),
+      );
+      if (id !== this.aggId || !reply) {
+        if (id === this.aggId) this.store.setState((s) => ({ agg: { ...s.agg, loading: false } }));
+        return;
+      }
+      if (reply.kind !== "found") throw new Error("Unexpected reply");
+      this.store.setState((s) => ({
+        agg: {
+          docs,
+          resultId: reply.result_id,
+          hasMore: reply.has_more,
+          loading: false,
+          fetching: false,
+          error: null,
+          elapsedMs: reply.elapsed_ms,
+          version: s.agg.version + 1,
+        },
+      }));
+    } catch (e) {
+      if (id !== this.aggId) return;
+      this.store.setState((s) => ({ agg: { ...s.agg, loading: false, error: queryErrorOf(e) } }));
+    }
+  }
+
+  async aggregateMore(): Promise<void> {
+    const { agg, sessionId } = this.store.getState();
+    if (!agg.hasMore || agg.fetching || agg.resultId === null || !sessionId) return;
+    const id = this.aggId;
+    this.store.setState((s) => ({ agg: { ...s.agg, fetching: true } }));
+    const page: EJson[] = [];
+    try {
+      const more = await docFetchMore(sessionId, agg.resultId, PAGE_SIZE, (d) => page.push(...d));
+      if (id !== this.aggId) return;
+      this.store.setState((s) => ({
+        agg: {
+          ...s.agg,
+          docs: [...s.agg.docs, ...page],
+          hasMore: more,
+          fetching: false,
+          version: s.agg.version + 1,
+        },
+      }));
+    } catch (e) {
+      if (id !== this.aggId) return;
+      this.store.setState((s) => ({
+        agg: { ...s.agg, fetching: false, hasMore: false, error: queryErrorOf(e) },
+      }));
+    }
+  }
+
+  // ---- the database's other collections -----------------------------------------------------------------
+
+  async loadSiblings(): Promise<void> {
+    try {
+      if (!(await useConnections.getState().connect(this.connectionId))) return;
+      const nodes = await introspectChildren(this.connectionId, [
+        { kind: "database", name: this.database },
+      ]);
+      this.store.setState({
+        siblings: nodes.map((n) => ({ name: n.name, count: n.detail ?? null })),
+      });
+    } catch {
+      this.store.setState({ siblings: [] });
+    }
   }
 
   // ---- export -------------------------------------------------------------------------------------------

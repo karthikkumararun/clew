@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { idOf, toShell } from "./ejson";
+import { FoldableJson } from "./FoldableJson";
+import { idOf } from "./ejson";
 import type { EJson } from "./ejson";
 import { flattenDocs } from "./treeModel";
 import { TreeView } from "./TreeView";
@@ -19,13 +20,15 @@ const docKey = (doc: EJson) => JSON.stringify(idOf(doc) ?? null);
 export function DocViewSwitch({
   value,
   onChange,
+  omitTable,
 }: {
   value: DocResultView;
   onChange: (v: DocResultView) => void;
+  omitTable?: boolean;
 }) {
   return (
     <div role="tablist" aria-label="Document view mode" className={styles.segmented}>
-      {VIEWS.map((v) => (
+      {VIEWS.filter((v) => !(omitTable && v.id === "table")).map((v) => (
         <button
           key={v.id}
           type="button"
@@ -61,7 +64,7 @@ export function DocumentsResult({
       <div>
         {docs.map((d, i) => (
           <div key={`${docKey(d)}-${i}`} className={styles.jsonDoc}>
-            <pre className={styles.json}>{toShell(d)}</pre>
+            <FoldableJson doc={d} docId={`${docKey(d)}-${i}`} />
           </div>
         ))}
       </div>

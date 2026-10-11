@@ -3,6 +3,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import { useConnections } from "../../connections/connectionsStore";
 import { newDraft, toConnection } from "../../connections/draft";
 import type { ResultEvent } from "../../lib/ipc/drivers";
+import type { JsonValue } from "../../lib/ipc/generated/serde_json/JsonValue";
 import { setPlatformForTests } from "../../lib/platform";
 import { clearCommands, runCommand } from "../../shell/registry/commands";
 import { clearShortcuts } from "../../shell/registry/shortcuts";
@@ -94,7 +95,7 @@ const mongo = toConnection({ ...newDraft("mongodb"), id: "m1", name: "dev-mongo"
 const redis = toConnection({ ...newDraft("redis"), id: "r1", name: "cache" });
 
 const oid = { $oid: "6703f1c2a9e41d7c2e0fb812" };
-const DOCS = [
+const DOCS: JsonValue[] = [
   { _id: oid, type: "checkout", user: { id: { $numberInt: "7" } } },
   { _id: { $oid: "6703ee09a9e41d7c2e0fa771" }, type: "view" },
 ];

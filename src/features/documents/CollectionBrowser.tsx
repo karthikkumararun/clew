@@ -12,6 +12,7 @@ import { runCommand } from "../../shell/registry/commands";
 import { useNotices } from "../../stores/noticesStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { askChoice } from "../console/prompts";
+import { openCollection } from "./CollectionTab";
 import { ColumnarStore } from "../grid/source";
 import { ResultGrid } from "../grid/ResultGrid";
 import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
@@ -21,7 +22,8 @@ import { setCollectionActions } from "./actions";
 import { JsonEditDialog, ValueEditDialog } from "./Dialogs";
 import { childrenOf, describe, editText, getAt, idOf, toShell } from "./ejson";
 import type { EJson } from "./ejson";
-import { IndexesPane, SchemaPane } from "./Panes";
+import { FoldableJson } from "./FoldableJson";
+import { AggregationPane, IndexesPane, SchemaPane } from "./Panes";
 import { getCollectionRuntime, messageOf } from "./runtime";
 import type { CollectionRuntime } from "./runtime";
 import type { CollectionPane, CollectionTab, CollectionTabState, DocView } from "./state";
@@ -35,6 +37,7 @@ const PANES: { id: CollectionPane; label: string }[] = [
   { id: "documents", label: "Documents" },
   { id: "schema", label: "Inferred schema" },
   { id: "indexes", label: "Indexes" },
+  { id: "aggregation", label: "Aggregation" },
 ];
 
 const VIEWS: { id: DocView; label: string }[] = [
@@ -85,6 +88,7 @@ export function CollectionBrowser({ tab }: { tab: CollectionTab }) {
   const readOnly = useStore(runtime.store, (r) => r.readOnly);
   const saving = useStore(runtime.store, (r) => r.saving);
   const saveError = useStore(runtime.store, (r) => r.saveError);
+  const siblings = useStore(runtime.store, (r) => r.siblings);
   // re-render when staged edits change
   const pendingVersion = useStore(runtime.store, (r) => r.pendingVersion);
 
@@ -111,11 +115,18 @@ export function CollectionBrowser({ tab }: { tab: CollectionTab }) {
   }, [runtime, applied]);
 
   useEffect(() => {
+    if (!runtime.store.getState().siblings) void runtime.loadSiblings();
+  }, [runtime]);
+
+  const aggRun = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
     if (s.pane === "schema" && !runtime.store.getState().schema) void runtime.loadSchema();
     if (s.pane === "indexes" && !runtime.store.getState().indexes) void runtime.loadIndexes();
   }, [runtime, s.pane]);
 
   const find = useCallback(() => {
+    if (s.pane === "aggregation") return aggRun.current?.();
     const limit = draft.limit.trim() === "" ? 0 : Math.max(0, Math.floor(Number(draft.limit)) || 0);
     const next = {
       filter: draft.filter,
@@ -130,7 +141,7 @@ export function CollectionBrowser({ tab }: { tab: CollectionTab }) {
       if (JSON.stringify(next) === JSON.stringify(applied)) await runtime.find(next);
     };
     void run();
-  }, [draft, runtime, tab.id, applied]);
+  }, [draft, runtime, tab.id, applied, s.pane]);
 
   const save = useCallback(() => void runtime.save(), [runtime]);
 
@@ -356,237 +367,271 @@ export function CollectionBrowser({ tab }: { tab: CollectionTab }) {
         </Button>
       </header>
 
-      {s.pane === "documents" ? (
-        <>
-          <div className={styles.queryBar}>
-            {field("filter", "FILTER", "1 1 auto", '{ type: "checkout" }')}
-            <div className={styles.queryRow}>
-              {field("project", "PROJECT", "2 1 260px", "{ _id: 1, type: 1 }")}
-              {field("sort", "SORT", "1 1 160px", "{ ts: -1 }")}
-              <div className={styles.field} style={{ flex: "0 1 110px" }}>
-                <label htmlFor={`${tab.id}-limit`}>LIMIT</label>
-                <input
-                  id={`${tab.id}-limit`}
-                  inputMode="numeric"
-                  placeholder="none"
-                  value={draft.limit}
-                  onChange={(e) => setDraft({ ...draft, limit: e.target.value })}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      find();
-                    }
-                  }}
-                />
-              </div>
-              <Button variant="primary" className={styles.findButton} onClick={find}>
-                Find <span>{formatShortcut("Mod+Enter")}</span>
-              </Button>
-              {loading ? (
-                <Button variant="default" onClick={() => void runtime.cancel()}>
-                  Cancel
-                </Button>
-              ) : null}
-            </div>
-            {error ? (
-              <div role="alert" className={styles.fieldError}>
-                {error.message}
-                {error.position ? ` (at character ${error.position})` : ""}
-              </div>
-            ) : null}
-          </div>
-
-          <div className={styles.toolbar}>
-            <div role="tablist" aria-label="Document view mode" className={styles.segmented}>
-              {VIEWS.map((v) => (
-                <button
-                  key={v.id}
-                  type="button"
-                  role="tab"
-                  className={styles.segmentSmall}
-                  aria-selected={s.docView === v.id}
-                  onClick={() => patchTab(tab.id, { docView: v.id })}
-                >
-                  {v.label}
-                </button>
-              ))}
-            </div>
-            <IconButton
-              aria-label="Insert document"
-              disabled={!canWrite}
-              onClick={() => setDialog({ kind: "insert" })}
+      <div className={styles.layout}>
+        <aside className={styles.siblings} aria-label="Collections">
+          <div className={styles.siblingsHead}>{s.database.toUpperCase()} · COLLECTIONS</div>
+          {(siblings ?? [{ name: s.collection, count: null }]).map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              className={styles.sibling}
+              aria-current={c.name === s.collection ? "page" : undefined}
+              onClick={() =>
+                c.name !== s.collection && openCollection(s.connectionId, s.database, c.name)
+              }
             >
-              <Plus size={14} />
-            </IconButton>
-            {s.docView === "tree" ? (
-              <>
-                <IconButton aria-label="Expand all" onClick={expandAll}>
-                  <ChevronDown size={14} />
-                </IconButton>
-                <IconButton aria-label="Collapse all" onClick={() => setExpanded(new Set())}>
-                  <ChevronRight size={14} />
-                </IconButton>
-              </>
-            ) : null}
-            <div className={styles.grow} />
-            <span className={styles.stats} aria-live="polite">
-              {statLine}
-              {plan?.collscan ? (
-                <>
-                  {" · "}
-                  <span className={styles.warn} title="No index supports this query">
-                    COLLSCAN
-                  </span>
-                </>
-              ) : plan?.index ? (
-                ` · index ${plan.index}`
-              ) : null}
-            </span>
-            <span style={{ position: "relative" }}>
-              <Button
-                variant="toolbar"
-                aria-haspopup="menu"
-                aria-expanded={exportMenu}
-                onClick={() => setExportMenu((o) => !o)}
-              >
-                <Download size={13} />
-                Export
-                <ChevronDown size={12} />
-              </Button>
-              {exportMenu ? (
-                <>
-                  <div
-                    className={styles.menuScrim}
-                    onMouseDown={() => setExportMenu(false)}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className={styles.popover}
-                    style={{ position: "absolute", right: 0, top: 32, zIndex: 41 }}
-                  >
-                    <Menu
-                      aria-label="Export format"
-                      items={EXPORTS.map((f) => ({ id: f.id, label: f.label }))}
-                      onClose={() => setExportMenu(false)}
-                      onSelect={(id) => void doExport(EXPORTS.find((f) => f.id === id)!)}
+              <span>{c.name}</span>
+              <span className={styles.siblingCount}>{c.count ?? ""}</span>
+            </button>
+          ))}
+        </aside>
+        <div className={styles.main}>
+          {s.pane === "documents" ? (
+            <>
+              <div className={styles.queryBar}>
+                {field("filter", "FILTER", "1 1 auto", '{ type: "checkout" }')}
+                <div className={styles.queryRow}>
+                  {field("project", "PROJECT", "2 1 260px", "{ _id: 1, type: 1 }")}
+                  {field("sort", "SORT", "1 1 160px", "{ ts: -1 }")}
+                  <div className={styles.field} style={{ flex: "0 1 110px" }}>
+                    <label htmlFor={`${tab.id}-limit`}>LIMIT</label>
+                    <input
+                      id={`${tab.id}-limit`}
+                      inputMode="numeric"
+                      placeholder="none"
+                      value={draft.limit}
+                      onChange={(e) => setDraft({ ...draft, limit: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          find();
+                        }
+                      }}
                     />
                   </div>
-                </>
-              ) : null}
-            </span>
-          </div>
+                  <Button variant="primary" className={styles.findButton} onClick={find}>
+                    Find <span>{formatShortcut("Mod+Enter")}</span>
+                  </Button>
+                  {loading ? (
+                    <Button variant="default" onClick={() => void runtime.cancel()}>
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
+                {error ? (
+                  <div role="alert" className={styles.fieldError}>
+                    {error.message}
+                    {error.position ? ` (at character ${error.position})` : ""}
+                  </div>
+                ) : null}
+              </div>
 
-          {pending > 0 ? (
-            <div className={styles.pending} role="status">
-              <span>
-                {pending} {pending === 1 ? "document has" : "documents have"} unsaved changes
-              </span>
-              <Button variant="primary" disabled={saving} onClick={save}>
-                Save <span>{formatShortcut("Mod+S")}</span>
-              </Button>
-              <Button variant="default" disabled={saving} onClick={() => runtime.discard()}>
-                Discard
-              </Button>
-              {saveError ? (
-                <span role="alert" className={styles.fieldError}>
-                  {saveError}
+              <div className={styles.toolbar}>
+                <div role="tablist" aria-label="Document view mode" className={styles.segmented}>
+                  {VIEWS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      role="tab"
+                      className={styles.segmentSmall}
+                      aria-selected={s.docView === v.id}
+                      onClick={() => patchTab(tab.id, { docView: v.id })}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <IconButton
+                  aria-label="Insert document"
+                  disabled={!canWrite}
+                  onClick={() => setDialog({ kind: "insert" })}
+                >
+                  <Plus size={14} />
+                </IconButton>
+                {s.docView === "tree" ? (
+                  <>
+                    <IconButton aria-label="Expand all" onClick={expandAll}>
+                      <ChevronDown size={14} />
+                    </IconButton>
+                    <IconButton aria-label="Collapse all" onClick={() => setExpanded(new Set())}>
+                      <ChevronRight size={14} />
+                    </IconButton>
+                  </>
+                ) : null}
+                <div className={styles.grow} />
+                <span className={styles.stats} aria-live="polite">
+                  {statLine}
+                  {plan?.collscan ? (
+                    <>
+                      {" · "}
+                      <span className={styles.warn} title="No index supports this query">
+                        COLLSCAN
+                      </span>
+                    </>
+                  ) : plan?.index ? (
+                    ` · index ${plan.index}`
+                  ) : null}
                 </span>
+                <span style={{ position: "relative" }}>
+                  <Button
+                    variant="toolbar"
+                    aria-haspopup="menu"
+                    aria-expanded={exportMenu}
+                    onClick={() => setExportMenu((o) => !o)}
+                  >
+                    <Download size={13} />
+                    Export
+                    <ChevronDown size={12} />
+                  </Button>
+                  {exportMenu ? (
+                    <>
+                      <div
+                        className={styles.menuScrim}
+                        onMouseDown={() => setExportMenu(false)}
+                        aria-hidden="true"
+                      />
+                      <div
+                        className={styles.popover}
+                        style={{ position: "absolute", right: 0, top: 32, zIndex: 41 }}
+                      >
+                        <Menu
+                          aria-label="Export format"
+                          items={EXPORTS.map((f) => ({ id: f.id, label: f.label }))}
+                          onClose={() => setExportMenu(false)}
+                          onSelect={(id) => void doExport(EXPORTS.find((f) => f.id === id)!)}
+                        />
+                      </div>
+                    </>
+                  ) : null}
+                </span>
+              </div>
+
+              {pending > 0 ? (
+                <div className={styles.pending} role="status">
+                  <span>
+                    {pending} {pending === 1 ? "document has" : "documents have"} unsaved changes
+                  </span>
+                  <Button variant="primary" disabled={saving} onClick={save}>
+                    Save <span>{formatShortcut("Mod+S")}</span>
+                  </Button>
+                  <Button variant="default" disabled={saving} onClick={() => runtime.discard()}>
+                    Discard
+                  </Button>
+                  {saveError ? (
+                    <span role="alert" className={styles.fieldError}>
+                      {saveError}
+                    </span>
+                  ) : null}
+                </div>
+              ) : saveError ? (
+                <div role="alert" className={styles.errorText}>
+                  {saveError}
+                </div>
               ) : null}
-            </div>
-          ) : saveError ? (
-            <div role="alert" className={styles.errorText}>
-              {saveError}
-            </div>
+
+              <div
+                className={styles.body}
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  if (el.scrollHeight - el.scrollTop - el.clientHeight < 200)
+                    void runtime.loadMore();
+                }}
+              >
+                {!loaded && loading ? <div className={styles.empty}>Loading…</div> : null}
+                {loaded && docs.length === 0 ? (
+                  <div className={styles.empty}>No documents match.</div>
+                ) : null}
+                {loaded && docs.length > 0 && s.docView === "tree" ? (
+                  <TreeView
+                    rows={rows}
+                    editedPaths={(i) => runtime.editedPaths(docs[i])}
+                    selectedKey={selected}
+                    onSelect={(r) => setSelected(r.key)}
+                    onToggle={toggle}
+                    onEdit={openEdit}
+                    onContext={(row, e: MouseEvent) => setMenu({ row, x: e.clientX, y: e.clientY })}
+                  />
+                ) : null}
+                {loaded && docs.length > 0 && s.docView === "table" ? (
+                  <TableView
+                    docs={effectiveDocs}
+                    sort={s.sort}
+                    readOnly={!canWrite}
+                    onSort={(sort) => {
+                      setDraft((d) => ({ ...d, sort }));
+                      patchTab(tab.id, { sort });
+                    }}
+                    onEdit={(docIndex, key) => {
+                      const v = getAt(effectiveDocs[docIndex], [key]);
+                      if (v !== undefined && describe(v).container) {
+                        setDialog({ kind: "document", docIndex });
+                      } else {
+                        setDialog({ kind: "value", docIndex, path: [key] });
+                      }
+                    }}
+                    onNearEnd={() => void runtime.loadMore()}
+                  />
+                ) : null}
+                {loaded && docs.length > 0 && s.docView === "json" ? (
+                  <div>
+                    {effectiveDocs.map((d, i) => (
+                      <div key={docKey(d)} className={styles.jsonDoc}>
+                        <FoldableJson doc={d} docId={docKey(d)} />
+                        <div className={styles.jsonDocActions}>
+                          <Button variant="ghost" onClick={() => void copy(toShell(d))}>
+                            Copy
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            disabled={!canWrite}
+                            onClick={() => setDialog({ kind: "document", docIndex: i })}
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {hasMore && s.docView !== "table" ? (
+                  <div className={styles.more}>
+                    <Button
+                      variant="default"
+                      disabled={fetching}
+                      onClick={() => void runtime.loadMore()}
+                    >
+                      {fetching ? "Loading…" : "Load more"}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            </>
           ) : null}
 
-          <div
-            className={styles.body}
-            onScroll={(e) => {
-              const el = e.currentTarget;
-              if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) void runtime.loadMore();
-            }}
-          >
-            {!loaded && loading ? <div className={styles.empty}>Loading…</div> : null}
-            {loaded && docs.length === 0 ? (
-              <div className={styles.empty}>No documents match.</div>
-            ) : null}
-            {loaded && docs.length > 0 && s.docView === "tree" ? (
-              <TreeView
-                rows={rows}
-                editedPaths={(i) => runtime.editedPaths(docs[i])}
-                selectedKey={selected}
-                onSelect={(r) => setSelected(r.key)}
-                onToggle={toggle}
-                onEdit={openEdit}
-                onContext={(row, e: MouseEvent) => setMenu({ row, x: e.clientX, y: e.clientY })}
-              />
-            ) : null}
-            {loaded && docs.length > 0 && s.docView === "table" ? (
-              <TableView
-                docs={effectiveDocs}
-                sort={s.sort}
-                readOnly={!canWrite}
-                onSort={(sort) => {
-                  setDraft((d) => ({ ...d, sort }));
-                  patchTab(tab.id, { sort });
+          {s.pane === "schema" ? (
+            <div className={styles.body}>
+              <SchemaPane runtime={runtime} />
+            </div>
+          ) : null}
+          {s.pane === "indexes" ? (
+            <div className={styles.body}>
+              <IndexesPane runtime={runtime} />
+            </div>
+          ) : null}
+          {s.pane === "aggregation" ? (
+            <div className={styles.body}>
+              <AggregationPane
+                runtime={runtime}
+                pipeline={s.pipeline}
+                onPipeline={(pipeline) => patchTab(tab.id, { pipeline })}
+                registerRun={(run) => {
+                  aggRun.current = run;
                 }}
-                onEdit={(docIndex, key) => {
-                  const v = getAt(effectiveDocs[docIndex], [key]);
-                  if (v !== undefined && describe(v).container) {
-                    setDialog({ kind: "document", docIndex });
-                  } else {
-                    setDialog({ kind: "value", docIndex, path: [key] });
-                  }
-                }}
-                onNearEnd={() => void runtime.loadMore()}
               />
-            ) : null}
-            {loaded && docs.length > 0 && s.docView === "json" ? (
-              <div>
-                {effectiveDocs.map((d, i) => (
-                  <div key={docKey(d)} className={styles.jsonDoc}>
-                    <pre className={styles.json}>{toShell(d)}</pre>
-                    <div className={styles.jsonDocActions}>
-                      <Button variant="ghost" onClick={() => void copy(toShell(d))}>
-                        Copy
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        disabled={!canWrite}
-                        onClick={() => setDialog({ kind: "document", docIndex: i })}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {hasMore && s.docView !== "table" ? (
-              <div className={styles.more}>
-                <Button
-                  variant="default"
-                  disabled={fetching}
-                  onClick={() => void runtime.loadMore()}
-                >
-                  {fetching ? "Loading…" : "Load more"}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </>
-      ) : null}
-
-      {s.pane === "schema" ? (
-        <div className={styles.body}>
-          <SchemaPane runtime={runtime} />
+            </div>
+          ) : null}
         </div>
-      ) : null}
-      {s.pane === "indexes" ? (
-        <div className={styles.body}>
-          <IndexesPane runtime={runtime} />
-        </div>
-      ) : null}
+      </div>
 
       {menu ? (
         <>

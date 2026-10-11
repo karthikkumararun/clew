@@ -11,6 +11,7 @@ import { CollectionBrowser, confirmDiscard } from "./CollectionBrowser";
 import { disposeCollectionRuntime, peekCollectionRuntime } from "./runtime";
 import {
   COLLECTION_KIND,
+  DEFAULT_PIPELINE,
   DEFAULT_SORT,
   collectionKey,
   deserializeCollection,
@@ -70,6 +71,7 @@ export function openCollection(
     project: "",
     sort: DEFAULT_SORT,
     limit: 0,
+    pipeline: DEFAULT_PIPELINE,
     pane: "documents",
     docView: "tree",
     ...extra,

@@ -8,6 +8,7 @@ pub mod schema;
 pub mod session;
 pub mod shell;
 pub mod tabular;
+pub mod uri;
 
 use std::path::PathBuf;
 use std::sync::Arc;

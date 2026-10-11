@@ -36,6 +36,14 @@ function activate(row: Row) {
   else if (row.type === "group") ex.toggleGroup(row.id.slice("group:".length));
   else if (row.type === "node" && isTableLike(row.entry.kind)) {
     void runCommand("explorer.openData", row.id);
+  } else if (
+    row.type === "node" &&
+    row.entry.kind === "database" &&
+    useConnections.getState().file.connections.find((c) => c.id === row.entry.connId)?.driver ===
+      "redis"
+  ) {
+    // Redis databases have no tree below them: they open in the key browser
+    void runCommand("explorer.openData", row.id);
   } else if (row.type === "node" && row.entry.kind === "script") {
     void runCommand("explorer.openScript", row.id);
   } else if (row.type === "node") void ex.toggle(row.id);

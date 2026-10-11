@@ -3,11 +3,12 @@ import type { NodePath } from "../../lib/ipc/drivers";
 
 export const COLLECTION_KIND = "collection";
 
-export type CollectionPane = "documents" | "schema" | "indexes";
+export type CollectionPane = "documents" | "schema" | "indexes" | "aggregation";
 export type DocView = "tree" | "table" | "json";
 
 export const PAGE_SIZE = 50;
 export const DEFAULT_SORT = "{ _id: -1 }";
+export const DEFAULT_PIPELINE = "[\n  { $match: {} },\n  { $limit: 20 }\n]";
 
 /** What a collection tab keeps. */
 export interface CollectionTabState {
@@ -19,6 +20,8 @@ export interface CollectionTabState {
   sort: string;
   /** 0 = no limit. */
   limit: number;
+  /** The aggregation pipeline text of the Aggregation view. */
+  pipeline: string;
   pane: CollectionPane;
   docView: DocView;
   /** The tab's open session; transient. */
@@ -50,7 +53,7 @@ export function deserializeCollection(raw: unknown): CollectionTabState {
   ) {
     throw new Error("a collection tab needs a connection, a database and a collection");
   }
-  const panes: CollectionPane[] = ["documents", "schema", "indexes"];
+  const panes: CollectionPane[] = ["documents", "schema", "indexes", "aggregation"];
   const views: DocView[] = ["tree", "table", "json"];
   return {
     connectionId: r.connectionId,
@@ -60,6 +63,7 @@ export function deserializeCollection(raw: unknown): CollectionTabState {
     project: typeof r.project === "string" ? r.project : "",
     sort: typeof r.sort === "string" ? r.sort : DEFAULT_SORT,
     limit: typeof r.limit === "number" && r.limit >= 0 ? Math.floor(r.limit) : 0,
+    pipeline: typeof r.pipeline === "string" && r.pipeline ? r.pipeline : DEFAULT_PIPELINE,
     pane: panes.includes(r.pane as CollectionPane) ? (r.pane as CollectionPane) : "documents",
     docView: views.includes(r.docView as DocView) ? (r.docView as DocView) : "tree",
   };

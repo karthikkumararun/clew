@@ -213,6 +213,7 @@ impl MongoSession {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // the query bar's fields, passed through as they are
     async fn find(
         &mut self,
         database: &str,
@@ -362,6 +363,7 @@ impl MongoSession {
         })
     }
 
+    #[allow(clippy::too_many_arguments)] // the query bar's fields plus where to write
     async fn export(
         &self,
         db: &str,
@@ -722,10 +724,8 @@ impl MongoSession {
 fn walk_plan(stage: &Document, index: &mut Option<String>, collscan: &mut bool) {
     match stage.get_str("stage") {
         Ok("COLLSCAN") => *collscan = true,
-        Ok("IXSCAN" | "EXPRESS_IXSCAN" | "EXPRESS_CLUSTERED_IXSCAN") => {
-            if index.is_none() {
-                *index = stage.get_str("indexName").ok().map(str::to_string);
-            }
+        Ok("IXSCAN" | "EXPRESS_IXSCAN" | "EXPRESS_CLUSTERED_IXSCAN") if index.is_none() => {
+            *index = stage.get_str("indexName").ok().map(str::to_string);
         }
         _ => {}
     }

@@ -105,6 +105,11 @@ export function registerExplorerCommands(): () => void {
             database: namespaceOf(t.entry.path).database,
             collection: t.entry.name,
           });
+        } else if (t?.entry && t.conn.driver === "redis" && t.entry.kind === "database") {
+          await delegate("keys.open", {
+            connectionId: t.conn.id,
+            db: Number(t.entry.name.replace(/^db/, "")) || 0,
+          });
         } else if (t?.entry && isTableLike(t.entry.kind)) {
           await delegate("table.open", { connectionId: t.conn.id, path: t.entry.path });
         }
