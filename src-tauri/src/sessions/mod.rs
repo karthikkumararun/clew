@@ -771,8 +771,10 @@ impl SessionManager {
                 run_with_timeout(session.as_mut(), single, result_sink, &cancel, timeout).await;
             let _ = pump.await;
             if let Some(history) = &sink {
-                // Transaction control is the console's own plumbing, not something to look up later.
-                if transaction_effect_for(dialect, &sql).is_none() {
+                // Transaction control is plumbing, and a line with a password stays out of the log.
+                if transaction_effect_for(dialect, &sql).is_none()
+                    && !crate::safety::nosql::is_sensitive(entry.connection.driver.meta().id, &sql)
+                {
                     let (outcome, rows) = match &result {
                         Ok(s) => (
                             Outcome::Ok,

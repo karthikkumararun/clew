@@ -204,6 +204,27 @@ pub fn classify_script(driver: &str, text: &str, script: bool) -> Vec<StatementI
     }
 }
 
+/// A console line that carries a password, which must not be written to the query history.
+pub fn is_sensitive(driver: &str, text: &str) -> bool {
+    if driver != "redis" {
+        return false;
+    }
+    redis_lines(text).into_iter().any(|line| {
+        let args = crate::drivers::redis::commands::tokenize(line).unwrap_or_default();
+        let name = args
+            .first()
+            .map(|n| n.to_ascii_uppercase())
+            .unwrap_or_default();
+        let has = |w: &str| args.iter().any(|a| a.eq_ignore_ascii_case(w));
+        match name.as_str() {
+            "AUTH" | "ACL" if name == "AUTH" || has("SETUSER") => true,
+            "HELLO" | "MIGRATE" => has("AUTH") || has("AUTH2"),
+            "CONFIG" => has("requirepass") || has("masterauth") || has("masteruser"),
+            _ => false,
+        }
+    })
+}
+
 pub fn classify_redis(line: &str) -> Vec<StatementInfo> {
     use StatementClass::*;
     let args = crate::drivers::redis::commands::tokenize(line).unwrap_or_default();
@@ -328,6 +349,30 @@ mod tests {
         assert_eq!(m("db.events.mapReduce()").0, Unknown);
         // unparsable text runs nothing
         assert_eq!(m("for (;;) {}").0, Read);
+    }
+
+    #[test]
+    fn password_lines_are_sensitive() {
+        for line in [
+            "AUTH hunter2",
+            "AUTH me hunter2",
+            "hello 3 auth me hunter2",
+            "CONFIG SET requirepass x",
+            "ACL SETUSER bob on >pw ~* +@all",
+            "MIGRATE host 6379 k 0 5000 AUTH pw",
+        ] {
+            assert!(is_sensitive("redis", line), "{line}");
+        }
+        for line in [
+            "GET k",
+            "CONFIG GET maxmemory",
+            "ACL LIST",
+            "HELLO 3",
+            "SET auth 1",
+        ] {
+            assert!(!is_sensitive("redis", line), "{line}");
+        }
+        assert!(!is_sensitive("mongodb", "AUTH x"));
     }
 
     #[test]
