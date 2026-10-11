@@ -3,6 +3,8 @@
  * whatever is running on it. It lives outside React because only the active tab is mounted, and
  * a query must keep running (and its results keep arriving) while the user looks at another tab.
  */
+import { confirmGuarded } from "../safety/confirm";
+import { safetyCheck, sessionReadOnly, setSessionReadOnly } from "../safety/ipc";
 import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand/vanilla";
 import { sessionSwitchNamespace } from "../../connections/api";
@@ -33,13 +35,15 @@ export interface OutputEntry {
   id: number;
   /** When it finished (ms since the epoch). */
   at: number;
-  kind: "ok" | "error" | "cancelled" | "info";
+  kind: "ok" | "error" | "cancelled" | "info" | "blocked";
   /** The statement's text, flattened and shortened. */
   statement: string;
   /** `50 rows · 38 ms`, `3 rows affected · 4 ms`, the error message, `Cancelled after 2.1 s`. */
   message: string;
   hint?: string;
   detail?: string;
+  /** A button offered with the entry. */
+  action?: "switch-read-write";
 }
 
 export type ResultTab = "result" | "output" | "explain" | "history";
@@ -90,6 +94,8 @@ export interface RuntimeState {
   txOpen: boolean;
   /** Statements run in the open manual transaction. */
   txPending: number;
+  /** The session refuses writes (switchable per session; see the toolbar badge). */
+  readOnly: boolean;
 }
 
 const INITIAL: RuntimeState = {
@@ -108,6 +114,7 @@ const INITIAL: RuntimeState = {
   resultSql: {},
   txOpen: false,
   txPending: 0,
+  readOnly: false,
 };
 
 /** Keep the Output log from growing without bound. */
@@ -134,7 +141,11 @@ export class ConsoleRuntime {
   constructor(
     readonly tabId: string,
     readonly connectionId: string,
-  ) {}
+  ) {
+    // Until the session opens (and says so itself), assume the connection's default.
+    const saved = useConnections.getState().file.connections.find((c) => c.id === connectionId);
+    this.store.setState({ readOnly: saved?.safeguards.readOnlyByDefault ?? false });
+  }
 
   get sessionId(): string | null {
     return this.store.getState().sessionId;
@@ -164,6 +175,11 @@ export class ConsoleRuntime {
         server: opened.server,
       });
       this.mirror(opened.sessionId);
+      try {
+        this.store.setState({ readOnly: await sessionReadOnly(opened.sessionId) });
+      } catch {
+        /* keep the connection's default */
+      }
       // A database / schema picked on the connection chip before the first run.
       const { database, schema } = this.tabState() ?? {};
       if (database || schema) {
@@ -241,6 +257,11 @@ export class ConsoleRuntime {
         this.store.setState({ tab: "output" });
         return;
       }
+      const pre = await this.preflight(sessionId, req.sql, req.script);
+      if (!pre.ok) {
+        this.results.finish();
+        return;
+      }
       try {
         // Manual mode: the first statement opens the transaction.
         if (this.tabState()?.txMode === "manual" && !this.store.getState().txOpen) {
@@ -258,6 +279,7 @@ export class ConsoleRuntime {
           (event) => {
             if (this.runId === runId) this.results.apply(event);
           },
+          ...(pre.token ? [pre.token] : []),
         );
         this.results.finish();
       } catch (e) {
@@ -407,6 +429,19 @@ export class ConsoleRuntime {
     try {
       sessionId = await this.ensureSession();
       own.begin();
+      let token: string | undefined;
+      if (req.analyze) {
+        // ANALYZE executes the statement, so a write goes through the guard like any other.
+        const pre = await this.preflight(sessionId, statement, false);
+        if (!pre.ok) {
+          this.store.setState({
+            tab: "output",
+            explain: { status: "failed", analyze: true, sql: req.sql, error: "Not run" },
+          });
+          return;
+        }
+        token = pre.token;
+      }
       if (wrap) {
         await this.exec(sessionId, inTx ? "SAVEPOINT clew_explain" : this.beginSql());
         began = true;
@@ -416,6 +451,7 @@ export class ConsoleRuntime {
           sessionId,
           { sql: statement, page_size: 5000, script: false, continue_on_error: false },
           (event) => own.apply(event),
+          ...(token ? [token] : []),
         );
         own.finish();
       } catch (e) {
@@ -480,6 +516,59 @@ export class ConsoleRuntime {
         raw: plan ? undefined : { columns: result.columns, rows: result.rows },
       },
     });
+  }
+
+  /**
+   * Ask the guard about `sql` before sending it: refuse it on a read-only session, or ask the user
+   * to confirm. Anything stopped here is logged to Output.
+   */
+  private async preflight(
+    sessionId: string,
+    sql: string,
+    script: boolean,
+  ): Promise<{ ok: true; token?: string } | { ok: false }> {
+    let report;
+    try {
+      report = await safetyCheck(sessionId, sql, script);
+    } catch (e) {
+      const message = (e as { message?: string }).message ?? "The safety check failed";
+      this.log({ kind: "error", statement: preview(sql), message });
+      this.store.setState({ tab: "output" });
+      return { ok: false };
+    }
+    if (report.decision === "allow") return { ok: true };
+    if (report.decision === "block") {
+      this.log({
+        kind: "blocked",
+        statement: preview(sql),
+        message: "Blocked: this session is read-only",
+        action: "switch-read-write",
+      });
+      this.store.setState({ tab: "output" });
+      return { ok: false };
+    }
+    if (!(await confirmGuarded(report))) {
+      this.log({ kind: "cancelled", statement: preview(sql), message: "Not run: not confirmed" });
+      this.store.setState({ tab: "output" });
+      return { ok: false };
+    }
+    return { ok: true, token: report.token };
+  }
+
+  /** Switch this console's session between read-only and read-write. */
+  async setReadOnly(readOnly: boolean): Promise<void> {
+    try {
+      const sessionId = await this.ensureSession();
+      await setSessionReadOnly(sessionId, readOnly);
+      this.store.setState({ readOnly });
+    } catch (e) {
+      this.log({
+        kind: "error",
+        statement: "",
+        message: (e as { message?: string }).message ?? "Couldn't change the session mode",
+      });
+      this.store.setState({ tab: "output" });
+    }
   }
 
   /** End the open manual transaction. Resolves false when the server refused. */

@@ -25,6 +25,7 @@ const api = vi.hoisted(() => ({
   ddl: vi.fn(),
 }));
 
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   queryExecute: (...a: unknown[]) => api.execute(...a),
@@ -296,7 +297,7 @@ describe("opening a table", () => {
     expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toHaveTextContent(
       "prod-postgresanalyticspublicorders",
     );
-    expect(screen.getByText("PRODUCTION · WRITES NEED CONFIRMATION")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PRODUCTION · READ-WRITE" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Data" })).toHaveAttribute("aria-selected", "true");
   });
 

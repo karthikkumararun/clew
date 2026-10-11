@@ -376,6 +376,32 @@ impl Session for SqliteSession {
             .await
     }
 
+    async fn set_read_only(&mut self, read_only: bool) -> DriverResult<()> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let pragma = if read_only {
+            "PRAGMA query_only = ON"
+        } else {
+            "PRAGMA query_only = OFF"
+        };
+        let result = sqlx::query(pragma)
+            .persistent(false)
+            .execute(&mut *conn)
+            .await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.path, None))
+            }
+        }
+    }
+
     async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {
         self.reclaim().await?;
         let mut conn = self.take_idle()?;

@@ -41,6 +41,7 @@ vi.mock("./fileIpc", () => ({
   fileUnwatch: (p: string) => api.unwatch(p),
   onFileChanged: async () => () => {},
 }));
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   sessionClose: (...a: unknown[]) => api.sessionClose(...a),

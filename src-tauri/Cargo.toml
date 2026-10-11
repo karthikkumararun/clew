@@ -45,6 +45,7 @@ base64 = "0.22"
 sha2 = "0.10"
 quick-xml = "0.37"
 keepass = { version = "0.15.0", features = ["save_kdbx4"] }
+sqlparser = { version = "0.63.0", features = ["visitor"] }
 
 [profile.release]
 codegen-units = 1

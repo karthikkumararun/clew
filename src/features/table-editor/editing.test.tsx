@@ -10,6 +10,8 @@ import { clearTabKinds, getTabKind } from "../../shell/registry/tabKinds";
 import { useNotices } from "../../stores/noticesStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { ConsolePromptHost } from "../console/prompts";
+import * as safety from "../safety/ipc";
+import { SafetyPromptHost, clearConfirms } from "../safety/confirm";
 import type { TableMeta } from "./api";
 import { clearTableRuntimes, peekTableRuntime } from "./runtime";
 import { TABLE_KIND } from "./state";
@@ -27,6 +29,7 @@ const api = vi.hoisted(() => ({
   apply: vi.fn(),
 }));
 
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   queryExecute: (...a: unknown[]) => api.execute(...a),
@@ -153,6 +156,7 @@ async function mount(connection = writable, extra: Partial<TableTabState> = {}) 
     <>
       <Live id={id} />
       <ConsolePromptHost />
+      <SafetyPromptHost />
     </>,
   );
   await screen.findByRole("grid");
@@ -179,6 +183,14 @@ beforeEach(() => {
   clearCommands();
   clearTabKinds();
   clearTableRuntimes();
+  clearConfirms();
+  vi.mocked(safety.sessionReadOnly).mockResolvedValue(false);
+  vi.mocked(safety.safetyCheckChanges).mockImplementation(async () => ({
+    decision: "allow",
+    connection: "",
+    environment: "",
+    statements: [],
+  }));
   setPlatformForTests("mac");
   useNotices.setState({ notices: [] });
   useWorkspace.setState({ tabs: [], activeTabId: null, closeRequest: null });
@@ -223,9 +235,11 @@ afterEach(() => {
 });
 
 describe("which tables can be edited", () => {
-  it("explains a connection that is read-only", async () => {
+  it("explains a session that is read-only", async () => {
+    vi.mocked(safety.sessionReadOnly).mockResolvedValue(true);
     await mount(readOnly);
-    expect(screen.getByRole("note")).toHaveTextContent("Read-only: this connection is read-only");
+    expect(screen.getByRole("note")).toHaveTextContent("Read-only: this session is read-only");
+    expect(screen.getByRole("button", { name: "PRODUCTION · READ-ONLY" })).toBeInTheDocument();
     fireEvent.doubleClick(cellOf(0, 1));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("button", { name: "Add row" })).toBeDisabled();
@@ -376,21 +390,58 @@ describe("preview and submit", () => {
     expect(cellOf(0, 1)).toHaveTextContent("pending"); // the database's rows, reloaded
   });
 
-  it("asks first on a connection that confirms writes", async () => {
+  it("asks first when the guard says the connection confirms writes", async () => {
+    const ask = {
+      decision: "confirm" as const,
+      connection: "prod-postgres",
+      environment: "production",
+      statements: [
+        {
+          text: `UPDATE "public"."orders" SET "status" = 'shipped' WHERE "id" = 88213;`,
+          class: "write" as const,
+          estimate: 1,
+        },
+      ],
+      token: "tok-9",
+    };
+    vi.mocked(safety.safetyCheckChanges).mockResolvedValue(ask);
     await mount(guarded);
     await edit(0, 1, "shipped");
     fireEvent.click(screen.getByRole("button", { name: /^Submit/ }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog).toHaveTextContent("Write to prod-postgres?");
-    expect(dialog).toHaveTextContent("1 change (1 edited)");
+    expect(dialog).toHaveTextContent("prod-postgres · Production");
+    expect(dialog).toHaveTextContent("≈1 row");
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(api.apply).not.toHaveBeenCalled();
+    expect(screen.getByRole("region", { name: "Pending changes" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^Submit/ }));
     fireEvent.click(
-      await within(await screen.findByRole("dialog")).findByRole("button", { name: "Submit" }),
+      await within(await screen.findByRole("dialog")).findByRole("button", { name: "Confirm" }),
     );
     await waitFor(() => expect(api.apply).toHaveBeenCalledTimes(1));
+    expect(api.apply.mock.calls[0][3]).toBe("tok-9");
+  });
+
+  it("shows the block and keeps the changes when the session is read-only", async () => {
+    vi.mocked(safety.safetyCheckChanges).mockResolvedValue({
+      decision: "block",
+      connection: "prod-postgres",
+      environment: "production",
+      statements: [],
+      reason: "This session is read-only",
+    });
+    await mount(writable);
+    await edit(0, 1, "shipped");
+    fireEvent.click(screen.getByRole("button", { name: /^Submit/ }));
+    const bar = screen.getByRole("region", { name: "Pending changes" });
+    await waitFor(() =>
+      expect(within(bar).getByRole("alert")).toHaveTextContent(
+        "Blocked: this session is read-only",
+      ),
+    );
+    expect(api.apply).not.toHaveBeenCalled();
+    expect(bar).toHaveTextContent("1 pending change");
   });
 
   it("keeps every change and marks the failing row when the transaction fails", async () => {

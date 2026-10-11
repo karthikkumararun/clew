@@ -16,6 +16,8 @@ use crate::drivers::{
     SchemaSnapshot, ServerInfo, Session, Target, TreeNode, Value,
 };
 use crate::history::{HistorySink, NewEntry, Outcome};
+use crate::safety::classify::{classify, StatementClass, StatementInfo};
+use crate::safety::guard::{bound_text, decide, Decision, Policy, Tokens, READ_ONLY_REASON};
 use crate::transport::ssh::{SshEnv, SshTunnel};
 use crate::transport::tls;
 
@@ -50,6 +52,9 @@ struct SessionState {
     /// `None` after the connection was lost; the next execute reconnects.
     session: Option<Box<dyn Session>>,
     in_transaction: bool,
+    /// Writes are refused. Starts as the connection's "read-only by default"; the user can switch
+    /// it for this session only.
+    read_only: bool,
 }
 
 struct SessionEntry {
@@ -75,6 +80,10 @@ pub struct SessionManager {
     next_id: AtomicU64,
     /// Where finished console statements are reported (query history).
     history: StdMutex<Option<Arc<dyn HistorySink>>>,
+    /// What each connection's safeguards ask of the guard.
+    policies: StdMutex<HashMap<ConnectionId, Policy>>,
+    /// One-time write confirmations.
+    tokens: StdMutex<Tokens>,
 }
 
 impl std::fmt::Debug for SessionManager {
@@ -192,6 +201,8 @@ impl SessionManager {
             registry,
             ssh_env,
             history: StdMutex::new(None),
+            policies: StdMutex::new(HashMap::new()),
+            tokens: StdMutex::new(Tokens::default()),
             inner: StdMutex::new(Inner::default()),
             next_id: AtomicU64::new(1),
         }
@@ -309,6 +320,20 @@ impl SessionManager {
             .contains_key(connection_id)
     }
 
+    /// Is any session of any connection inside an uncommitted transaction? Quitting asks first.
+    pub fn any_in_transaction(&self) -> bool {
+        let ids: Vec<ConnectionId> = self
+            .inner
+            .lock()
+            .unwrap()
+            .connections
+            .keys()
+            .cloned()
+            .collect();
+        ids.iter()
+            .any(|id| !self.sessions_in_transaction(id).is_empty())
+    }
+
     /// Sessions of the connection with an uncommitted transaction (a busy session counts).
     pub fn sessions_in_transaction(&self, connection_id: &str) -> Vec<SessionId> {
         let entries: Vec<(SessionId, Arc<SessionEntry>)> = self
@@ -356,6 +381,7 @@ impl SessionManager {
                 script: false,
                 continue_on_error: false,
             },
+            None,
             emit,
             false,
         )
@@ -376,6 +402,7 @@ impl SessionManager {
                     script: false,
                     continue_on_error: false,
                 },
+                None,
                 emit,
                 false,
             )
@@ -423,6 +450,7 @@ impl SessionManager {
             state: Mutex::new(SessionState {
                 session: Some(session),
                 in_transaction: false,
+                read_only: connection.cfg.read_only,
             }),
             last_used: StdMutex::new(Instant::now()),
             connection,
@@ -498,6 +526,13 @@ impl SessionManager {
             let _ = session.close().await;
             return Err(e);
         }
+        // A session the user switched to read-write stays that way across a reconnect.
+        if st.read_only != conn.cfg.read_only {
+            if let Err(e) = session.set_read_only(st.read_only).await {
+                let _ = session.close().await;
+                return Err(e);
+            }
+        }
         *entry.cancel.lock().unwrap() = session.cancel_handle();
         *entry.server.lock().unwrap() = session.server_info();
         st.session = Some(session);
@@ -524,7 +559,18 @@ impl SessionManager {
         req: ExecRequest,
         emit: Emit,
     ) -> DriverResult<Option<ExecSummary>> {
-        self.execute_inner(session_id, req, emit, true).await
+        self.execute_inner(session_id, req, None, emit, true).await
+    }
+
+    /// Like [`Self::execute`], presenting the token a confirmation dialog was answered with.
+    pub async fn execute_confirmed(
+        &self,
+        session_id: &str,
+        req: ExecRequest,
+        token: Option<String>,
+        emit: Emit,
+    ) -> DriverResult<Option<ExecSummary>> {
+        self.execute_inner(session_id, req, token, emit, true).await
     }
 
     /// Like [`Self::execute`] but not recorded in the query history (exports re-run queries).
@@ -534,13 +580,14 @@ impl SessionManager {
         req: ExecRequest,
         emit: Emit,
     ) -> DriverResult<Option<ExecSummary>> {
-        self.execute_inner(session_id, req, emit, false).await
+        self.execute_inner(session_id, req, None, emit, false).await
     }
 
     async fn execute_inner(
         &self,
         session_id: &str,
         req: ExecRequest,
+        token: Option<String>,
         emit: Emit,
         record: bool,
     ) -> DriverResult<Option<ExecSummary>> {
@@ -554,6 +601,22 @@ impl SessionManager {
         Self::touch(&entry);
 
         let dialect = entry.connection.driver.meta().dialect;
+        // The guard has the last word, whatever the UI did before calling.
+        if let Err(e) = self.enforce(
+            session_id,
+            &entry,
+            st.read_only,
+            &req.sql,
+            req.script,
+            token.as_deref(),
+        ) {
+            emit(ResultEvent::Error {
+                result_id: None,
+                statement: 0,
+                error: e.clone(),
+            });
+            return Err(e);
+        }
         let statements: Vec<String> = if req.script {
             split(&req.sql, dialect)
                 .into_iter()
@@ -752,9 +815,36 @@ impl SessionManager {
         session_id: &str,
         statements: &[crate::changes::Statement],
     ) -> DriverResult<crate::changes::ApplyOutcome> {
+        self.apply_changes_confirmed(session_id, statements, None)
+            .await
+    }
+
+    /// The text a confirmation of these statements is bound to.
+    pub fn changes_text(statements: &[crate::changes::Statement]) -> String {
+        statements
+            .iter()
+            .map(|s| format!("{};", s.display))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    pub async fn apply_changes_confirmed(
+        &self,
+        session_id: &str,
+        statements: &[crate::changes::Statement],
+        token: Option<String>,
+    ) -> DriverResult<crate::changes::ApplyOutcome> {
         let entry = self.session(session_id)?;
         let mut st = entry.state.lock().await;
         Self::touch(&entry);
+        self.enforce(
+            session_id,
+            &entry,
+            st.read_only,
+            &Self::changes_text(statements),
+            true,
+            token.as_deref(),
+        )?;
         let in_txn = st.in_transaction;
         let driver = entry.connection.driver.meta().id.to_string();
         let session = st.session.as_mut().ok_or_else(|| {
@@ -862,3 +952,280 @@ async fn run_with_timeout(
 
 #[cfg(test)]
 mod tests;
+
+// ---- production safeguards --------------------------------------------------------------------
+
+/// One statement in a [`GuardReport`].
+#[derive(ts_rs::TS)]
+#[ts(export)]
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct GuardStatement {
+    pub text: String,
+    pub class: StatementClass,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub danger: Option<String>,
+    /// Rows an UPDATE / DELETE is estimated to touch, when the database answered quickly.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional, type = "number")]
+    pub estimate: Option<i64>,
+}
+
+/// What the guard decided about some SQL, with what a confirmation dialog needs to show.
+#[derive(ts_rs::TS)]
+#[ts(export)]
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct GuardReport {
+    pub decision: Decision,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub reason: Option<String>,
+    pub connection: String,
+    pub environment: String,
+    pub statements: Vec<GuardStatement>,
+    /// Present when the decision asks for a confirmation: send it back with the statements.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub token: Option<String>,
+    /// The text to type (the connection's name) for a typed confirmation.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub typed: Option<String>,
+}
+
+/// An EXPLAIN that takes longer than this is abandoned: the estimate is a courtesy.
+const ESTIMATE_BUDGET: Duration = Duration::from_millis(300);
+
+impl SessionManager {
+    /// Tell the guard what a connection's safeguards are (set when it connects).
+    pub fn set_policy(&self, connection_id: &str, policy: Policy) {
+        self.policies
+            .lock()
+            .unwrap()
+            .insert(connection_id.to_string(), policy);
+    }
+
+    fn policy_of(&self, connection_id: &str) -> Policy {
+        self.policies
+            .lock()
+            .unwrap()
+            .get(connection_id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    fn classify_for(&self, entry: &SessionEntry, sql: &str, script: bool) -> Vec<StatementInfo> {
+        let driver = entry.connection.driver.meta();
+        classify(sql, driver.id, driver.dialect, script)
+    }
+
+    /// Refuse what the session's state and the connection's safeguards don't allow.
+    fn enforce(
+        &self,
+        session_id: &str,
+        entry: &SessionEntry,
+        read_only: bool,
+        sql: &str,
+        script: bool,
+        token: Option<&str>,
+    ) -> DriverResult<()> {
+        let statements = self.classify_for(entry, sql, script);
+        let policy = self.policy_of(&entry.connection_id);
+        match decide(&statements, read_only, &policy) {
+            Decision::Allow => Ok(()),
+            Decision::Block => Err(DriverError::new(ErrorCode::ReadOnly, READ_ONLY_REASON)),
+            Decision::Confirm | Decision::TypedConfirm => {
+                let confirmed = token.is_some_and(|t| {
+                    self.tokens
+                        .lock()
+                        .unwrap()
+                        .consume(t, session_id, &bound_text(&statements))
+                });
+                if confirmed {
+                    Ok(())
+                } else {
+                    Err(DriverError::new(
+                        ErrorCode::ConfirmationRequired,
+                        "This statement needs your confirmation first",
+                    ))
+                }
+            }
+        }
+    }
+
+    /// Whether the session refuses writes right now.
+    pub async fn session_read_only(&self, session_id: &str) -> DriverResult<bool> {
+        let entry = self.session(session_id)?;
+        let st = entry.state.lock().await;
+        Ok(st.read_only)
+    }
+
+    /// Switch one session between read-only and read-write. Other sessions are untouched, and a
+    /// closed session forgets the choice.
+    pub async fn set_session_read_only(
+        &self,
+        session_id: &str,
+        read_only: bool,
+    ) -> DriverResult<()> {
+        let entry = self.session(session_id)?;
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        if let Some(session) = st.session.as_mut() {
+            session.set_read_only(read_only).await?;
+        }
+        // With no live session the next reconnect applies the new state (see `reconnect`).
+        st.read_only = read_only;
+        Ok(())
+    }
+
+    /// Decide about `sql` before it is sent: allow, block, or ask. For a question, the report
+    /// carries what to show and a token that answers it once.
+    pub async fn safety_check(
+        &self,
+        session_id: &str,
+        sql: &str,
+        script: bool,
+    ) -> DriverResult<GuardReport> {
+        let entry = self.session(session_id)?;
+        let read_only = entry.state.lock().await.read_only;
+        let statements = self.classify_for(&entry, sql, script);
+        let policy = self.policy_of(&entry.connection_id);
+        let decision = decide(&statements, read_only, &policy);
+
+        let mut shown = Vec::new();
+        for s in &statements {
+            let estimate = if decision == Decision::Confirm || decision == Decision::TypedConfirm {
+                self.estimate_rows(session_id, &entry, s).await
+            } else {
+                None
+            };
+            shown.push(GuardStatement {
+                text: s.text.clone(),
+                class: s.class,
+                danger: s.danger.clone(),
+                estimate,
+            });
+        }
+        let ask = matches!(decision, Decision::Confirm | Decision::TypedConfirm);
+        let token = ask.then(|| {
+            self.tokens
+                .lock()
+                .unwrap()
+                .mint(session_id, bound_text(&statements))
+        });
+        Ok(GuardReport {
+            decision,
+            reason: (decision == Decision::Block).then(|| READ_ONLY_REASON.to_string()),
+            connection: policy.name.clone(),
+            environment: policy.environment.clone(),
+            statements: shown,
+            token,
+            typed: (decision == Decision::TypedConfirm).then(|| policy.name.clone()),
+        })
+    }
+
+    /// `EXPLAIN` an UPDATE / DELETE and read the row estimate, within [`ESTIMATE_BUDGET`].
+    async fn estimate_rows(
+        &self,
+        session_id: &str,
+        entry: &Arc<SessionEntry>,
+        s: &StatementInfo,
+    ) -> Option<i64> {
+        let head = s.text.trim_start().to_ascii_uppercase();
+        if !(head.starts_with("UPDATE") || head.starts_with("DELETE")) {
+            return None;
+        }
+        let driver = entry.connection.driver.meta().id;
+        // EXPLAIN the SELECT that finds the same rows: MySQL can't prepare EXPLAIN UPDATE, and
+        // the scan's estimate is the number that matters either way.
+        let probe = crate::safety::classify::estimate_probe(&s.text, driver)?;
+        let sql = match driver {
+            "postgres" => format!("EXPLAIN (FORMAT JSON) {probe}"),
+            // MySQL only returns EXPLAIN's rows over the text protocol as JSON.
+            "mysql" => format!("EXPLAIN FORMAT=JSON {probe}"),
+            "mariadb" => format!("EXPLAIN {probe}"),
+            _ => return None,
+        };
+        let seen: Arc<StdMutex<Vec<Vec<Value>>>> = Arc::default();
+        let columns: Arc<StdMutex<Vec<String>>> = Arc::default();
+        let emit: Emit = {
+            let seen = seen.clone();
+            let columns = columns.clone();
+            Arc::new(move |event| {
+                match event {
+                    ResultEvent::Columns { columns: c, .. } => {
+                        *columns.lock().unwrap() = c.into_iter().map(|c| c.name).collect();
+                    }
+                    ResultEvent::Rows { rows, .. } => seen.lock().unwrap().extend(rows),
+                    _ => {}
+                }
+                true
+            })
+        };
+        let req = ExecRequest {
+            sql,
+            page_size: 20,
+            script: false,
+            continue_on_error: false,
+        };
+        let run = self.execute_inner(session_id, req, None, emit, false);
+        tokio::pin!(run);
+        let finished = tokio::select! {
+            r = &mut run => r.is_ok(),
+            _ = tokio::time::sleep(ESTIMATE_BUDGET) => {
+                let cancel = entry.cancel.lock().unwrap().clone();
+                let _ = cancel.cancel().await;
+                let _ = run.await;
+                false
+            }
+        };
+        if !finished {
+            return None;
+        }
+        let rows = seen.lock().unwrap().clone();
+        let first = rows.first()?;
+        if driver == "mysql" {
+            let text = match first.first()? {
+                Value::Json { value } => value.to_string(),
+                Value::Text { value, .. } => value.clone(),
+                _ => return None,
+            };
+            let parsed: serde_json::Value = serde_json::from_str(&text).ok()?;
+            first_number(&parsed, "rows_examined_per_scan")
+        } else if driver == "postgres" {
+            let text = match first.first()? {
+                Value::Json { value } => value.to_string(),
+                Value::Text { value, .. } => value.clone(),
+                _ => return None,
+            };
+            let parsed: serde_json::Value = serde_json::from_str(&text).ok()?;
+            let mut plan = parsed.get(0)?.get("Plan")?;
+            // The top node of an UPDATE / DELETE is ModifyTable; the rows live in the scan below.
+            if plan.get("Node Type")?.as_str() == Some("ModifyTable") {
+                plan = plan.get("Plans")?.get(0)?;
+            }
+            plan.get("Plan Rows")?.as_f64().map(|n| n.round() as i64)
+        } else {
+            let names = columns.lock().unwrap().clone();
+            let at = names.iter().position(|n| n.eq_ignore_ascii_case("rows"))?;
+            match first.get(at)? {
+                Value::Int { value } => Some(*value),
+                Value::Text { value, .. } => value.parse().ok(),
+                _ => None,
+            }
+        }
+    }
+}
+
+/// The first number stored under `key` anywhere in a JSON tree.
+fn first_number(v: &serde_json::Value, key: &str) -> Option<i64> {
+    match v {
+        serde_json::Value::Object(map) => map
+            .get(key)
+            .and_then(|n| n.as_f64())
+            .map(|n| n.round() as i64)
+            .or_else(|| map.values().find_map(|c| first_number(c, key))),
+        serde_json::Value::Array(items) => items.iter().find_map(|c| first_number(c, key)),
+        _ => None,
+    }
+}

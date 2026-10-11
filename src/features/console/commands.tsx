@@ -34,12 +34,15 @@ export interface NewConsoleArgs {
 export async function openConsole(args: NewConsoleArgs = {}): Promise<string | null> {
   const connectionId = args.connectionId ?? connectionInContext() ?? (await pickConnection());
   if (!connectionId) return null;
+  // "Manual commit" connections start every console in Manual transaction mode.
+  const manual = useConnections.getState().file.connections.find((c) => c.id === connectionId)
+    ?.safeguards.manualCommit;
   const state: ConsoleState = {
     connectionId,
     database: args.database,
     schema: args.schema,
     text: args.sql ?? "",
-    txMode: "auto",
+    txMode: manual ? "manual" : "auto",
   };
   return useWorkspace.getState().openTab({ kind: CONSOLE_KIND, key: newConsoleKey(), state });
 }
@@ -113,25 +116,26 @@ export async function explainActive(analyze: boolean): Promise<void> {
     const connection = useConnections
       .getState()
       .file.connections.find((c) => c.id === what.tab.state.connectionId);
-    if (connection?.safeguards.readOnlyByDefault) {
-      useNoticesStore.push(
-        "Explain Analyze would execute a write, and this connection is read-only",
-      );
+    if (getRuntime(what.tab.id, what.tab.state.connectionId).store.getState().readOnly) {
+      useNoticesStore.push("Explain Analyze would execute a write, and this session is read-only");
       return;
     }
-    const answer = await askChoice({
-      title: "Explain Analyze runs the statement",
-      body: (
-        <p>
-          ANALYZE executes the statement to measure it. It runs inside a transaction that is rolled
-          back afterwards, but triggers and sequences may still have side effects.
-        </p>
-      ),
-      choices: [
-        { id: "cancel", label: "Cancel" },
-        { id: "run", label: "Run Explain Analyze", variant: "primary" },
-      ],
-    });
+    // On a connection that confirms writes the guard asks next; once is enough.
+    const answer = connection?.safeguards.confirmWrites
+      ? "run"
+      : await askChoice({
+          title: "Explain Analyze runs the statement",
+          body: (
+            <p>
+              ANALYZE executes the statement to measure it. It runs inside a transaction that is
+              rolled back afterwards, but triggers and sequences may still have side effects.
+            </p>
+          ),
+          choices: [
+            { id: "cancel", label: "Cancel" },
+            { id: "run", label: "Run Explain Analyze", variant: "primary" },
+          ],
+        });
     if (answer !== "run") return;
   }
   await submitExplain(what.tab, { sql: what.sql, offset: what.offset, analyze });

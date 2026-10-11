@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
-import { Badge } from "../../components/Badge";
 import { Button, IconButton } from "../../components/Button";
 import { Menu } from "../../components/Menu";
 import type { MenuItem } from "../../components/Menu";
@@ -31,6 +30,7 @@ import type { NewValue, PreviewStatement } from "./api";
 import { confirmPending, readOnlyReason, submitChanges } from "./actions";
 import { CellEditor } from "./CellEditor";
 import { READ_ONLY_KINDS } from "./editValue";
+import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
 import { PendingBar } from "./PendingBar";
 import { RecordPanel } from "./RecordPanel";
 import { loadReferencedBy, loadReferences } from "./recordData";
@@ -90,6 +90,7 @@ export function TableEditor({ tab }: { tab: TableTab }) {
   const sql = useStore(runtime.store, (r) => r.sql);
   const submitError = useStore(runtime.store, (r) => r.submitError);
   const submitting = useStore(runtime.store, (r) => r.submitting);
+  const readOnly = useStore(runtime.store, (r) => r.readOnly);
   const changes = runtime.changes;
   const pendingRev = useSyncExternalStore(changes.subscribe, changes.getSnapshot);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,7 +196,7 @@ export function TableEditor({ tab }: { tab: TableTab }) {
   const isTable = s.path[s.path.length - 1]?.kind === "table";
   const reason = readOnlyReason(runtime, {
     isTable,
-    connectionReadOnly: connection?.safeguards.readOnlyByDefault === true,
+    sessionReadOnly: readOnly,
   });
   const canEdit = reason === null && loaded;
   runtime.editable = canEdit;
@@ -406,7 +407,6 @@ export function TableEditor({ tab }: { tab: TableTab }) {
   }
 
   const env = connection.environment;
-  const guard = connection.safeguards;
   const pathNames = s.path.filter((seg) => seg.kind === "database" || seg.kind === "schema");
 
   return (
@@ -441,16 +441,12 @@ export function TableEditor({ tab }: { tab: TableTab }) {
           ))}
         </div>
         <div className={styles.grow} />
-        {env === "production" ? (
-          <Badge tone="production">
-            PRODUCTION
-            {guard.readOnlyByDefault
-              ? " · READ-ONLY"
-              : guard.confirmWrites
-                ? " · WRITES NEED CONFIRMATION"
-                : ""}
-          </Badge>
-        ) : null}
+        <ReadOnlyBadge
+          connectionName={connection.name}
+          environment={env}
+          readOnly={readOnly}
+          onChange={(ro) => void runtime.setReadOnly(ro)}
+        />
         <Button variant="default" onClick={openInConsole}>
           <Terminal size={13} />
           Open in console

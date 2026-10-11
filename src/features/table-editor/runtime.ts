@@ -3,6 +3,8 @@
  * rows, the table's metadata and the paging / count state. Like the console's runtime it lives
  * outside React, so a load keeps going while another tab is on screen.
  */
+import { confirmGuarded } from "../safety/confirm";
+import { safetyCheckChanges, sessionReadOnly, setSessionReadOnly } from "../safety/ipc";
 import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand/vanilla";
 import { useConnections } from "../../connections/connectionsStore";
@@ -48,6 +50,8 @@ export interface TableRuntimeState {
   /** The last submit failed: why, and which row (display index) it came from. */
   submitError: { message: string; conflict: boolean; row: number | null } | null;
   submitting: boolean;
+  /** The tab's session refuses writes. */
+  readOnly: boolean;
 }
 
 const INITIAL: TableRuntimeState = {
@@ -66,6 +70,7 @@ const INITIAL: TableRuntimeState = {
   ddlError: null,
   submitError: null,
   submitting: false,
+  readOnly: false,
 };
 
 const messageOf = (e: unknown) =>
@@ -99,7 +104,10 @@ export class TableRuntime {
     readonly tabId: string,
     readonly connectionId: string,
     readonly path: NodePath,
-  ) {}
+  ) {
+    const saved = useConnections.getState().file.connections.find((c) => c.id === connectionId);
+    this.store.setState({ readOnly: saved?.safeguards.readOnlyByDefault ?? false });
+  }
 
   get sessionId(): string | null {
     return this.store.getState().sessionId;
@@ -119,6 +127,11 @@ export class TableRuntime {
         throw new Error("The table was closed");
       }
       this.store.setState({ sessionId: opened.sessionId });
+      try {
+        this.store.setState({ readOnly: await sessionReadOnly(opened.sessionId) });
+      } catch {
+        /* keep the connection's default */
+      }
       if (useWorkspace.getState().tabs.some((t) => t.id === this.tabId)) {
         useWorkspace
           .getState()
@@ -317,7 +330,29 @@ export class TableRuntime {
     this.store.setState({ submitting: true, submitError: null });
     try {
       const sessionId = await this.ensureSession();
-      const outcome = await changesApply(this.connectionId, sessionId, this.changeRequest());
+      const request = this.changeRequest();
+      // The guard decides whether this session may write, and whether the user must confirm.
+      const report = await safetyCheckChanges(this.connectionId, sessionId, request);
+      let token: string | undefined;
+      if (report.decision === "block") {
+        this.store.setState({
+          submitting: false,
+          submitError: {
+            message: "Blocked: this session is read-only",
+            conflict: false,
+            row: null,
+          },
+        });
+        return false;
+      }
+      if (report.decision !== "allow") {
+        if (!(await confirmGuarded(report))) {
+          this.store.setState({ submitting: false });
+          return false;
+        }
+        token = report.token;
+      }
+      const outcome = await changesApply(this.connectionId, sessionId, request, token);
       if (outcome.failure) {
         const f = outcome.failure;
         this.store.setState({
@@ -342,6 +377,17 @@ export class TableRuntime {
     this.countedFor = null;
     if (this.lastQuery) await this.load(this.lastQuery);
     return true;
+  }
+
+  /** Switch the tab's session between read-only and read-write. */
+  async setReadOnly(readOnly: boolean): Promise<void> {
+    try {
+      const sessionId = await this.ensureSession();
+      await setSessionReadOnly(sessionId, readOnly);
+      this.store.setState({ readOnly });
+    } catch (e) {
+      this.store.setState({ loadError: messageOf(e) });
+    }
   }
 
   /** Drop the staged edits and read the page again. */

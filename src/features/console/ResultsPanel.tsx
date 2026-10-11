@@ -15,6 +15,7 @@ import { ExportDialog } from "../grid/ExportDialog";
 import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
 import { askChoice } from "./prompts";
+import { confirmSwitchToReadWrite } from "../safety/switch";
 import { formatRows } from "./runtime";
 import type { ConsoleRuntime, ResultTab } from "./runtime";
 import styles from "./Console.module.css";
@@ -94,6 +95,9 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.driver ??
     "";
   const matches = gv.view.rowCount;
+  const connectionName =
+    useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.name ??
+    "this connection";
 
   const fetchMore = useCallback(() => void runtime.fetchMore(active?.key), [runtime, active?.key]);
 
@@ -297,7 +301,16 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </p>
           )
         ) : null}
-        {tab === "output" ? <OutputLog entries={output} /> : null}
+        {tab === "output" ? (
+          <OutputLog
+            entries={output}
+            onAction={() => {
+              void confirmSwitchToReadWrite(connectionName).then((yes) => {
+                if (yes) void runtime.setReadOnly(false);
+              });
+            }}
+          />
+        ) : null}
         {tab === "explain" ? (explain ?? <ExplainPane explain={explainState} />) : null}
         {tab === "history"
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)

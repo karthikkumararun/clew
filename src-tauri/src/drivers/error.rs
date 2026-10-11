@@ -19,6 +19,10 @@ pub enum ErrorCode {
     AccessDenied,
     DriverUnavailable,
     Unsupported,
+    /// A write was refused because the session is read-only.
+    ReadOnly,
+    /// A write needs the user's confirmation first (see `safety_check`).
+    ConfirmationRequired,
     /// Anything that is a bug or an unexpected environment problem.
     Internal,
 }
@@ -38,6 +42,8 @@ impl ErrorCode {
             Self::AccessDenied => "access_denied",
             Self::DriverUnavailable => "driver_unavailable",
             Self::Unsupported => "unsupported",
+            Self::ReadOnly => "read_only",
+            Self::ConfirmationRequired => "confirmation_required",
             Self::Internal => "internal",
         }
     }

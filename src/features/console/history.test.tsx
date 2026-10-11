@@ -31,6 +31,7 @@ vi.mock("./historyIpc", () => ({
   historyList: (...a: unknown[]) => api.list(...a),
   historyClear: (...a: unknown[]) => api.clear(...a),
 }));
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   queryExecute: (...a: unknown[]) => api.execute(...a),

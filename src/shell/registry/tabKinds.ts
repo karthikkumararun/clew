@@ -16,6 +16,8 @@ export interface TabStatus {
     serverVersion?: string;
     /** e.g. "via SSH bastion" */
     transport?: string;
+    /** The connection's environment; production tints the segment. */
+    environment?: string;
   };
   /** Context items for the right side of the status bar (cursor position, encoding, dialect). */
   right?: string[];

@@ -23,6 +23,7 @@ import { clearPrompts, ConsolePromptHost } from "./prompts";
 import { clearRuntimes, getRuntime } from "./runtime";
 
 const api = vi.hoisted(() => ({ execute: vi.fn(), sessionOpen: vi.fn(), sessionClose: vi.fn() }));
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   queryExecute: (...a: unknown[]) => api.execute(...a),

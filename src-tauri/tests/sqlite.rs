@@ -850,6 +850,292 @@ async fn changes_inside_a_user_transaction_use_a_savepoint() {
     );
 }
 
+// ---- production safeguards --------------------------------------------------------------------
+
+use clew_lib::safety::guard::{Decision, Policy};
+
+fn read_only_cfg(cfg: &ResolvedConfig) -> ResolvedConfig {
+    let mut c = cfg.clone();
+    c.read_only = true;
+    c
+}
+
+async fn rows_of(c: &Connected, sid: &str, sql: &str) -> Vec<Vec<Value>> {
+    run(&c.mgr, &sid.to_string(), sql).await.rows()
+}
+
+#[tokio::test]
+async fn a_blocked_write_never_reaches_the_database() {
+    let (_dir, cfg) = fresh();
+    let seed = connect(&cfg).await;
+    seed.must("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
+        .await;
+    seed.must("INSERT INTO t VALUES (1, 'a')").await;
+    drop(seed);
+
+    let c = connect(&read_only_cfg(&cfg)).await;
+    c.mgr
+        .set_policy("conf", Policy::managed("prod", "production", true));
+    assert!(c.mgr.session_read_only(&c.session).await.unwrap());
+    for sql in [
+        "UPDATE t SET v = 'b' WHERE id = 1",
+        "DELETE FROM t WHERE id = 1",
+        "CREATE TABLE x (a)",
+        "DROP TABLE t",
+        "PRAGMA query_only = OFF",
+        "SELEC 1",
+    ] {
+        let r = c.run(sql).await;
+        assert_eq!(r.err().code, ErrorCode::ReadOnly, "{sql}");
+    }
+    // Reads and transaction control still work, and nothing changed.
+    c.must("BEGIN").await;
+    c.must("COMMIT").await;
+    assert_eq!(
+        rows_of(&c, &c.session, "SELECT v FROM t").await,
+        vec![vec![Value::Text {
+            value: "a".into(),
+            truncated: false
+        }]]
+    );
+}
+
+#[tokio::test]
+async fn the_database_refuses_writes_the_classifier_missed() {
+    // Straight to the driver session: no guard in the way, only `query_only`.
+    let (_dir, cfg) = fresh();
+    connect(&cfg)
+        .await
+        .must("CREATE TABLE t (id INTEGER)")
+        .await;
+    let driver = clew_lib::drivers::registry::Registry::with_defaults();
+    let driver = driver.get("sqlite").unwrap();
+    let mut session = driver.open(&read_only_cfg(&cfg)).await.unwrap();
+    let (sink, _rx) = clew_lib::drivers::ResultSink::channel(8);
+    let err = session
+        .execute(
+            clew_lib::drivers::ExecRequest {
+                sql: "INSERT INTO t VALUES (1)".into(),
+                page_size: 10,
+                script: false,
+                continue_on_error: false,
+            },
+            sink,
+        )
+        .await
+        .unwrap_err();
+    assert!(
+        err.message.to_lowercase().contains("readonly")
+            || err.message.to_lowercase().contains("read-only"),
+        "{}",
+        err.message
+    );
+}
+
+#[tokio::test]
+async fn switching_one_session_to_read_write_leaves_the_others_read_only() {
+    let (_dir, cfg) = fresh();
+    let seed = connect(&cfg).await;
+    seed.must("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
+        .await;
+    seed.must("INSERT INTO t VALUES (1, 'a')").await;
+    drop(seed);
+
+    let c = connect(&read_only_cfg(&cfg)).await;
+    c.mgr
+        .set_policy("conf", Policy::managed("prod", "production", false));
+    let other = c.another_session().await;
+
+    c.mgr
+        .set_session_read_only(&c.session, false)
+        .await
+        .unwrap();
+    assert!(!c.mgr.session_read_only(&c.session).await.unwrap());
+    assert!(c.mgr.session_read_only(&other).await.unwrap());
+    c.must("UPDATE t SET v = 'b' WHERE id = 1").await;
+    let blocked = run(&c.mgr, &other, "UPDATE t SET v = 'c' WHERE id = 1").await;
+    assert_eq!(blocked.err().code, ErrorCode::ReadOnly);
+
+    // And back: the database itself is read-only again.
+    c.mgr.set_session_read_only(&c.session, true).await.unwrap();
+    assert_eq!(
+        c.run("UPDATE t SET v = 'd' WHERE id = 1").await.err().code,
+        ErrorCode::ReadOnly
+    );
+    assert_eq!(
+        rows_of(&c, &other, "SELECT v FROM t").await,
+        vec![vec![Value::Text {
+            value: "b".into(),
+            truncated: false
+        }]]
+    );
+}
+
+#[tokio::test]
+async fn confirm_writes_needs_a_token_that_works_once_for_that_statement() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'a'), (2, 'b')").await;
+    c.mgr
+        .set_policy("conf", Policy::managed("prod", "production", true));
+
+    let sql = "UPDATE t SET v = 'x' WHERE id = 1";
+    let request = |sql: &str| clew_lib::drivers::ExecRequest {
+        sql: sql.into(),
+        page_size: 10,
+        script: false,
+        continue_on_error: false,
+    };
+    let silent: clew_lib::sessions::Emit = std::sync::Arc::new(|_| true);
+
+    // Without a token, nothing runs.
+    assert_eq!(c.run(sql).await.err().code, ErrorCode::ConfirmationRequired);
+    let report = c.mgr.safety_check(&c.session, sql, false).await.unwrap();
+    assert_eq!(report.decision, Decision::Confirm);
+    assert_eq!(report.connection, "prod");
+    assert_eq!(report.statements.len(), 1);
+    let token = report.token.clone().expect("a token");
+
+    // A token for another statement is rejected (and spent).
+    let wrong = c
+        .mgr
+        .execute_confirmed(
+            &c.session,
+            request("UPDATE t SET v = 'y' WHERE id = 2"),
+            Some(token),
+            silent.clone(),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(wrong.code, ErrorCode::ConfirmationRequired);
+
+    // The right token runs the statement once.
+    let token = c
+        .mgr
+        .safety_check(&c.session, sql, false)
+        .await
+        .unwrap()
+        .token
+        .unwrap();
+    c.mgr
+        .execute_confirmed(
+            &c.session,
+            request(sql),
+            Some(token.clone()),
+            silent.clone(),
+        )
+        .await
+        .unwrap();
+    let again = c
+        .mgr
+        .execute_confirmed(&c.session, request(sql), Some(token), silent)
+        .await
+        .unwrap_err();
+    assert_eq!(
+        again.code,
+        ErrorCode::ConfirmationRequired,
+        "a token is single use"
+    );
+    assert_eq!(
+        rows_of(&c, &c.session, "SELECT v FROM t ORDER BY id").await,
+        vec![
+            vec![Value::Text {
+                value: "x".into(),
+                truncated: false
+            }],
+            vec![Value::Text {
+                value: "b".into(),
+                truncated: false
+            }],
+        ]
+    );
+}
+
+#[tokio::test]
+async fn dangerous_statements_ask_for_the_name_on_production_only() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE orders (id INTEGER)").await;
+
+    c.mgr.set_policy(
+        "conf",
+        Policy::managed("prod-postgres", "production", false),
+    );
+    let prod = c
+        .mgr
+        .safety_check(&c.session, "DELETE FROM orders", false)
+        .await
+        .unwrap();
+    assert_eq!(prod.decision, Decision::TypedConfirm);
+    assert_eq!(prod.typed.as_deref(), Some("prod-postgres"));
+    assert_eq!(
+        prod.statements[0].danger.as_deref(),
+        Some("Delete every row in orders?")
+    );
+    assert_eq!(
+        c.run("DELETE FROM orders").await.err().code,
+        ErrorCode::ConfirmationRequired
+    );
+
+    c.mgr
+        .set_policy("conf", Policy::managed("local-db", "local", false));
+    let local = c
+        .mgr
+        .safety_check(&c.session, "DELETE FROM orders", false)
+        .await
+        .unwrap();
+    assert_eq!(local.decision, Decision::Confirm);
+    assert_eq!(local.typed, None);
+
+    // A safe statement on the same connection needs nothing.
+    let safe = c
+        .mgr
+        .safety_check(&c.session, "DELETE FROM orders WHERE id = 1", false)
+        .await
+        .unwrap();
+    assert_eq!(safe.decision, Decision::Allow);
+    assert!(safe.token.is_none());
+}
+
+#[tokio::test]
+async fn table_edits_go_through_the_guard_too() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&read_only_cfg(&cfg)).await;
+    c.mgr
+        .set_policy("conf", Policy::managed("prod", "production", true));
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let err = c
+        .mgr
+        .apply_changes(&c.session, &statements)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::ReadOnly);
+
+    c.mgr
+        .set_session_read_only(&c.session, false)
+        .await
+        .unwrap();
+    let err = c
+        .mgr
+        .apply_changes(&c.session, &statements)
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::ConfirmationRequired);
+}
+
+#[tokio::test]
+async fn quitting_waits_while_any_session_has_an_open_transaction() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    assert!(!c.mgr.any_in_transaction());
+    c.must("BEGIN").await;
+    assert!(c.mgr.any_in_transaction());
+    c.must("ROLLBACK").await;
+    assert!(!c.mgr.any_in_transaction());
+}
+
 // ---- query history ----------------------------------------------------------------------------
 
 use clew_lib::history::{self, Outcome};

@@ -339,7 +339,11 @@ async fn statement_without_result_set_reports_rows_affected() {
     let (emit, log) = collector();
     let summary = h
         .mgr
-        .execute(&h.session, req("UPDATE t SET x = 1"), emit)
+        .execute(
+            &h.session,
+            req("UPDATE t SET x = 1 WHERE x IS NOT NULL"),
+            emit,
+        )
         .await
         .unwrap()
         .unwrap();
@@ -394,7 +398,10 @@ async fn script_runs_statements_in_order_with_their_own_results() {
     h.mgr
         .execute(
             &h.session,
-            script("SELECT 1; UPDATE t SET x = 1; SELECT 2;", false),
+            script(
+                "SELECT 1; UPDATE t SET x = 1 WHERE x IS NOT NULL; SELECT 2;",
+                false,
+            ),
             emit,
         )
         .await

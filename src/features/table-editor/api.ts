@@ -32,5 +32,15 @@ export const changesPreview = (connectionId: string, request: ChangeRequest) =>
   invoke<PreviewStatement[]>("changes_preview", { connectionId, request });
 
 /** Run staged edits in one transaction on the tab's session. */
-export const changesApply = (connectionId: string, sessionId: string, request: ChangeRequest) =>
-  invoke<ApplyOutcome>("changes_apply", { connectionId, sessionId, request });
+export const changesApply = (
+  connectionId: string,
+  sessionId: string,
+  request: ChangeRequest,
+  confirmationToken?: string,
+) =>
+  invoke<ApplyOutcome>("changes_apply", {
+    connectionId,
+    sessionId,
+    request,
+    ...(confirmationToken ? { confirmationToken } : {}),
+  });

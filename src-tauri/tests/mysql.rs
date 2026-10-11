@@ -284,8 +284,8 @@ both! {
         c.read_only = true;
         let ro = connect(&c).await;
         let r = ro.run("INSERT INTO conf_my_ro VALUES (1)").await;
-        assert_eq!(r.err().code, ErrorCode::QueryFailed);
-        assert!(r.err().message.to_lowercase().contains("read only"), "{}", r.err().message);
+        assert_eq!(r.err().code, ErrorCode::ReadOnly);
+        assert!(r.err().message.to_lowercase().contains("read-only"), "{}", r.err().message);
         assert_eq!(ro.must("SELECT 1").await.scalar_int(), 1);
         admin.must("DROP TABLE clew.conf_my_ro").await;
     };
@@ -415,6 +415,43 @@ both! {
         let err = c.mgr.ddl("conf", &db).await.unwrap_err();
         assert_eq!(err.code, ErrorCode::Unsupported);
         c.must("DROP DATABASE conf_ddl").await;
+    };
+
+    read_only_sessions_and_estimates => |f| async move {
+        use clew_lib::safety::guard::{Decision, Policy};
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_sg").await;
+        c.must("CREATE DATABASE conf_sg").await;
+        c.must("CREATE TABLE conf_sg.t (id INT PRIMARY KEY, v VARCHAR(10))").await;
+        c.must("INSERT INTO conf_sg.t SELECT seq, 'x' FROM (WITH RECURSIVE s(seq) AS (SELECT 1 UNION ALL SELECT seq + 1 FROM s WHERE seq < 200) SELECT seq FROM s) q").await;
+
+        // Backstop: the database itself refuses writes on a read-only session.
+        let mut cfg = root(f);
+        cfg.read_only = true;
+        let registry = clew_lib::drivers::registry::Registry::with_defaults();
+        let mut session = registry.get(f.driver).unwrap().open(&cfg).await.unwrap();
+        let (sink, _rx) = clew_lib::drivers::ResultSink::channel(8);
+        let err = session
+            .execute(
+                clew_lib::drivers::ExecRequest {
+                    sql: "INSERT INTO conf_sg.t VALUES (999, 'z')".into(),
+                    page_size: 10,
+                    script: false,
+                    continue_on_error: false,
+                },
+                sink,
+            )
+            .await
+            .unwrap_err();
+        assert!(err.message.to_lowercase().contains("read only"), "{}", err.message);
+
+        c.mgr.set_policy("conf", Policy::managed("prod", "production", true));
+        let report = c.mgr.safety_check(&c.session, "UPDATE conf_sg.t SET v = 'y' WHERE id <= 100", false).await.unwrap();
+        assert_eq!(report.decision, Decision::Confirm);
+        let estimate = report.statements[0].estimate.expect("an estimate");
+        assert!((20..=200).contains(&estimate), "estimate {estimate}");
+        c.mgr.set_policy("conf", Policy::default());
+        c.must("DROP DATABASE conf_sg").await;
     };
 
     staged_changes_apply_and_roll_back_on_conflict => |f| async move {
