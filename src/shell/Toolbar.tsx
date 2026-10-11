@@ -24,7 +24,6 @@ export function Toolbar() {
   const sidePanel = useSlots((s) => s.sidePanel);
   const sidePanelOpen = useLayout((s) => s.sidePanelOpen);
   const toggleSidePanel = useLayout((s) => s.toggleSidePanel);
-  const narrow = useLayout((s) => s.narrow);
   const toggleSidebar = useLayout((s) => s.toggleSidebar);
 
   return (
@@ -41,11 +40,9 @@ export function Toolbar() {
         </span>
       </div>
       <div className={styles.divider} />
-      {narrow ? (
-        <IconButton aria-label="Toggle sidebar" onClick={toggleSidebar}>
-          <PanelRight size={16} style={{ transform: "scaleX(-1)" }} />
-        </IconButton>
-      ) : null}
+      <IconButton aria-label="Toggle sidebar" onClick={toggleSidebar}>
+        <PanelRight size={16} style={{ transform: "scaleX(-1)" }} />
+      </IconButton>
       <div className={styles.group}>
         <Items items={toolbarLeft} />
       </div>
