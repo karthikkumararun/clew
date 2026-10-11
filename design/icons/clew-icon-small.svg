@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Clew app icon (16-32 px)</title>
+  <defs>
+    <clipPath id="ballS" clipPathUnits="userSpaceOnUse"><circle cx="486" cy="404" r="296"/></clipPath>
+  </defs>
+  <rect x="16" y="16" width="992" height="992" rx="224" fill="#14171C"/>
+  <circle cx="486" cy="404" r="296" fill="#E3A64F"/>
+  <g clip-path="url(#ballS)" fill="none" stroke="#14171C" stroke-width="44">
+    <g transform="rotate(-36 486 404)"><ellipse cx="486" cy="404" rx="120" ry="320"/></g>
+    <g transform="rotate(40 486 404)"><ellipse cx="486" cy="404" rx="205" ry="320"/></g>
+  </g>
+  <path d="M388 742 C410 880 640 900 800 806" fill="none" stroke="#E3A64F" stroke-width="76" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Clew app icon (macOS master)</title>
+  <defs>
+    <clipPath id="ball" clipPathUnits="userSpaceOnUse"><circle cx="500" cy="452" r="248"/></clipPath>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1B2028"/><stop offset="1" stop-color="#0F1217"/>
+    </linearGradient>
+    <radialGradient id="gold" cx="0.36" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#F2C070"/><stop offset="0.55" stop-color="#E3A64F"/><stop offset="1" stop-color="#C58633"/>
+    </radialGradient>
+    <filter id="drop" x="-10%" y="-10%" width="120%" height="125%" color-interpolation-filters="sRGB"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity="0.35"/></filter>
+  </defs>
+  <rect x="100" y="100" width="824" height="824" rx="190" fill="url(#ground)" filter="url(#drop)"/>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="188.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.07" stroke-width="3"/>
+  <g transform="translate(512 512) scale(1.0) translate(-574 -517)">
+    <circle cx="500" cy="452" r="248" fill="url(#gold)"/>
+    <g clip-path="url(#ball)" fill="none" stroke="#14171C" stroke-width="19" stroke-opacity="0.9">
+      <g transform="rotate(-38 500 452)"><ellipse cx="500" cy="452" rx="84" ry="270"/><ellipse cx="500" cy="452" rx="178" ry="270"/></g>
+      <g transform="rotate(34 506 446)"><ellipse cx="506" cy="446" rx="120" ry="270"/></g>
+    </g>
+    <path d="M452 699 C470 800 620 842 725 786 C790 750 872 758 880 814" fill="none" stroke="#E3A64F" stroke-width="34" stroke-linecap="round"/>
+  </g>
+</svg>
