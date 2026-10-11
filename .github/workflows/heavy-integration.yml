@@ -32,7 +32,10 @@ jobs:
         run: |
           curl -fsSL -o ic.zip https://download.oracle.com/otn_software/linux/instantclient/instantclient-basiclite-linuxx64.zip
           sudo mkdir -p /opt/oracle && sudo unzip -q ic.zip -d /opt/oracle
-          echo "ORACLE_HOME=$(ls -d /opt/oracle/instantclient_* | head -1)" >> "$GITHUB_ENV"
+          dir="$(ls -d /opt/oracle/instantclient_* | head -1)"
+          echo "ORACLE_HOME=$dir" >> "$GITHUB_ENV"
+          # libclntsh needs its sibling libraries (libnnz) found at load time
+          echo "LD_LIBRARY_PATH=$dir" >> "$GITHUB_ENV"
       - name: Start SQL Server and Oracle
         run: docker compose --profile heavy up -d --wait mssql oracle
       - name: Integration tests
