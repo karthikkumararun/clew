@@ -251,34 +251,77 @@ impl Session for MySession {
         };
 
         if columns.is_empty() {
-            let result = sqlx::raw_sql(AssertSqlSafe(sql.clone()))
-                .execute(&mut *conn)
-                .await;
-            self.cancel.running.store(false, Ordering::SeqCst);
-            return match result {
-                Ok(done) => {
-                    self.conn = ConnState::Idle(conn);
-                    let summary = ExecSummary {
-                        rows_affected: Some(done.rows_affected()),
-                        elapsed_ms: started.elapsed().as_millis() as u64,
-                        has_more: false,
-                    };
-                    let id = self.next_result;
-                    self.next_result += 1;
-                    sink.send(ResultEvent::Done {
-                        result_id: id,
-                        summary: summary.clone(),
-                    })
-                    .await;
-                    Ok(summary)
-                }
-                Err(e) => {
-                    if !is_connection_error(&e) {
-                        self.conn = ConnState::Idle(conn);
+            // Either a command, or a statement whose columns the server can't describe before
+            // running it (EXPLAIN on MySQL 8). Run it as text and see whether rows come back.
+            let mut affected = 0u64;
+            let mut rows: Vec<MySqlRow> = Vec::new();
+            let mut failure = None;
+            {
+                let mut stream = sqlx::raw_sql(AssertSqlSafe(sql.clone())).fetch_many(&mut *conn);
+                while let Some(item) = stream.next().await {
+                    match item {
+                        Ok(sqlx::Either::Left(done)) => affected += done.rows_affected(),
+                        Ok(sqlx::Either::Right(row)) => rows.push(row),
+                        Err(e) => {
+                            failure = Some(e);
+                            break;
+                        }
                     }
-                    Err(map_error(e, &self.target, Some(&sql)))
                 }
+            }
+            self.cancel.running.store(false, Ordering::SeqCst);
+            if let Some(e) = failure {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                return Err(map_error(e, &self.target, Some(&sql)));
+            }
+            self.conn = ConnState::Idle(conn);
+            let id = self.next_result;
+            self.next_result += 1;
+            let summary = ExecSummary {
+                rows_affected: if rows.is_empty() {
+                    Some(affected)
+                } else {
+                    None
+                },
+                elapsed_ms: started.elapsed().as_millis() as u64,
+                has_more: false,
             };
+            if let Some(first) = rows.first() {
+                let metas = first
+                    .columns()
+                    .iter()
+                    .map(|c| {
+                        let ty = type_name_of(c.type_info());
+                        ColumnMeta {
+                            name: c.name().to_string(),
+                            kind: kind_for_type(&ty),
+                            type_name: ty,
+                            nullable: None,
+                            source_table: None,
+                            source_column: None,
+                        }
+                    })
+                    .collect();
+                sink.send(ResultEvent::Columns {
+                    result_id: id,
+                    statement: 0,
+                    columns: metas,
+                })
+                .await;
+                sink.send(ResultEvent::Rows {
+                    result_id: id,
+                    rows: rows.iter().map(decode_row).collect(),
+                })
+                .await;
+            }
+            sink.send(ResultEvent::Done {
+                result_id: id,
+                summary: summary.clone(),
+            })
+            .await;
+            return Ok(summary);
         }
 
         let metas: Vec<ColumnMeta> = columns
@@ -335,6 +378,27 @@ impl Session for MySession {
         self.stream = Some(OpenStream::new(result_id, rx, task));
         self.page(result_id, req.page_size.max(1), &sink, started)
             .await
+    }
+
+    async fn set_read_only(&mut self, read_only: bool) -> DriverResult<()> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let mode = if read_only { "READ ONLY" } else { "READ WRITE" };
+        let result = sqlx::raw_sql(AssertSqlSafe(format!("SET SESSION TRANSACTION {mode}")))
+            .execute(&mut *conn)
+            .await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target, None))
+            }
+        }
     }
 
     async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {

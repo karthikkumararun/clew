@@ -422,7 +422,8 @@ async fn read_only_sessions_refuse_writes() {
     cfg.read_only = true;
     let c = connect(&cfg).await;
     let r = c.run("CREATE TABLE conf_pg_ro (x int)").await;
-    assert_eq!(r.err().code, ErrorCode::QueryFailed);
+    // The guard refuses it before it is sent; the database-level backstop has its own test below.
+    assert_eq!(r.err().code, ErrorCode::ReadOnly);
     assert!(
         r.err().message.to_lowercase().contains("read-only"),
         "{}",
@@ -1070,4 +1071,59 @@ async fn staged_changes_apply_with_typed_parameters_and_roll_back_on_conflict() 
 
     c.must("DROP TABLE ch_orders").await;
     c.must("DROP TYPE ch_status").await;
+}
+
+#[tokio::test]
+async fn read_only_sessions_are_enforced_by_the_database_and_estimates_come_from_explain() {
+    use clew_lib::safety::guard::{Decision, Policy};
+
+    let c = connect(&suite().cfg).await;
+    c.must("DROP TABLE IF EXISTS sg_t").await;
+    c.must("CREATE TABLE sg_t (id int PRIMARY KEY, v text)")
+        .await;
+    c.must("INSERT INTO sg_t SELECT g, 'x' FROM generate_series(1, 200) g")
+        .await;
+    c.must("ANALYZE sg_t").await;
+
+    // Backstop: straight to the driver, no guard, only `READ ONLY` on the session.
+    let mut cfg = suite().cfg.clone();
+    cfg.read_only = true;
+    let registry = clew_lib::drivers::registry::Registry::with_defaults();
+    let mut session = registry.get("postgres").unwrap().open(&cfg).await.unwrap();
+    let (sink, _rx) = clew_lib::drivers::ResultSink::channel(8);
+    let err = session
+        .execute(
+            clew_lib::drivers::ExecRequest {
+                sql: "CREATE TABLE sg_other (a int)".into(),
+                page_size: 10,
+                script: false,
+                continue_on_error: false,
+            },
+            sink,
+        )
+        .await
+        .unwrap_err();
+    assert!(err.message.contains("read-only"), "{}", err.message);
+
+    // The estimate shown in the confirmation comes from EXPLAIN, not from running anything.
+    c.mgr
+        .set_policy("conf", Policy::managed("prod-postgres", "production", true));
+    let report = c
+        .mgr
+        .safety_check(&c.session, "UPDATE sg_t SET v = 'y' WHERE id <= 100", false)
+        .await
+        .unwrap();
+    assert_eq!(report.decision, Decision::Confirm);
+    let estimate = report.statements[0].estimate.expect("an estimate");
+    assert!((50..=150).contains(&estimate), "estimate {estimate}");
+    let n = run(
+        &c.mgr,
+        &c.session,
+        "SELECT count(*) FROM sg_t WHERE v = 'y'",
+    )
+    .await
+    .scalar_int();
+    assert_eq!(n, 0, "EXPLAIN did not run the update");
+    c.mgr.set_policy("conf", Policy::default());
+    c.must("DROP TABLE sg_t").await;
 }

@@ -25,8 +25,9 @@ function useActiveStatus(): TabStatus | undefined {
           name: connection.name,
           serverVersion: `${info.server.product} ${info.server.version}`,
           transport: info.transport ?? undefined,
+          environment: connection.environment,
         }
-      : { state: "disconnected", name: connection.name },
+      : { state: "disconnected", name: connection.name, environment: connection.environment },
   };
 }
 
@@ -34,8 +35,26 @@ function ConnectionState() {
   const c = useActiveStatus()?.connection;
   if (!c) return null;
   const connected = c.state === "connected";
+  const production = c.environment === "production";
   return (
-    <>
+    <span
+      data-env={c.environment}
+      title={production ? "Production connection" : undefined}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        ...(production
+          ? {
+              background: "var(--env-prod-badge-bg)",
+              color: "var(--env-prod-badge-fg)",
+              padding: "0 8px",
+              borderRadius: "var(--radius)",
+              alignSelf: "stretch",
+            }
+          : {}),
+      }}
+    >
       <span
         aria-hidden="true"
         style={{
@@ -46,7 +65,8 @@ function ConnectionState() {
         }}
       />
       {connected ? `Connected · ${c.name}` : "Disconnected"}
-    </>
+      {production ? " · PRODUCTION" : ""}
+    </span>
   );
 }
 

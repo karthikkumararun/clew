@@ -29,6 +29,7 @@ const api = vi.hoisted(() => ({
   snapshot: vi.fn(),
 }));
 
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   DEFAULT_PAGE_SIZE: 500,
   queryExecute: (...a: unknown[]) => api.execute(...a),

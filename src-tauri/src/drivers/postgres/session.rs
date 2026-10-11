@@ -419,6 +419,29 @@ impl Session for PgSession {
             .await
     }
 
+    async fn set_read_only(&mut self, read_only: bool) -> DriverResult<()> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let mode = if read_only { "READ ONLY" } else { "READ WRITE" };
+        let result = conn
+            .execute(AssertSqlSafe(format!(
+                "SET SESSION CHARACTERISTICS AS TRANSACTION {mode}"
+            )))
+            .await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target))
+            }
+        }
+    }
+
     async fn execute_params(&mut self, sql: &str, params: &[Value]) -> DriverResult<u64> {
         self.reclaim().await?;
         let mut conn = self.take_idle()?;

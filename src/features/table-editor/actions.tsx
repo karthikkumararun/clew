@@ -1,4 +1,3 @@
-import { useConnections } from "../../connections/connectionsStore";
 import { registerShortcut } from "../../shell/registry/shortcuts";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { askChoice } from "../console/prompts";
@@ -10,39 +9,21 @@ import { TABLE_KIND } from "./state";
 /** Why a table can't be edited, or `null` when it can (and `undefined` while that is unknown). */
 export function readOnlyReason(
   runtime: TableRuntime,
-  opts: { isTable: boolean; connectionReadOnly: boolean },
+  opts: { isTable: boolean; sessionReadOnly: boolean },
 ): string | null | undefined {
   if (!opts.isTable) return "Read-only: views can't be edited";
-  if (opts.connectionReadOnly) return "Read-only: this connection is read-only";
+  if (opts.sessionReadOnly) return "Read-only: this session is read-only";
   const s = runtime.store.getState();
   if (!s.meta) return undefined;
   if (!s.keyColumns) return "Read-only: result has no unique key";
   return null;
 }
 
-/** Submit the staged edits, asking first on connections that confirm writes. */
-export async function submitChanges(runtime: TableRuntime): Promise<boolean> {
-  const counts = runtime.changes.counts();
-  if (counts.total === 0) return true;
-  const conn = useConnections
-    .getState()
-    .file.connections.find((c) => c.id === runtime.connectionId);
-  if (conn?.safeguards.confirmWrites) {
-    const answer = await askChoice({
-      title: `Write to ${conn.name}?`,
-      body: (
-        <p>
-          {counts.total} {counts.total === 1 ? "change" : "changes"} ({breakdown(counts)}) will be
-          written to <strong>{conn.name}</strong> in one transaction.
-        </p>
-      ),
-      choices: [
-        { id: "cancel", label: "Cancel" },
-        { id: "submit", label: "Submit", variant: "primary" },
-      ],
-    });
-    if (answer !== "submit") return false;
-  }
+/**
+ * Submit the staged edits. The guard (in Rust) refuses them on a read-only session and asks for
+ * confirmation where the connection needs it.
+ */
+export function submitChanges(runtime: TableRuntime): Promise<boolean> {
   return runtime.submit();
 }
 

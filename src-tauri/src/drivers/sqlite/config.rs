@@ -55,7 +55,9 @@ pub fn connect_options(cfg: &ResolvedConfig) -> DriverResult<SqliteConnectOption
     Ok(SqliteConnectOptions::new()
         .filename(path)
         .create_if_missing(*create_if_missing)
-        .read_only(*read_only || cfg.read_only)
+        // The whole-file flag is only for files the user marked read-only. A read-only
+        // *session* uses `PRAGMA query_only`, which can be switched off again.
+        .read_only(*read_only)
         .busy_timeout(busy_timeout(cfg))
         .foreign_keys(true))
 }

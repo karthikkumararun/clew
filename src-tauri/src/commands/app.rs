@@ -1,8 +1,29 @@
 use serde::Serialize;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 use crate::paths;
+
+/// Set once the user has answered the open-transaction question: the next exit goes through.
+static QUIT_CONFIRMED: AtomicBool = AtomicBool::new(false);
+
+/// Should closing the window / quitting wait for the user? Yes while a transaction is open and
+/// the question has not been answered.
+pub fn hold_quit(app: &AppHandle) -> bool {
+    !QUIT_CONFIRMED.load(Ordering::SeqCst)
+        && app
+            .try_state::<crate::state::AppState>()
+            .is_some_and(|s| s.sessions.any_in_transaction())
+}
+
+/// Quit now: the frontend asked about the open transactions and the user settled them.
+#[tauri::command]
+pub fn app_quit_confirmed(app: AppHandle) {
+    QUIT_CONFIRMED.store(true, Ordering::SeqCst);
+    app.exit(0);
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

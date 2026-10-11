@@ -3,7 +3,9 @@ import { useStore } from "zustand";
 import { Menu } from "../../components/Menu";
 import { ChevronDown, Lines, Play } from "../../components/icons";
 import { formatShortcut } from "../../lib/platform";
+import { useConnections } from "../../connections/connectionsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
+import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
 import {
   cancelActive,
   endActiveTransaction,
@@ -37,8 +39,18 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
   );
   const txOpen = useStore(runtime.store, (s) => s.txOpen);
   const txPending = useStore(runtime.store, (s) => s.txPending);
+  const readOnly = useStore(runtime.store, (s) => s.readOnly);
+  const connection = useConnections((s) => s.file.connections.find((c) => c.id === connectionId));
   return (
     <>
+      {connection ? (
+        <ReadOnlyBadge
+          connectionName={connection.name}
+          environment={connection.environment}
+          readOnly={readOnly}
+          onChange={(ro) => void runtime.setReadOnly(ro)}
+        />
+      ) : null}
       {busy ? (
         <button
           type="button"

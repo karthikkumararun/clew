@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
   connect: vi.fn(),
 }));
 
+vi.mock("../safety/ipc", () => import("../safety/ipcMock"));
 vi.mock("../../lib/ipc/drivers", () => ({
   sessionOpen: (...a: unknown[]) => api.sessionOpen(...a),
   sessionClose: (...a: unknown[]) => api.sessionClose(...a),

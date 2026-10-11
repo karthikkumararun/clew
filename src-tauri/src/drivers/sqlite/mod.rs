@@ -114,7 +114,11 @@ impl Driver for SqliteDriver {
             .map_err(|e| map_error(e, &path, None))?;
         let server = version(&mut probe, &path).await?;
         let _ = probe.close().await;
-        let session = SqliteSession::connect(opts, &config::attachments(cfg), server, path).await?;
+        let mut session =
+            SqliteSession::connect(opts, &config::attachments(cfg), server, path).await?;
+        if cfg.read_only {
+            session.set_read_only(true).await?;
+        }
         Ok(Box::new(session))
     }
 

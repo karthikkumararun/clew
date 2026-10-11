@@ -107,10 +107,17 @@ export function queryExecute(
   sessionId: string,
   request: ExecOptions,
   onEvent: (event: ResultEvent) => void,
+  /** What a confirmation dialog was answered with (see `safetyCheck`). */
+  confirmationToken?: string,
 ): Promise<ExecSummary | null> {
   const channel = new Channel<ResultEvent>();
   channel.onmessage = onEvent;
-  return invoke<ExecSummary | null>("query_execute", { sessionId, request, onEvent: channel });
+  return invoke<ExecSummary | null>("query_execute", {
+    sessionId,
+    request,
+    ...(confirmationToken ? { confirmationToken } : {}),
+    onEvent: channel,
+  });
 }
 
 /** Pull more rows of an open result. Resolves with whether more rows remain. */

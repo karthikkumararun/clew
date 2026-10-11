@@ -11,7 +11,14 @@ const time = (at: number) =>
   });
 
 /** The append-only log of statements, timings, rows affected and errors. */
-export function OutputLog({ entries }: { entries: OutputEntry[] }) {
+export function OutputLog({
+  entries,
+  onAction,
+}: {
+  entries: OutputEntry[];
+  /** The button on an entry was pressed. */
+  onAction?: (entry: OutputEntry) => void;
+}) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: "end" });
@@ -32,6 +39,11 @@ export function OutputLog({ entries }: { entries: OutputEntry[] }) {
             <div className={styles.outputMessage}>{e.message}</div>
             {e.hint ? <div className={styles.outputHint}>Hint: {e.hint}</div> : null}
             {e.detail ? <div className={styles.outputHint}>{e.detail}</div> : null}
+            {e.action === "switch-read-write" && onAction ? (
+              <button type="button" className={styles.outputAction} onClick={() => onAction(e)}>
+                Switch to read-write
+              </button>
+            ) : null}
           </div>
         </div>
       ))}

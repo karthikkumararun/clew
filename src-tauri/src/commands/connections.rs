@@ -127,8 +127,20 @@ pub async fn connections_connect(
     state: State<'_, AppState>,
     connection_id: String,
 ) -> AppResult<ConnectedInfo> {
-    let config = state.connections.resolve(&connection_id).await?;
+    let saved = state.connections.get(&connection_id)?;
+    let config = state.connections.resolve_connection(&saved).await?;
     state.sessions.connect(&connection_id, config).await?;
+    state.sessions.set_policy(
+        &connection_id,
+        crate::safety::guard::Policy::managed(
+            &saved.name,
+            &serde_json::to_value(saved.environment)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_string))
+                .unwrap_or_default(),
+            saved.safeguards.confirm_writes,
+        ),
+    );
     let server = state.sessions.connection_server(&connection_id).await?;
     let _ = state.connections.touch_last_used(
         &connection_id,

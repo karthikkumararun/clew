@@ -493,6 +493,14 @@ pub trait Session: Send {
     }
 
     /// Pull up to `n` more rows of an open result. Returns whether more rows remain.
+    /// Switch the session between read-only and read-write at the database level, for sessions
+    /// that opened read-only (and back). Drivers without a session-level switch say so.
+    async fn set_read_only(&mut self, _read_only: bool) -> DriverResult<()> {
+        Err(DriverError::unsupported(
+            "Switching a session's read-only state",
+        ))
+    }
+
     async fn fetch_more(
         &mut self,
         result_id: ResultId,

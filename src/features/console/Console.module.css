@@ -699,3 +699,20 @@
   color: var(--text-muted);
   font-size: var(--fs-small);
 }
+
+.outputEntry[data-kind="blocked"] .outputMessage {
+  color: var(--danger);
+}
+
+.outputAction {
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-small);
+}
+
+.outputAction:hover {
+  color: var(--accent-hover);
+}

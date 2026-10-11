@@ -7,6 +7,7 @@ pub mod exporter;
 pub mod files;
 pub mod history;
 pub mod paths;
+pub mod safety;
 pub mod sessions;
 pub mod settings;
 pub mod state;
@@ -137,12 +138,20 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
-                let _ = window.app_handle().save_window_state(StateFlags::all());
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                if commands::app::hold_quit(app) {
+                    // An open transaction: the frontend asks Commit / Roll back / Cancel first.
+                    api.prevent_close();
+                    let _ = app.emit("quit-requested", ());
+                    return;
+                }
+                let _ = app.save_window_state(StateFlags::all());
             }
         })
         .invoke_handler(tauri::generate_handler![
             commands::app::app_paths,
+            commands::app::app_quit_confirmed,
             commands::drivers::drivers_list,
             commands::sessions::connection_test,
             commands::sessions::connection_connect,
@@ -162,6 +171,10 @@ pub fn run() {
             commands::sessions::table_query_sql,
             commands::sessions::changes_preview,
             commands::sessions::changes_apply,
+            commands::sessions::safety_check,
+            commands::sessions::safety_check_changes,
+            commands::sessions::session_read_only,
+            commands::sessions::session_set_read_only,
             commands::sessions::history_list,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,
@@ -207,6 +220,14 @@ pub fn run() {
             commands::ui_state::ui_state_set,
             commands::ui_state::ui_state_all,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Clew");
+        .build(tauri::generate_context!())
+        .expect("error while building Clew")
+        .run(|app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                if commands::app::hold_quit(app) {
+                    api.prevent_exit();
+                    let _ = app.emit("quit-requested", ());
+                }
+            }
+        });
 }

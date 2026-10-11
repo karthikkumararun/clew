@@ -32,7 +32,12 @@ pub async fn connection_connect(
     connection_id: String,
     config: ResolvedConfig,
 ) -> AppResult<()> {
-    Ok(state.sessions.connect(&connection_id, config).await?)
+    state.sessions.connect(&connection_id, config).await?;
+    state.sessions.set_policy(
+        &connection_id,
+        crate::safety::guard::Policy::managed(&connection_id, "", false),
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -80,11 +85,63 @@ pub async fn query_execute(
     state: State<'_, AppState>,
     session_id: String,
     request: ExecRequest,
+    confirmation_token: Option<String>,
     on_event: Channel<ResultEvent>,
 ) -> AppResult<Option<ExecSummary>> {
     Ok(state
         .sessions
-        .execute(&session_id, request, emitter(on_event))
+        .execute_confirmed(&session_id, request, confirmation_token, emitter(on_event))
+        .await?)
+}
+
+/// Ask the guard about SQL before running it: allowed, blocked (read-only) or needs a
+/// confirmation (the report says what to show and carries the token that answers it).
+#[tauri::command]
+pub async fn safety_check(
+    state: State<'_, AppState>,
+    session_id: String,
+    sql: String,
+    script: bool,
+) -> AppResult<crate::sessions::GuardReport> {
+    Ok(state
+        .sessions
+        .safety_check(&session_id, &sql, script)
+        .await?)
+}
+
+/// Ask the guard about staged table edits (the statements `changes_apply` would run).
+#[tauri::command]
+pub async fn safety_check_changes(
+    state: State<'_, AppState>,
+    connection_id: String,
+    session_id: String,
+    request: crate::changes::ChangeRequest,
+) -> AppResult<crate::sessions::GuardReport> {
+    let driver = state.sessions.driver_id(&connection_id)?;
+    let statements = crate::changes::build(&driver, &request)?;
+    let text = crate::sessions::SessionManager::changes_text(&statements);
+    Ok(state
+        .sessions
+        .safety_check(&session_id, &text, true)
+        .await?)
+}
+
+/// Whether a session currently refuses writes.
+#[tauri::command]
+pub async fn session_read_only(state: State<'_, AppState>, session_id: String) -> AppResult<bool> {
+    Ok(state.sessions.session_read_only(&session_id).await?)
+}
+
+/// Switch one session to read-write (or back to read-only). Lasts until the session closes.
+#[tauri::command]
+pub async fn session_set_read_only(
+    state: State<'_, AppState>,
+    session_id: String,
+    read_only: bool,
+) -> AppResult<()> {
+    Ok(state
+        .sessions
+        .set_session_read_only(&session_id, read_only)
         .await?)
 }
 
@@ -254,11 +311,12 @@ pub async fn changes_apply(
     connection_id: String,
     session_id: String,
     request: crate::changes::ChangeRequest,
+    confirmation_token: Option<String>,
 ) -> AppResult<crate::changes::ApplyOutcome> {
     let driver = state.sessions.driver_id(&connection_id)?;
     let statements = crate::changes::build(&driver, &request)?;
     Ok(state
         .sessions
-        .apply_changes(&session_id, &statements)
+        .apply_changes_confirmed(&session_id, &statements, confirmation_token)
         .await?)
 }
