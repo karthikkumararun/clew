@@ -6,6 +6,7 @@ pub mod clickhouse;
 pub mod duckdb;
 pub mod error;
 pub mod introspect;
+pub mod mssql;
 pub mod mysql;
 pub mod paging;
 pub mod postgres;
@@ -66,6 +67,7 @@ pub enum Dialect {
     Sqlite,
     Duckdb,
     Clickhouse,
+    Tsql,
 }
 
 #[derive(ts_rs::TS)]
@@ -521,6 +523,12 @@ pub trait Session: Send {
 
     /// Server identification for the status bar.
     fn server_info(&self) -> ServerInfo;
+
+    /// False once the session's connection has been given up (e.g. after a cancel the protocol
+    /// could not recover from); the session manager then reconnects before the next statement.
+    fn is_alive(&self) -> bool {
+        true
+    }
 
     async fn close(self: Box<Self>) -> DriverResult<()>;
 }

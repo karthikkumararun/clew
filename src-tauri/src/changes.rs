@@ -154,6 +154,7 @@ impl Writer<'_> {
                         Some(t) => format!("${n}::{t}"),
                         None => format!("${n}"),
                     },
+                    SqlFlavor::Sqlserver => format!("@P{n}"),
                     _ => "?".to_string(),
                 }
             }
@@ -384,7 +385,15 @@ pub async fn apply(
     in_transaction: bool,
     statements: &[Statement],
 ) -> DriverResult<ApplyOutcome> {
-    let (begin, commit, rollback) = if in_transaction {
+    // T-SQL spells it differently and has no RELEASE SAVEPOINT (a savepoint just stays).
+    let tsql = driver == "sqlserver";
+    let (begin, commit, rollback) = if in_transaction && tsql {
+        (
+            "SAVE TRANSACTION clew_changes",
+            "SELECT 1",
+            "ROLLBACK TRANSACTION clew_changes",
+        )
+    } else if in_transaction {
         (
             "SAVEPOINT clew_changes",
             "RELEASE SAVEPOINT clew_changes",
@@ -392,6 +401,8 @@ pub async fn apply(
         )
     } else if driver == "mysql" || driver == "mariadb" {
         ("START TRANSACTION", "COMMIT", "ROLLBACK")
+    } else if tsql {
+        ("BEGIN TRANSACTION", "COMMIT", "ROLLBACK")
     } else {
         ("BEGIN", "COMMIT", "ROLLBACK")
     };
@@ -415,7 +426,7 @@ pub async fn apply(
         if let Some(failure) = failure {
             // A failed statement aborts a PostgreSQL transaction; rolling back is the only way on.
             let _ = session.execute_params(rollback, &[]).await;
-            if in_transaction {
+            if in_transaction && !tsql {
                 let _ = session
                     .execute_params("RELEASE SAVEPOINT clew_changes", &[])
                     .await;

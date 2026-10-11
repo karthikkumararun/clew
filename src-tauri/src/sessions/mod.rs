@@ -147,6 +147,7 @@ fn quote_ident(dialect: Dialect, name: &str) -> String {
         Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => {
             format!("`{}`", name.replace('`', "``"))
         }
+        Dialect::Tsql => format!("[{}]", name.replace(']', "]]")),
         _ => format!("\"{}\"", name.replace('"', "\"\"")),
     }
 }
@@ -164,6 +165,13 @@ pub fn switch_statement(
                 "switching database in an open session (PostgreSQL needs a connection per database)",
             )),
             (None, None) => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
+        },
+        Dialect::Tsql => match database {
+            Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
+            None if schema.is_some() => Err(DriverError::unsupported(
+                "switching schema (SQL Server has no default-schema switch per session)",
+            )),
+            None => Err(DriverError::new(ErrorCode::Internal, "Nothing to switch to")),
         },
         Dialect::Mysql | Dialect::Mariadb | Dialect::Clickhouse => match database.or(schema) {
             Some(db) => Ok(format!("USE {}", quote_ident(dialect, db))),
@@ -650,6 +658,12 @@ impl SessionManager {
         let mut first_error: Option<DriverError> = None;
 
         for (index, sql) in statements.into_iter().enumerate() {
+            // A session that gave up its connection (see `Session::is_alive`) is replaced.
+            if st.session.as_ref().is_some_and(|s| !s.is_alive()) {
+                if let Some(dead) = st.session.take() {
+                    let _ = dead.close().await;
+                }
+            }
             if st.session.is_none() {
                 if let Err(e) = Self::reconnect(&entry, &mut st, &emit).await {
                     emit(ResultEvent::Error {

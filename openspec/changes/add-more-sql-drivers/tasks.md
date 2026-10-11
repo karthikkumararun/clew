@@ -12,12 +12,12 @@
 
 ## 2. SQL Server
 
-- [ ] 2.1 tiberius driver: connect (SQL auth; integrated auth on Windows), sessions, streaming, attention cancel (spec: driver-framework › SQL Server driver)
-- [ ] 2.2 GO batch splitting in script mode; OFFSET/FETCH paging; bracket quoting
-- [ ] 2.3 Type mapping (datetimeoffset, money, uniqueidentifier, varbinary, xml as text)
-- [ ] 2.4 Introspection and DDL generation from sys catalog views
-- [ ] 2.5 Connection-dialog note that SQL Server has no session read-only
-- [ ] 2.6 Test: conformance suite against mssql 2022 (scheduled CI job)
+- [x] 2.1 tiberius driver: connect (SQL auth; integrated auth on Windows), sessions, streaming, attention cancel (spec: driver-framework › SQL Server driver)
+- [x] 2.2 GO batch splitting in script mode; OFFSET/FETCH paging; bracket quoting
+- [x] 2.3 Type mapping (datetimeoffset, money, uniqueidentifier, varbinary, xml as text)
+- [x] 2.4 Introspection and DDL generation from sys catalog views
+- [x] 2.5 Connection-dialog note that SQL Server has no session read-only
+- [x] 2.6 Test: conformance suite against mssql 2022 (scheduled CI job)
 
 ## 3. ClickHouse
 

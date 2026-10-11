@@ -7,7 +7,7 @@
  * as a statement boundary (`blankLines`), which the server-side script splitter does not.
  */
 
-export type SplitDialect = "postgresql" | "mysql" | "mariadb" | "sqlite" | null;
+export type SplitDialect = "postgresql" | "mysql" | "mariadb" | "sqlite" | "tsql" | null;
 
 export interface StatementRange {
   /** Statement text without its delimiter, trimmed. */
@@ -38,11 +38,94 @@ const STAR = 42;
 const DOLLAR = 36;
 const NEWLINE = 10;
 
+/** A line that is only `GO` (optionally `GO 5` and a comment). */
+function isGoLine(line: string): boolean {
+  const t = line.trim();
+  if (!/^go/i.test(t)) return false;
+  const rest = t.slice(2).trimStart().split("--")[0].trim();
+  return rest === "" || /^\d+$/.test(rest);
+}
+
+/** Split a T-SQL script into its `GO` batches, ignoring `GO` inside strings and block comments. */
+function splitGo(sql: string): StatementRange[] {
+  const out: StatementRange[] = [];
+  let batchStart = 0;
+  let offset = 0;
+  let inBlock = false;
+  let inString = false;
+  const push = (from: number, to: number) => {
+    const raw = sql.slice(from, to);
+    const text = raw.trim();
+    if (!text) return;
+    const start = from + (raw.length - raw.trimStart().length);
+    out.push({ text, from: start, to: start + text.length });
+  };
+  for (const line of sql.split(/(?<=\n)/)) {
+    const content = line.replace(/[\r\n]+$/, "");
+    if (!inBlock && !inString && isGoLine(content)) {
+      push(batchStart, offset);
+      batchStart = offset + line.length;
+    }
+    for (let i = 0; i < content.length; i++) {
+      const c = content[i];
+      if (inBlock) {
+        if (c === "*" && content[i + 1] === "/") {
+          inBlock = false;
+          i++;
+        }
+      } else if (inString) {
+        if (c === "'") {
+          if (content[i + 1] === "'") i++;
+          else inString = false;
+        }
+      } else if (c === "-" && content[i + 1] === "-") {
+        break;
+      } else if (c === "/" && content[i + 1] === "*") {
+        inBlock = true;
+        i++;
+      } else if (c === "'") {
+        inString = true;
+      }
+    }
+    offset += line.length;
+  }
+  push(batchStart, sql.length);
+  return out;
+}
+
+/** Variables live in their batch, and blocks and modules hold semicolons that end nothing. */
+function keepsTogether(batch: string): boolean {
+  if (batch.includes("@")) return true;
+  const words = batch
+    .split(/[^A-Za-z0-9_]+/)
+    .filter(Boolean)
+    .map((w) => w.toUpperCase());
+  const first = words[0] ?? "";
+  return (
+    first === "CREATE" || first === "ALTER" || first === "BEGIN" || words.slice(1).includes("BEGIN")
+  );
+}
+
+function splitTsql(sql: string, options: SplitOptions): StatementRange[] {
+  const out: StatementRange[] = [];
+  for (const batch of splitGo(sql)) {
+    if (keepsTogether(batch.text)) {
+      out.push(batch);
+      continue;
+    }
+    for (const inner of splitStatements(batch.text, null, options)) {
+      out.push({ text: inner.text, from: batch.from + inner.from, to: batch.from + inner.to });
+    }
+  }
+  return out;
+}
+
 export function splitStatements(
   sql: string,
   dialect: SplitDialect,
   options: SplitOptions = {},
 ): StatementRange[] {
+  if (dialect === "tsql") return splitTsql(sql, options);
   const n = sql.length;
   const mysql = dialect === "mysql" || dialect === "mariadb";
   const postgres = dialect === "postgresql";

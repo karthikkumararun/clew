@@ -47,7 +47,7 @@ pub fn qualified_name(driver: &str, path: &NodePath) -> String {
     let flavor = SqlFlavor::of_driver(driver);
     let table = path.0.last().map(|s| s.name.as_str()).unwrap_or_default();
     // DuckDB can have several catalogs attached, so its names carry the catalog too.
-    if driver == "duckdb" {
+    if driver == "duckdb" || driver == "sqlserver" {
         let parts: Vec<&str> = [
             path.find(NodeKind::Database),
             path.find(NodeKind::Schema),

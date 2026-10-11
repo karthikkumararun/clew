@@ -147,7 +147,116 @@ impl<'a> Scanner<'a> {
     }
 }
 
+/// T-SQL scripts are separated by `GO` lines, not semicolons: a batch keeps its variables, its
+/// blocks and its several statements together. `GO` (optionally `GO 5` and a trailing comment)
+/// counts only on a line of its own, outside strings and block comments.
+fn split_go(sql: &str) -> Vec<Statement> {
+    let mut out = Vec::new();
+    let (mut batch_start, mut offset) = (0usize, 0usize);
+    let (mut in_block, mut in_string) = (false, false);
+    let push = |from: usize, to: usize, out: &mut Vec<Statement>| {
+        let raw = &sql[from..to];
+        let text = raw.trim();
+        if !text.is_empty() {
+            let start = from + (raw.len() - raw.trim_start().len());
+            out.push(Statement {
+                text: text.to_string(),
+                start,
+                end: start + text.len(),
+            });
+        }
+    };
+    for line in sql.split_inclusive('\n') {
+        let content = line.trim_end_matches(['\n', '\r']);
+        if !in_block && !in_string && is_go_line(content) {
+            push(batch_start, offset, &mut out);
+            batch_start = offset + line.len();
+        }
+        // Track what a line leaves open, for the next one.
+        let b = content.as_bytes();
+        let mut i = 0;
+        while i < b.len() {
+            if in_block {
+                if b[i] == b'*' && b.get(i + 1) == Some(&b'/') {
+                    in_block = false;
+                    i += 1;
+                }
+            } else if in_string {
+                if b[i] == b'\'' {
+                    if b.get(i + 1) == Some(&b'\'') {
+                        i += 1;
+                    } else {
+                        in_string = false;
+                    }
+                }
+            } else if b[i] == b'-' && b.get(i + 1) == Some(&b'-') {
+                break;
+            } else if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
+                in_block = true;
+                i += 1;
+            } else if b[i] == b'\'' {
+                in_string = true;
+            }
+            i += 1;
+        }
+        offset += line.len();
+    }
+    push(batch_start, sql.len(), &mut out);
+    out
+}
+
+/// Does a batch have to run as one unit? Variables live only inside their batch, and blocks and
+/// module definitions contain semicolons that don't end anything.
+fn keeps_together(batch: &str) -> bool {
+    if batch.contains('@') {
+        return true;
+    }
+    let mut words = batch
+        .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+        .filter(|w| !w.is_empty())
+        .map(str::to_ascii_uppercase);
+    let first = words.next().unwrap_or_default();
+    first == "CREATE" || first == "ALTER" || first == "BEGIN" || words.any(|w| w == "BEGIN")
+}
+
+/// `GO` batches; inside one, plain statements are still separated at semicolons (so
+/// `SELECT 1; SELECT 2` shows two results) unless the batch needs to stay whole.
+fn split_tsql(sql: &str) -> Vec<Statement> {
+    let mut out = Vec::new();
+    for batch in split_go(sql) {
+        if keeps_together(&batch.text) {
+            out.push(batch);
+            continue;
+        }
+        for inner in split(&batch.text, None) {
+            out.push(Statement {
+                start: batch.start + inner.start,
+                end: batch.start + inner.end,
+                text: inner.text,
+            });
+        }
+    }
+    out
+}
+
+fn is_go_line(line: &str) -> bool {
+    let t = line.trim();
+    let Some(rest) = t
+        .get(..2)
+        .filter(|h| h.eq_ignore_ascii_case("go"))
+        .map(|_| &t[2..])
+    else {
+        return false;
+    };
+    let rest = rest.trim_start();
+    let rest = rest.split("--").next().unwrap_or("").trim();
+    rest.is_empty() || rest.chars().all(|c| c.is_ascii_digit())
+}
+
 pub fn split(sql: &str, dialect: Option<Dialect>) -> Vec<Statement> {
+    if dialect == Some(Dialect::Tsql) {
+        return split_tsql(sql);
+    }
     let sc = Scanner {
         src: sql,
         b: sql.as_bytes(),
@@ -435,6 +544,7 @@ mod tests {
             Some("mysql") => Some(Dialect::Mysql),
             Some("mariadb") => Some(Dialect::Mariadb),
             Some("sqlite") => Some(Dialect::Sqlite),
+            Some("tsql") => Some(Dialect::Tsql),
             _ => None,
         }
     }
@@ -461,5 +571,50 @@ mod tests {
             checked >= 6,
             "expected a corpus of fixtures, found {checked}"
         );
+    }
+
+    #[test]
+    fn tsql_batches_without_variables_still_split_at_semicolons() {
+        let t = texts("SELECT 1; SELECT 2;\nGO\nSELECT 3", Some(Dialect::Tsql));
+        assert_eq!(t, ["SELECT 1", "SELECT 2", "SELECT 3"]);
+    }
+
+    #[test]
+    fn tsql_blocks_and_modules_stay_whole() {
+        let sql = "CREATE PROCEDURE p AS BEGIN SELECT 1; SELECT 2; END\nGO\nBEGIN TRY SELECT 1; END TRY BEGIN CATCH SELECT 2; END CATCH";
+        let t = texts(sql, Some(Dialect::Tsql));
+        assert_eq!(t.len(), 2, "{t:?}");
+        assert!(t[0].starts_with("CREATE PROCEDURE") && t[0].ends_with("END"));
+    }
+
+    #[test]
+    fn tsql_batches_are_split_on_go_lines_only() {
+        let sql = "DECLARE @x INT = 1;\nSELECT @x;\nGO\nSELECT 2\ngo 3\n  -- trailing\nSELECT 3 -- go\nGO -- done\n";
+        let t = texts(sql, Some(Dialect::Tsql));
+        assert_eq!(
+            t,
+            [
+                "DECLARE @x INT = 1;\nSELECT @x;",
+                "SELECT 2",
+                "-- trailing\nSELECT 3 -- go"
+            ]
+        );
+    }
+
+    #[test]
+    fn go_inside_strings_comments_and_words_is_not_a_separator() {
+        let sql = "SELECT 'a\nGO\nb'\n/*\nGO\n*/\nSELECT 1 AS go\nGOTO x\nGO\nSELECT 2";
+        let t = texts(sql, Some(Dialect::Tsql));
+        assert_eq!(t.len(), 2, "{t:?}");
+        assert!(t[0].starts_with("SELECT 'a") && t[0].ends_with("GOTO x"));
+        assert_eq!(t[1], "SELECT 2");
+    }
+
+    #[test]
+    fn tsql_offsets_point_into_the_input() {
+        let sql = "SELECT 1\nGO\n  SELECT 2\n";
+        let v = split(sql, Some(Dialect::Tsql));
+        assert_eq!(v.len(), 2);
+        assert_eq!(&sql[v[1].start..v[1].end], "SELECT 2");
     }
 }

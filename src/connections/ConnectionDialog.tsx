@@ -429,7 +429,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                 </div>
                 <Checkbox
                   label="Open read-only by default"
-                  description="Switch to read-write per session from the toolbar."
+                  description={readOnlyNote(draft.driver)}
                   checked={draft.safeguards.readOnlyByDefault}
                   onChange={(e) =>
                     patch({
@@ -523,4 +523,16 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
 export function ConnectionDialogHost() {
   const dialog = useConnections((s) => s.dialog);
   return dialog ? <ConnectionDialog key={dialog.initial.id || "new"} request={dialog} /> : null;
+}
+
+/** What "read-only" means for a driver, for the line under the checkbox. */
+export function readOnlyNote(driver: string): string {
+  switch (driver) {
+    case "sqlserver":
+      return "SQL Server has no session-level read-only mode, so Clew blocks writes itself. Switch to read-write per session from the toolbar.";
+    case "duckdb":
+      return "DuckDB opens the file read-only; to write, reconnect with this off.";
+    default:
+      return "Switch to read-write per session from the toolbar.";
+  }
 }

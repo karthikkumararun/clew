@@ -37,6 +37,8 @@ export function splitDialect(driver: string): SplitDialect {
     case "postgres":
     case "duckdb": // dollar-quoted strings work the same
       return "postgresql";
+    case "sqlserver":
+      return "tsql"; // GO-separated batches
     case "mysql":
     case "mariadb":
     case "sqlite":
