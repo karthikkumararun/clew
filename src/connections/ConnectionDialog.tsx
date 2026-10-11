@@ -28,6 +28,7 @@ import type { Draft, Errors } from "./draft";
 import { AdvancedTab, SshTab, TlsTab } from "./ExtraTabs";
 import { GeneralForm } from "./GeneralForms";
 import { pickFile } from "./files";
+import { useOracleClient } from "./oracleClient";
 import styles from "./ConnectionDialog.module.css";
 
 type TabId = "general" | "ssh" | "tls" | "advanced";
@@ -270,6 +271,8 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
   };
 
   const passwordSaved = Boolean(secrets?.password) && !draft.clearPassword;
+  const oracleClient = useOracleClient(draft.driver === "oracle");
+  const oracleMissing = draft.driver === "oracle" && oracleClient.status?.found === false;
 
   return (
     <Dialog title={request.title} onClose={closeDialog}>
@@ -398,6 +401,7 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
                   setPort={(port) => patch({ port, portEdited: true })}
                   pickFile={() => void choose()}
                   passwordSaved={passwordSaved}
+                  oracleClient={oracleClient}
                 />
                 <div className={styles.fld}>
                   <span className={styles.lbl}>URL</span>
@@ -464,7 +468,8 @@ export function ConnectionDialog({ request }: { request: DialogRequest }) {
               <Button
                 variant="default"
                 onClick={() => void runTest()}
-                disabled={test.phase === "running"}
+                disabled={test.phase === "running" || oracleMissing}
+                title={oracleMissing ? "Install the Oracle Instant Client first" : undefined}
               >
                 {test.phase === "running" ? "Testing…" : "Test connection"}
               </Button>

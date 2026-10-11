@@ -7,7 +7,7 @@
  * as a statement boundary (`blankLines`), which the server-side script splitter does not.
  */
 
-export type SplitDialect = "postgresql" | "mysql" | "mariadb" | "sqlite" | "tsql" | null;
+export type SplitDialect = "postgresql" | "mysql" | "mariadb" | "sqlite" | "tsql" | "oracle" | null;
 
 export interface StatementRange {
   /** Statement text without its delimiter, trimmed. */
@@ -46,8 +46,8 @@ function isGoLine(line: string): boolean {
   return rest === "" || /^\d+$/.test(rest);
 }
 
-/** Split a T-SQL script into its `GO` batches, ignoring `GO` inside strings and block comments. */
-function splitGo(sql: string): StatementRange[] {
+/** Split at the lines `isSep` accepts, ignoring those inside strings and block comments. */
+function splitAtLines(sql: string, isSep: (line: string) => boolean): StatementRange[] {
   const out: StatementRange[] = [];
   let batchStart = 0;
   let offset = 0;
@@ -62,7 +62,7 @@ function splitGo(sql: string): StatementRange[] {
   };
   for (const line of sql.split(/(?<=\n)/)) {
     const content = line.replace(/[\r\n]+$/, "");
-    if (!inBlock && !inString && isGoLine(content)) {
+    if (!inBlock && !inString && isSep(content)) {
       push(batchStart, offset);
       batchStart = offset + line.length;
     }
@@ -90,6 +90,41 @@ function splitGo(sql: string): StatementRange[] {
     offset += line.length;
   }
   push(batchStart, sql.length);
+  return out;
+}
+
+const splitGo = (sql: string) => splitAtLines(sql, isGoLine);
+
+/** Does a segment define or run a PL/SQL unit? Those are ended by a `/` line, not semicolons. */
+function isPlsqlUnit(segment: string): boolean {
+  const words = segment
+    .split(/[^A-Za-z0-9_]+/)
+    .filter(Boolean)
+    .slice(0, 6)
+    .map((w) => w.toUpperCase());
+  if (words[0] === "BEGIN" || words[0] === "DECLARE") return true;
+  return (
+    words[0] === "CREATE" &&
+    words.slice(1).some((w) => ["PROCEDURE", "FUNCTION", "PACKAGE", "TRIGGER", "TYPE"].includes(w))
+  );
+}
+
+/** Oracle: a `/` line ends what came before; a PL/SQL unit runs to it, other statements to `;`. */
+function splitOracle(sql: string, options: SplitOptions): StatementRange[] {
+  const out: StatementRange[] = [];
+  for (const segment of splitAtLines(sql, (line) => line.trim() === "/")) {
+    for (const inner of splitStatements(segment.text, null, options)) {
+      if (isPlsqlUnit(inner.text)) {
+        out.push({
+          text: segment.text.slice(inner.from).trimEnd(),
+          from: segment.from + inner.from,
+          to: segment.to,
+        });
+        break;
+      }
+      out.push({ text: inner.text, from: segment.from + inner.from, to: segment.from + inner.to });
+    }
+  }
   return out;
 }
 
@@ -126,6 +161,7 @@ export function splitStatements(
   options: SplitOptions = {},
 ): StatementRange[] {
   if (dialect === "tsql") return splitTsql(sql, options);
+  if (dialect === "oracle") return splitOracle(sql, options);
   const n = sql.length;
   const mysql = dialect === "mysql" || dialect === "mariadb";
   const postgres = dialect === "postgresql";

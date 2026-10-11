@@ -37,6 +37,8 @@ export function normalize(raw: Partial<Settings>): Settings {
       : DEFAULT_SETTINGS.gridPageSize,
     confirmCloseUnsaved: Boolean(merged.confirmCloseUnsaved),
     checkForUpdates: Boolean(merged.checkForUpdates),
+    oracleClientDir:
+      typeof merged.oracleClientDir === "string" ? merged.oracleClientDir.trim() : "",
   };
 }
 

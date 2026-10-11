@@ -8,6 +8,7 @@ pub mod error;
 pub mod introspect;
 pub mod mssql;
 pub mod mysql;
+pub mod oracle;
 pub mod paging;
 pub mod postgres;
 pub mod registry;
@@ -68,6 +69,7 @@ pub enum Dialect {
     Duckdb,
     Clickhouse,
     Tsql,
+    Oracle,
 }
 
 #[derive(ts_rs::TS)]

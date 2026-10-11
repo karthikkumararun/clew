@@ -1,0 +1,1 @@
+{"dialect": "oracle", "statements": ["SELECT 1 FROM dual", "UPDATE t SET note = 'a/b'", "BEGIN\n  DBMS_OUTPUT.PUT_LINE('x;y');\n  NULL;\nEND;", "CREATE OR REPLACE FUNCTION f RETURN NUMBER AS\nBEGIN\n  RETURN 1;\nEND;", "SELECT 'a\n/\nb' FROM dual"]}

@@ -375,3 +375,13 @@
   max-height: 140px;
   overflow: auto;
 }
+
+.note[data-state="missing"] {
+  align-items: flex-start;
+  border-color: var(--env-prod-border);
+}
+
+.noteDot[data-bad] {
+  background: var(--danger);
+  margin-top: 5px;
+}

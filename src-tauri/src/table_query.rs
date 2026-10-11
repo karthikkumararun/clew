@@ -223,7 +223,7 @@ mod tests {
         ms.default_order = vec![];
         assert_eq!(
             build("sqlserver", &ms).select,
-            "SELECT * FROM [public].[orders] ORDER BY (SELECT NULL)"
+            "SELECT * FROM [analytics].[public].[orders] ORDER BY (SELECT NULL)"
         );
     }
 
@@ -239,7 +239,7 @@ mod tests {
         r.offset = 50;
         assert_eq!(
             build("sqlserver", &r).select,
-            "SELECT * FROM [dbo].[orders] ORDER BY (SELECT NULL) OFFSET 50 ROWS FETCH NEXT 100 ROWS ONLY"
+            "SELECT * FROM [shop].[dbo].[orders] ORDER BY (SELECT NULL) OFFSET 50 ROWS FETCH NEXT 100 ROWS ONLY"
         );
         assert_eq!(
             build("oracle", &r).select,

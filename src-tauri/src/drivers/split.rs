@@ -151,6 +151,11 @@ impl<'a> Scanner<'a> {
 /// blocks and its several statements together. `GO` (optionally `GO 5` and a trailing comment)
 /// counts only on a line of its own, outside strings and block comments.
 fn split_go(sql: &str) -> Vec<Statement> {
+    split_at_lines(sql, is_go_line)
+}
+
+/// Split at the lines `is_sep` accepts, ignoring those inside strings and block comments.
+fn split_at_lines(sql: &str, is_sep: fn(&str) -> bool) -> Vec<Statement> {
     let mut out = Vec::new();
     let (mut batch_start, mut offset) = (0usize, 0usize);
     let (mut in_block, mut in_string) = (false, false);
@@ -168,7 +173,7 @@ fn split_go(sql: &str) -> Vec<Statement> {
     };
     for line in sql.split_inclusive('\n') {
         let content = line.trim_end_matches(['\n', '\r']);
-        if !in_block && !in_string && is_go_line(content) {
+        if !in_block && !in_string && is_sep(content) {
             push(batch_start, offset, &mut out);
             batch_start = offset + line.len();
         }
@@ -239,6 +244,53 @@ fn split_tsql(sql: &str) -> Vec<Statement> {
     out
 }
 
+/// Does a segment define or run a PL/SQL unit? Those contain semicolons that end nothing and are
+/// ended by a `/` line instead.
+fn is_plsql_unit(segment: &str) -> bool {
+    let words: Vec<String> = segment
+        .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+        .filter(|w| !w.is_empty())
+        .take(6)
+        .map(str::to_ascii_uppercase)
+        .collect();
+    match words.first().map(String::as_str) {
+        Some("BEGIN" | "DECLARE") => true,
+        Some("CREATE") => words.iter().skip(1).any(|w| {
+            matches!(
+                w.as_str(),
+                "PROCEDURE" | "FUNCTION" | "PACKAGE" | "TRIGGER" | "TYPE"
+            )
+        }),
+        _ => false,
+    }
+}
+
+/// Oracle scripts: a line holding only `/` ends whatever came before it (SQL*Plus style); PL/SQL
+/// blocks and program units are ended only by that line, other statements also by semicolons.
+fn split_oracle(sql: &str) -> Vec<Statement> {
+    let mut out = Vec::new();
+    for segment in split_at_lines(sql, |line| line.trim() == "/") {
+        for inner in split(&segment.text, None) {
+            // From the first PL/SQL unit to the `/` it is one statement, semicolons and all.
+            if is_plsql_unit(&inner.text) {
+                let start = segment.start + inner.start;
+                out.push(Statement {
+                    text: segment.text[inner.start..].trim_end().to_string(),
+                    start,
+                    end: segment.end,
+                });
+                break;
+            }
+            out.push(Statement {
+                start: segment.start + inner.start,
+                end: segment.start + inner.end,
+                text: inner.text,
+            });
+        }
+    }
+    out
+}
+
 fn is_go_line(line: &str) -> bool {
     let t = line.trim();
     let Some(rest) = t
@@ -254,8 +306,10 @@ fn is_go_line(line: &str) -> bool {
 }
 
 pub fn split(sql: &str, dialect: Option<Dialect>) -> Vec<Statement> {
-    if dialect == Some(Dialect::Tsql) {
-        return split_tsql(sql);
+    match dialect {
+        Some(Dialect::Tsql) => return split_tsql(sql),
+        Some(Dialect::Oracle) => return split_oracle(sql),
+        _ => {}
     }
     let sc = Scanner {
         src: sql,
@@ -545,6 +599,7 @@ mod tests {
             Some("mariadb") => Some(Dialect::Mariadb),
             Some("sqlite") => Some(Dialect::Sqlite),
             Some("tsql") => Some(Dialect::Tsql),
+            Some("oracle") => Some(Dialect::Oracle),
             _ => None,
         }
     }
@@ -616,5 +671,30 @@ mod tests {
         let v = split(sql, Some(Dialect::Tsql));
         assert_eq!(v.len(), 2);
         assert_eq!(&sql[v[1].start..v[1].end], "SELECT 2");
+    }
+
+    #[test]
+    fn oracle_blocks_end_at_a_slash_line_and_other_statements_at_semicolons() {
+        let sql = "SELECT 1 FROM dual;\nUPDATE t SET a = 1;\nBEGIN\n  NULL;\n  NULL;\nEND;\n/\nSELECT 2 FROM dual\n/\nSELECT 3 FROM dual;";
+        let t = texts(sql, Some(Dialect::Oracle));
+        assert_eq!(
+            t,
+            [
+                "SELECT 1 FROM dual",
+                "UPDATE t SET a = 1",
+                "BEGIN\n  NULL;\n  NULL;\nEND;",
+                "SELECT 2 FROM dual",
+                "SELECT 3 FROM dual"
+            ]
+        );
+    }
+
+    #[test]
+    fn oracle_program_units_keep_their_semicolons() {
+        let sql = "CREATE OR REPLACE PROCEDURE p AS\nBEGIN\n  UPDATE t SET a = 1;\n  COMMIT;\nEND;\n/\nDECLARE x NUMBER; BEGIN x := 1; END;\n/";
+        let t = texts(sql, Some(Dialect::Oracle));
+        assert_eq!(t.len(), 2, "{t:?}");
+        assert!(t[0].starts_with("CREATE OR REPLACE PROCEDURE") && t[0].ends_with("END;"));
+        assert!(t[1].starts_with("DECLARE"));
     }
 }

@@ -1,7 +1,7 @@
 //! SQL Server conformance + driver-specific tests. Needs `docker compose up -d --wait mssql`
 //! (SQL Server 2022; an amd64 image, so it is slow to start on Apple Silicon).
-//! Run with `cargo test --features integration`.
-#![cfg(feature = "integration")]
+//! Run with `cargo test --features integration-heavy`.
+#![cfg(feature = "integration-heavy")]
 
 mod conformance;
 

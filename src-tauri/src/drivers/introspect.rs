@@ -21,6 +21,8 @@ pub enum NodeKind {
     PrimaryKey,
     ForeignKey,
     Index,
+    Synonym,
+    Package,
 }
 
 #[derive(ts_rs::TS)]

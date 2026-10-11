@@ -16,6 +16,7 @@ pub struct SettingsPayload {
 #[tauri::command]
 pub fn settings_get(state: State<'_, AppState>) -> SettingsPayload {
     let out = settings::load(&state.data_dir);
+    crate::drivers::oracle::client::set_configured_dir(&out.settings.oracle_client_dir);
     SettingsPayload {
         settings: out.settings,
         notice: out.backup.map(|b| {
@@ -33,5 +34,6 @@ pub fn settings_get(state: State<'_, AppState>) -> SettingsPayload {
 pub fn settings_set(state: State<'_, AppState>, settings: Settings) -> AppResult<Settings> {
     let clean = settings.sanitized();
     settings::save(&state.data_dir, &clean)?;
+    crate::drivers::oracle::client::set_configured_dir(&clean.oracle_client_dir);
     Ok(clean)
 }

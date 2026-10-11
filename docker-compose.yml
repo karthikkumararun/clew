@@ -1,6 +1,6 @@
 # Integration-test databases. Test-only credentials; never use these anywhere real.
 #   scripts/gen-test-certs.sh   (once, creates docker/postgres-tls/certs and docker/bastion/keys)
-#   docker compose up -d --build --wait
+#   docker compose up -d --build --wait            (add --profile heavy for SQL Server and Oracle)
 #   cargo test --features integration   (in src-tauri/)
 services:
   postgres:
@@ -76,6 +76,7 @@ services:
       retries: 40
 
   mssql:
+    profiles: [heavy]
     image: mcr.microsoft.com/mssql/server:2022-latest
     platform: linux/amd64
     environment:
@@ -92,6 +93,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 40
+
+  oracle:
+    profiles: [heavy]
+    image: gvenzl/oracle-free:23-slim-faststart
+    environment:
+      ORACLE_PASSWORD: clew
+      APP_USER: clew
+      APP_USER_PASSWORD: clew
+    ports: ["15211:1521"]
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
 
   mariadb:
     image: mariadb:11

@@ -185,6 +185,7 @@ describe("settings", () => {
       gridPageSize: 500,
       confirmCloseUnsaved: true,
       checkForUpdates: false,
+      oracleClientDir: "",
     });
   });
 

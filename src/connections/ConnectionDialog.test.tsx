@@ -14,6 +14,20 @@ const api = vi.hoisted(() => ({
   groupsSave: vi.fn(),
 }));
 
+const oracle = vi.hoisted(() => ({
+  status: null as null | {
+    found: boolean;
+    dir: string | null;
+    version: string | null;
+    searched: string[];
+  },
+  choose: vi.fn(),
+}));
+vi.mock("./oracleClient", async (orig) => ({
+  ...(await orig<typeof import("./oracleClient")>()),
+  useOracleClient: () => ({ status: oracle.status, choose: oracle.choose }),
+}));
+
 vi.mock("./api", () => ({
   connectionsList: async () => ({ version: 1, groups: [], connections: [] }),
   connectionsSave: (req: SaveRequest) => api.save(req),
@@ -237,5 +251,54 @@ describe("Test connection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
     expect(await screen.findByText("Enter a host")).toBeInTheDocument();
     expect(api.test).not.toHaveBeenCalled();
+  });
+});
+
+describe("Oracle Instant Client", () => {
+  beforeEach(() => {
+    oracle.status = null;
+    oracle.choose.mockClear();
+  });
+
+  it("is checked at connect time while its status is unknown", () => {
+    open(newDraft("oracle"));
+    expect(screen.getByTestId("instant-client-status")).toHaveTextContent(
+      "checked when you connect",
+    );
+    expect(screen.getByRole("button", { name: "Test connection" })).toBeEnabled();
+  });
+
+  it("says what to install when it is missing, and blocks Test connection", () => {
+    oracle.status = { found: false, dir: null, version: null, searched: ["/opt/oracle"] };
+    open(newDraft("oracle"));
+    const note = screen.getByRole("alert");
+    expect(note).toHaveTextContent("Oracle needs the free Oracle Instant Client");
+    expect(note).toHaveTextContent("oracle.com/database/technologies/instant-client");
+    expect(note).toHaveTextContent("macOS");
+    expect(note).toHaveTextContent("Windows");
+    expect(screen.getByRole("button", { name: "Test connection" })).toBeDisabled();
+    fireEvent.click(within(note).getByRole("button", { name: "Choose folder…" }));
+    expect(oracle.choose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the version and folder when it is found", () => {
+    oracle.status = {
+      found: true,
+      dir: "/opt/oracle/instantclient_19_8",
+      version: "19.8",
+      searched: [],
+    };
+    open(newDraft("oracle"));
+    expect(screen.getByTestId("instant-client-status")).toHaveTextContent(
+      "Oracle Instant Client 19.8 found in /opt/oracle/instantclient_19_8",
+    );
+    expect(screen.getByRole("button", { name: "Test connection" })).toBeEnabled();
+  });
+
+  it("does not bother other drivers", () => {
+    oracle.status = { found: false, dir: null, version: null, searched: [] };
+    open(newDraft("postgres"));
+    expect(screen.queryByTestId("instant-client-status")).toBeNull();
+    expect(screen.getByRole("button", { name: "Test connection" })).toBeEnabled();
   });
 });
