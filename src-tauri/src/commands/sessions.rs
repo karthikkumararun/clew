@@ -4,6 +4,7 @@ use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::State;
 
+use crate::drivers::nosql::{DocReply, DocRequest, KvReply, KvRequest};
 use crate::drivers::{
     ExecRequest, ExecSummary, FullValueRequest, NodePath, ResolvedConfig, ResultEvent, ResultId,
     SchemaSnapshot, ServerInfo, TreeNode, Value,
@@ -158,6 +159,45 @@ pub async fn query_fetch_more(
         .sessions
         .fetch_more(&session_id, result_id, count, emitter(on_event))
         .await?)
+}
+
+/// Run a MongoDB request. Documents stream over `on_event`; the reply says what happened.
+#[tauri::command]
+pub async fn doc_call(
+    state: State<'_, AppState>,
+    session_id: String,
+    request: DocRequest,
+    token: Option<String>,
+    on_event: Channel<ResultEvent>,
+) -> AppResult<DocReply> {
+    Ok(state
+        .sessions
+        .doc_call(&session_id, request, token, emitter(on_event))
+        .await?)
+}
+
+/// What the safeguards say about a MongoDB request, before it is sent.
+#[tauri::command]
+pub async fn doc_safety_check(
+    state: State<'_, AppState>,
+    session_id: String,
+    request: DocRequest,
+) -> AppResult<crate::sessions::GuardReport> {
+    Ok(state
+        .sessions
+        .doc_safety_check(&session_id, &request)
+        .await?)
+}
+
+/// Run a Redis request.
+#[tauri::command]
+pub async fn kv_call(
+    state: State<'_, AppState>,
+    session_id: String,
+    request: KvRequest,
+    token: Option<String>,
+) -> AppResult<KvReply> {
+    Ok(state.sessions.kv_call(&session_id, request, token).await?)
 }
 
 #[tauri::command]

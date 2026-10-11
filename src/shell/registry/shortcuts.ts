@@ -1,7 +1,7 @@
 import { getPlatform, parseKeys } from "../../lib/platform";
 import type { Platform } from "../../lib/platform";
 
-export type ShortcutScope = "global" | "editor" | "grid" | "dialog";
+export type ShortcutScope = "global" | "editor" | "documents" | "grid" | "dialog";
 
 export interface ShortcutBinding {
   id: string;
@@ -14,7 +14,7 @@ export interface ShortcutBinding {
   run: (event: KeyboardEvent) => void;
 }
 
-const SCOPE_PRIORITY: ShortcutScope[] = ["dialog", "editor", "grid", "global"];
+const SCOPE_PRIORITY: ShortcutScope[] = ["dialog", "editor", "documents", "grid", "global"];
 
 const bindings = new Map<string, ShortcutBinding>(); // key: `${scope}|${canonical keys}`
 const listeners = new Set<() => void>();
@@ -120,7 +120,7 @@ function activeScopes(target: EventTarget | null, forced?: ShortcutScope): Set<S
 }
 
 /**
- * Run the best matching binding for the event. Priority: dialog > editor > grid > global.
+ * Run the best matching binding for the event. Priority: dialog > editor > documents > grid > global.
  * Returns true when a binding handled the event (and it has been preventDefault-ed).
  */
 export function dispatchShortcut(e: KeyboardEvent, forcedScope?: ShortcutScope): boolean {

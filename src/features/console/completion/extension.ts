@@ -8,10 +8,11 @@ import type { Completion, CompletionContext, CompletionResult } from "@codemirro
 import type { Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { isMac } from "../../../lib/platform";
-import { editorDialect } from "../editor/dialects";
+import { editorDialect, isNoSql } from "../editor/dialects";
 import { currentStatementOf } from "../editor/statementField";
 import { suggest } from "./engine";
 import type { Suggestion, SuggestionKind } from "./engine";
+import { nosqlSource } from "./nosql";
 import { loadSnapshot, onSnapshotChange, peekSnapshot } from "./snapshots";
 
 /** What the completion source needs to know about the console, read on every request. */
@@ -123,9 +124,14 @@ const hint = () => `↵ insert · ⇥ replace · ${isMac() ? "⌃Space" : "Ctrl+
 
 /** Completion for a console: keywords, schemas, tables, columns, aliases and functions. */
 export function sqlCompletion(getTarget: () => CompletionTarget): Extension {
+  const sqlSource = createSource(getTarget);
+  const commands = nosqlSource(getTarget);
+  // Which language the console speaks is decided per request, from its connection.
+  const route = (context: CompletionContext) =>
+    isNoSql(getTarget().driver) ? commands(context) : sqlSource(context);
   return [
     autocompletion({
-      override: [createSource(getTarget)],
+      override: [route],
       icons: false,
       defaultKeymap: false,
       maxRenderedOptions: 200,

@@ -323,6 +323,9 @@ pub fn classify(
     split_as: Option<Dialect>,
     script: bool,
 ) -> Vec<StatementInfo> {
+    if matches!(driver, "mongodb" | "redis") {
+        return super::nosql::classify_script(driver, sql, script);
+    }
     let dialect = parser_dialect(driver);
     let texts: Vec<String> = if script {
         split(sql, split_as).into_iter().map(|s| s.text).collect()

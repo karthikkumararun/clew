@@ -147,3 +147,33 @@ pub async fn export_rows(
     )
     .map(Some)
 }
+
+/// Ask where to save a file with the given extension (`json`, `jsonl`, `csv`). `None` when the
+/// dialog is cancelled. Used by exports that the driver itself writes (MongoDB collections).
+#[tauri::command]
+pub async fn export_pick_path(
+    app: AppHandle,
+    default_name: String,
+    extension: String,
+) -> AppResult<Option<String>> {
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        app.dialog()
+            .file()
+            .set_title("Export")
+            .set_file_name(format!("{default_name}.{extension}"))
+            .add_filter(extension.to_uppercase(), &[extension.as_str()])
+            .blocking_save_file()
+    })
+    .await
+    .map_err(|e| AppError::new("internal", e.to_string()))?;
+    picked
+        .map(|p| {
+            p.into_path()
+                .map(|p| p.to_string_lossy().into_owned())
+                .map_err(|e| {
+                    AppError::new("io", "That location isn't a file path")
+                        .with_detail(e.to_string())
+                })
+        })
+        .transpose()
+}

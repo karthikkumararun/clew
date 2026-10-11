@@ -6,11 +6,14 @@ pub mod clickhouse;
 pub mod duckdb;
 pub mod error;
 pub mod introspect;
+pub mod mongodb;
 pub mod mssql;
 pub mod mysql;
+pub mod nosql;
 pub mod oracle;
 pub mod paging;
 pub mod postgres;
+pub mod redis;
 pub mod registry;
 pub mod split;
 pub mod sqlite;
@@ -349,6 +352,12 @@ pub enum ResultEvent {
     },
     /// Informational message about the session itself (e.g. it was re-established).
     Notice { message: String },
+    /// A page of documents (canonical Extended JSON) from a document-family cursor.
+    Documents {
+        #[ts(type = "number")]
+        result_id: ResultId,
+        docs: Vec<serde_json::Value>,
+    },
 }
 
 /// Where a session sends result events. Dropping the receiver (window closed) makes sends fail,
@@ -526,6 +535,16 @@ pub trait Session: Send {
     /// Server identification for the status bar.
     fn server_info(&self) -> ServerInfo;
 
+    /// The document-family operations of this session, when it has them.
+    fn as_documents(&mut self) -> Option<&mut dyn DocumentSession> {
+        None
+    }
+
+    /// The key-value operations of this session, when it has them.
+    fn as_keyvalue(&mut self) -> Option<&mut dyn KeyValueSession> {
+        None
+    }
+
     /// False once the session's connection has been given up (e.g. after a cancel the protocol
     /// could not recover from); the session manager then reconnects before the next statement.
     fn is_alive(&self) -> bool {
@@ -533,4 +552,22 @@ pub trait Session: Send {
     }
 
     async fn close(self: Box<Self>) -> DriverResult<()>;
+}
+
+/// What a document-family session (MongoDB) can do beyond the base [`Session`].
+#[async_trait]
+pub trait DocumentSession: Send {
+    /// Run one request. `Find` and `Aggregate` stream their first page into `sink` as
+    /// [`ResultEvent::Documents`]; more arrive through [`Session::fetch_more`].
+    async fn call(
+        &mut self,
+        request: nosql::DocRequest,
+        sink: ResultSink,
+    ) -> DriverResult<nosql::DocReply>;
+}
+
+/// What a key-value session (Redis) can do beyond the base [`Session`].
+#[async_trait]
+pub trait KeyValueSession: Send {
+    async fn call(&mut self, request: nosql::KvRequest) -> DriverResult<nosql::KvReply>;
 }

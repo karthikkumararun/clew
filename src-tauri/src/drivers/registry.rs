@@ -36,6 +36,8 @@ impl Registry {
         r.register(Arc::new(super::clickhouse::ClickHouseDriver::new()));
         r.register(Arc::new(super::mssql::MsSqlDriver::new()));
         r.register(Arc::new(super::oracle::OracleDriver::new()));
+        r.register(Arc::new(super::mongodb::MongoDriver::new()));
+        r.register(Arc::new(super::redis::RedisDriver::new()));
         r
     }
 
@@ -179,8 +181,17 @@ mod tests {
             assert!(r.get(id).is_ok(), "{id} missing");
         }
         let groups = r.list_grouped();
-        assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].family, DriverFamily::Sql);
+        let families: Vec<_> = groups.iter().map(|g| g.family).collect();
+        assert_eq!(
+            families,
+            [
+                DriverFamily::Sql,
+                DriverFamily::Document,
+                DriverFamily::Keyvalue
+            ]
+        );
+        assert_eq!(groups[1].drivers[0].id, "mongodb");
+        assert_eq!(groups[2].drivers[0].id, "redis");
     }
 
     #[test]

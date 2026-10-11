@@ -6,7 +6,7 @@ import { formatShortcut } from "../../lib/platform";
 import { useConnections } from "../../connections/connectionsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
-import { supportsTransactions } from "./editor/dialects";
+import { isNoSql, supportsTransactions } from "./editor/dialects";
 import {
   cancelActive,
   endActiveTransaction,
@@ -77,48 +77,50 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
           <span className={styles.kbd}>{formatShortcut("Mod+Enter")}</span>
         </button>
       )}
-      <span className={styles.splitButton}>
-        <button
-          type="button"
-          className={styles.tbButton}
-          disabled={busy}
-          onClick={() => void explainActive(false)}
-        >
-          <Lines size={12} />
-          Explain
-        </button>
-        <button
-          type="button"
-          className={`${styles.tbButton} ${styles.splitChevron}`}
-          aria-label="More explain options"
-          aria-haspopup="menu"
-          aria-expanded={explainMenu}
-          disabled={busy}
-          onClick={() => setExplainMenu((o) => !o)}
-        >
-          <ChevronDown size={12} />
-        </button>
-        {explainMenu ? (
-          <>
-            <div
-              className={styles.menuScrim}
-              onMouseDown={() => setExplainMenu(false)}
-              aria-hidden="true"
-            />
-            <div className={styles.explainMenu}>
-              <Menu
-                aria-label="Explain options"
-                items={[{ id: "analyze", label: "Explain Analyze…" }]}
-                onClose={() => setExplainMenu(false)}
-                onSelect={() => {
-                  setExplainMenu(false);
-                  void explainActive(true);
-                }}
+      {isNoSql(driverId) ? null : (
+        <span className={styles.splitButton}>
+          <button
+            type="button"
+            className={styles.tbButton}
+            disabled={busy}
+            onClick={() => void explainActive(false)}
+          >
+            <Lines size={12} />
+            Explain
+          </button>
+          <button
+            type="button"
+            className={`${styles.tbButton} ${styles.splitChevron}`}
+            aria-label="More explain options"
+            aria-haspopup="menu"
+            aria-expanded={explainMenu}
+            disabled={busy}
+            onClick={() => setExplainMenu((o) => !o)}
+          >
+            <ChevronDown size={12} />
+          </button>
+          {explainMenu ? (
+            <>
+              <div
+                className={styles.menuScrim}
+                onMouseDown={() => setExplainMenu(false)}
+                aria-hidden="true"
               />
-            </div>
-          </>
-        ) : null}
-      </span>
+              <div className={styles.explainMenu}>
+                <Menu
+                  aria-label="Explain options"
+                  items={[{ id: "analyze", label: "Explain Analyze…" }]}
+                  onClose={() => setExplainMenu(false)}
+                  onSelect={() => {
+                    setExplainMenu(false);
+                    void explainActive(true);
+                  }}
+                />
+              </div>
+            </>
+          ) : null}
+        </span>
+      )}
       {transactional ? (
         <span className={styles.splitButton}>
           <button
