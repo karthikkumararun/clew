@@ -14,6 +14,8 @@ import { quoteIdent, flavorOf } from "../grid/sqlLiteral";
 import { ExportDialog } from "../grid/ExportDialog";
 import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
+import { DocViewSwitch, DocumentsResult } from "../documents/DocResult";
+import type { DocResultView } from "../documents/DocResult";
 import { askChoice } from "./prompts";
 import { confirmSwitchToReadWrite } from "../safety/switch";
 import { formatRows } from "./runtime";
@@ -78,6 +80,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const [filter, setFilter] = useState("");
   const [transposed, setTransposed] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [docView, setDocView] = useState<DocResultView>("tree");
 
   const sets = useMemo(() => run.results.filter((r) => r.columns.length > 0), [run.results]);
   const active = sets.find((r) => r.key === activeKey) ?? sets[0];
@@ -190,6 +193,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         <div className={styles.grow} />
         {tab === "result" && active ? (
           <>
+            {active.docs ? <DocViewSwitch value={docView} onChange={setDocView} /> : null}
             <span className={styles.range}>{range}</span>
             <IconButton aria-label="Re-run query" disabled={!lastRun || busy} onClick={onRerun}>
               <Refresh size={14} />
@@ -262,7 +266,22 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
 
       <div className={styles.resultsBody}>
         {tab === "result" ? (
-          active ? (
+          active && active.docs && docView !== "table" ? (
+            <div style={{ height: "100%", overflow: "auto" }}>
+              <DocumentsResult
+                docs={active.docs as never[]}
+                view={docView}
+                version={active.rowCount}
+              />
+              {active.hasMore ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: 12 }}>
+                  <button type="button" className={styles.exportButton} onClick={fetchMore}>
+                    Load more
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : active ? (
             <>
               {gv.sort && active.hasMore && !transposed ? (
                 <div className={styles.sortNotice} role="status">

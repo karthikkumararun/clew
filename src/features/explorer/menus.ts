@@ -32,7 +32,7 @@ export function connectionMenu(c: Connection, groups: Group[], connected: boolea
 }
 
 /** Menu entries of an introspection node, by kind. */
-export function nodeMenu(e: NodeEntry): MenuItem[] {
+export function nodeMenu(e: NodeEntry, driver?: string): MenuItem[] {
   if (e.kind === "scripts") {
     return [
       { id: "explorer.newScript", label: "New script" },
@@ -45,6 +45,21 @@ export function nodeMenu(e: NodeEntry): MenuItem[] {
       { id: "explorer.openScript", label: "Open" },
       { id: "explorer.revealScript", label: revealLabel() },
       { id: "explorer.copyName", label: "Copy name" },
+    ];
+  }
+  if (driver === "mongodb" && isTableLike(e.kind)) {
+    return [
+      { id: "explorer.openData", label: "Open collection" },
+      { id: "explorer.openInConsole", label: "Open in shell console" },
+      { id: "explorer.copyName", label: "Copy name" },
+      { id: "explorer.refresh", label: "Refresh" },
+    ];
+  }
+  if (driver === "redis" && e.kind === "database") {
+    return [
+      { id: "explorer.openData", label: "Browse keys" },
+      { id: "explorer.newConsoleHere", label: "New console here" },
+      { id: "explorer.refresh", label: "Refresh" },
     ];
   }
   if (isTableLike(e.kind)) {

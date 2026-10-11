@@ -72,6 +72,11 @@ export function explainStatement(driver: string, sql: string, analyze: boolean):
       return analyze ? `ANALYZE FORMAT=JSON ${sql}` : `EXPLAIN FORMAT=JSON ${sql}`;
     case "duckdb":
       return `EXPLAIN${analyze ? " ANALYZE" : ""} ${sql}`;
+    case "mongodb":
+    case "redis":
+      throw new ExplainUnsupported(
+        "Use Explain in the collection's query bar; the command console has no execution plans",
+      );
     case "sqlserver":
     case "oracle":
       throw new ExplainUnsupported("Execution plans for this database aren't available yet");

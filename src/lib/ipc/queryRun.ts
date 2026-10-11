@@ -15,6 +15,11 @@ export interface ResultView {
   /** Grows in place as batches arrive; use `rowCount` to detect changes. */
   rows: Value[][];
   rowCount: number;
+  /**
+   * The documents of a document-database result (MongoDB), as Extended JSON, for the tree and
+   * JSON views. The same result also arrives as `columns` / `rows`, which the grid uses.
+   */
+  docs?: unknown[];
   /** The current page finished arriving. */
   done: boolean;
   /** The server has more rows to fetch. */
@@ -154,6 +159,14 @@ export class QueryRunStore {
         r.cancelled = true;
         r.done = true;
         r.hasMore = false;
+        break;
+      }
+      case "documents": {
+        const r =
+          this.byResultId(event.result_id) ??
+          this.ensure(`r${event.result_id}`, event.result_id, 0);
+        const docs = (r.docs ??= []);
+        for (const d of event.docs) docs.push(d);
         break;
       }
       case "notice":

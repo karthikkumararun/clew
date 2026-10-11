@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::Mutex;
 
+use crate::drivers::nosql::{DocReply, DocRequest, KvReply, KvRequest};
 use crate::drivers::registry::Registry;
 use crate::drivers::split::split;
 use crate::drivers::Dialect;
@@ -215,6 +216,37 @@ pub fn switch_statement(
     }
 }
 
+/// The statements of a script: SQL by its dialect's rules, Mongo shell commands at `;`, and
+/// Redis one command per line (`#` starts a comment line).
+pub fn split_script(sql: &str, meta: &crate::drivers::DriverMeta) -> Vec<String> {
+    if meta.family == crate::drivers::DriverFamily::Keyvalue {
+        return crate::safety::nosql::redis_lines(sql)
+            .into_iter()
+            .map(str::to_string)
+            .collect();
+    }
+    split(sql, meta.dialect)
+        .into_iter()
+        .map(|s| s.text)
+        .collect()
+}
+
+/// The statement that makes `database` the session's default on a driver without a SQL dialect.
+fn switch_statement_nosql(driver: &str, database: Option<&str>) -> DriverResult<String> {
+    let Some(db) = database else {
+        return Err(DriverError::new(
+            ErrorCode::Internal,
+            "Nothing to switch to",
+        ));
+    };
+    match driver {
+        "mongodb" => Ok(format!("use {db}")),
+        // the explorer names Redis databases `db3`
+        "redis" => Ok(format!("SELECT {}", db.strip_prefix("db").unwrap_or(db))),
+        _ => Err(DriverError::unsupported("switching database or schema")),
+    }
+}
+
 /// Run the connection's "run on connect" statements on a fresh session, discarding results.
 async fn run_on_connect(session: &mut dyn Session, cfg: &ResolvedConfig) -> DriverResult<()> {
     for sql in cfg.on_connect.iter().filter(|s| !s.trim().is_empty()) {
@@ -410,13 +442,11 @@ impl SessionManager {
         schema: Option<&str>,
     ) -> DriverResult<String> {
         let entry = self.session(session_id)?;
-        let dialect = entry
-            .connection
-            .driver
-            .meta()
-            .dialect
-            .ok_or_else(|| DriverError::unsupported("switching database or schema"))?;
-        let sql = switch_statement(dialect, database, schema)?;
+        let meta = entry.connection.driver.meta();
+        let sql = match meta.dialect {
+            Some(dialect) => switch_statement(dialect, database, schema)?,
+            None => switch_statement_nosql(meta.id, database)?,
+        };
         let emit: Emit = Arc::new(|_| true);
         self.execute_inner(
             session_id,
@@ -663,10 +693,7 @@ impl SessionManager {
             return Err(e);
         }
         let statements: Vec<String> = if req.script {
-            split(&req.sql, dialect)
-                .into_iter()
-                .map(|s| s.text)
-                .collect()
+            split_script(&req.sql, entry.connection.driver.meta())
         } else if req.sql.trim().is_empty() {
             Vec::new()
         } else {
@@ -816,6 +843,78 @@ impl SessionManager {
         let r = session.fetch_more(result_id, n, sink).await;
         let _ = pump.await;
         r
+    }
+
+    /// Run a document-family request (MongoDB). Writes go through the same guard as SQL: a
+    /// read-only session refuses them and a connection that confirms writes asks first.
+    pub async fn doc_call(
+        &self,
+        session_id: &str,
+        request: DocRequest,
+        token: Option<String>,
+        emit: Emit,
+    ) -> DriverResult<DocReply> {
+        let entry = self.session(session_id)?;
+        if let Some(text) = crate::safety::nosql::doc_safety_text(&request) {
+            let read_only = entry.state.lock().await.read_only;
+            self.enforce(
+                session_id,
+                &entry,
+                read_only,
+                &text,
+                false,
+                token.as_deref(),
+            )?;
+        }
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(ErrorCode::ConnectionLost, "The session is disconnected")
+        })?;
+        let docs = session
+            .as_documents()
+            .ok_or_else(|| DriverError::unsupported("Document operations"))?;
+        let (sink, rx) = ResultSink::channel(32);
+        let pump = tokio::spawn(pump(rx, emit, 0));
+        let r = docs.call(request, sink).await;
+        let _ = pump.await;
+        r
+    }
+
+    /// Run a key-value request (Redis), guarded like [`Self::doc_call`].
+    pub async fn kv_call(
+        &self,
+        session_id: &str,
+        request: KvRequest,
+        token: Option<String>,
+    ) -> DriverResult<KvReply> {
+        let entry = self.session(session_id)?;
+        if let KvRequest::Command { line, .. } = &request {
+            let read_only = entry.state.lock().await.read_only;
+            self.enforce(session_id, &entry, read_only, line, false, token.as_deref())?;
+        }
+        let mut st = entry.state.lock().await;
+        Self::touch(&entry);
+        let session = st.session.as_mut().ok_or_else(|| {
+            DriverError::new(ErrorCode::ConnectionLost, "The session is disconnected")
+        })?;
+        session
+            .as_keyvalue()
+            .ok_or_else(|| DriverError::unsupported("Key-value operations"))?
+            .call(request)
+            .await
+    }
+
+    /// Decide about a document request before it is sent, like [`Self::safety_check`].
+    pub async fn doc_safety_check(
+        &self,
+        session_id: &str,
+        request: &DocRequest,
+    ) -> DriverResult<GuardReport> {
+        match crate::safety::nosql::doc_safety_text(request) {
+            Some(text) => self.safety_check(session_id, &text, false).await,
+            None => Ok(GuardReport::allow()),
+        }
     }
 
     /// Cancel the statement running on the session. Never waits for the session lock.
@@ -1073,6 +1172,21 @@ pub struct GuardReport {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub typed: Option<String>,
+}
+
+impl GuardReport {
+    /// Nothing to ask: the request only reads.
+    pub fn allow() -> Self {
+        Self {
+            decision: Decision::Allow,
+            reason: None,
+            connection: String::new(),
+            environment: String::new(),
+            statements: vec![],
+            token: None,
+            typed: None,
+        }
+    }
 }
 
 /// An EXPLAIN that takes longer than this is abandoned: the estimate is a courtesy.

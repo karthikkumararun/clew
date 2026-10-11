@@ -3,6 +3,7 @@ import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
 import { startSnapshotSync } from "./features/console/completionTarget";
 import { registerConsoleTab } from "./features/console/ConsoleTab";
 import { startFileSync } from "./features/console/fileSync";
+import { registerCollectionTab } from "./features/documents/CollectionTab";
 import { registerTableTab } from "./features/table-editor/TableTab";
 import { startExplorerSync, useExplorer } from "./features/explorer/explorerStore";
 import { rehydrateLayout } from "./stores/layoutStore";
@@ -31,6 +32,7 @@ export async function boot(): Promise<void> {
   // Editor kinds must exist before the last session is reopened.
   registerConsoleTab();
   registerTableTab();
+  registerCollectionTab();
   restoreSession();
   startSessionPersistence();
 }

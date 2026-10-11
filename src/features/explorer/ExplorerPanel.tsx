@@ -237,7 +237,10 @@ export function ExplorerPanel({ extra }: { extra?: ReactNode }) {
         else void runCommand(id, c.id);
       };
     } else if (row?.type === "node") {
-      menuItems = nodeMenu(row.entry);
+      menuItems = nodeMenu(
+        row.entry,
+        file.connections.find((c) => c.id === row.entry.connId)?.driver,
+      );
       runMenu = (id) => void runCommand(id, row.id);
     } else if (row?.type === "group" && row.groupId) {
       const gid = row.groupId;

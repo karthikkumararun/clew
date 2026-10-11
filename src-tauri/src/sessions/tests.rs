@@ -313,6 +313,7 @@ fn kinds(log: &Log) -> Vec<String> {
             }
             ResultEvent::Cancelled { .. } => "cancelled".into(),
             ResultEvent::Notice { .. } => "notice".into(),
+            ResultEvent::Documents { .. } => "documents".into(),
         })
         .collect()
 }

@@ -3,8 +3,9 @@ import type { ColumnMeta } from "./ColumnMeta";
 import type { DriverError } from "./DriverError";
 import type { ExecSummary } from "./ExecSummary";
 import type { Value } from "./Value";
+import type { JsonValue } from "./serde_json/JsonValue";
 
 /**
  * Streamed to the frontend over a Tauri `Channel`.
  */
-export type ResultEvent = { "event": "columns", result_id: number, statement: number, columns: Array<ColumnMeta>, } | { "event": "rows", result_id: number, rows: Array<Array<Value>>, } | { "event": "done", result_id: number, summary: ExecSummary, } | { "event": "error", result_id: number | null, statement: number, error: DriverError, } | { "event": "cancelled", result_id: number | null, } | { "event": "notice", message: string, };
+export type ResultEvent = { "event": "columns", result_id: number, statement: number, columns: Array<ColumnMeta>, } | { "event": "rows", result_id: number, rows: Array<Array<Value>>, } | { "event": "done", result_id: number, summary: ExecSummary, } | { "event": "error", result_id: number | null, statement: number, error: DriverError, } | { "event": "cancelled", result_id: number | null, } | { "event": "notice", message: string, } | { "event": "documents", result_id: number, docs: Array<JsonValue>, };

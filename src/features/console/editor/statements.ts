@@ -7,7 +7,16 @@
  * as a statement boundary (`blankLines`), which the server-side script splitter does not.
  */
 
-export type SplitDialect = "postgresql" | "mysql" | "mariadb" | "sqlite" | "tsql" | "oracle" | null;
+export type SplitDialect =
+  | "postgresql"
+  | "mysql"
+  | "mariadb"
+  | "sqlite"
+  | "tsql"
+  | "oracle"
+  /** One command per line (Redis); `#` starts a comment line. */
+  | "lines"
+  | null;
 
 export interface StatementRange {
   /** Statement text without its delimiter, trimmed. */
@@ -155,11 +164,27 @@ function splitTsql(sql: string, options: SplitOptions): StatementRange[] {
   return out;
 }
 
+/** Redis: every non-blank line that isn't a `#` comment is a command. */
+function splitCommandLines(sql: string): StatementRange[] {
+  const out: StatementRange[] = [];
+  let offset = 0;
+  for (const line of sql.split("\n")) {
+    const text = line.trim();
+    if (text && !text.startsWith("#")) {
+      const from = offset + (line.length - line.trimStart().length);
+      out.push({ text, from, to: from + text.length });
+    }
+    offset += line.length + 1;
+  }
+  return out;
+}
+
 export function splitStatements(
   sql: string,
   dialect: SplitDialect,
   options: SplitOptions = {},
 ): StatementRange[] {
+  if (dialect === "lines") return splitCommandLines(sql);
   if (dialect === "tsql") return splitTsql(sql, options);
   if (dialect === "oracle") return splitOracle(sql, options);
   const n = sql.length;

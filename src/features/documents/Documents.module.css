@@ -1,0 +1,397 @@
+.browser {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  position: relative;
+}
+
+.header {
+  min-height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.crumbName {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+}
+
+.segment {
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.segmentSmall {
+  composes: segment;
+  height: 24px;
+  padding: 0 10px;
+}
+
+.segment[aria-selected="true"] {
+  background: var(--bg-segment-active);
+  color: var(--text);
+}
+
+.grow {
+  flex: 1;
+}
+
+.queryBar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel-sunken);
+}
+
+.queryRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  min-width: 0;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-app);
+  padding: 0 10px;
+}
+
+.field[data-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.field label {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.fieldError {
+  font-size: var(--fs-small);
+  color: var(--danger);
+}
+
+.findButton {
+  height: 32px;
+}
+
+.toolbar {
+  height: var(--h-toolbar);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex-wrap: wrap;
+}
+
+.stats {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.warn {
+  color: var(--warning);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.empty {
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.errorText {
+  padding: 12px;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+
+/* tree */
+.tree {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--fs-grid);
+}
+
+.tree th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-raised);
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.tree td {
+  padding: 0 12px;
+  height: var(--h-grid-row);
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.tree tr[data-doc="true"] td {
+  background: var(--bg-hover);
+}
+
+.tree tr[data-selected="true"] td {
+  background: var(--bg-selected);
+}
+
+.tree tr[data-edited="true"] td:nth-child(2) {
+  background: var(--grid-edited-cell);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.keyCell {
+  color: var(--text-secondary);
+}
+
+.docKey {
+  color: var(--text);
+}
+
+.caret {
+  display: inline-block;
+  width: 14px;
+  color: var(--text-dim);
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.typeCell {
+  color: var(--text-dim);
+}
+
+.string {
+  color: var(--syn-string);
+}
+.number {
+  color: var(--syn-number);
+}
+.objectid {
+  color: var(--syn-objectid);
+}
+.date {
+  color: var(--syn-date);
+}
+.boolean {
+  color: var(--syn-boolean);
+}
+.container {
+  color: var(--text-muted);
+}
+.other {
+  color: var(--text-secondary);
+}
+.nullValue {
+  color: var(--syn-null);
+  font-style: italic;
+}
+
+.more {
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+/* json */
+.json {
+  margin: 0;
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: 20px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.jsonDoc {
+  position: relative;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.jsonDocActions {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+}
+
+/* schema and indexes */
+.panel {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grid {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--fs-small);
+}
+
+.grid th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.grid td {
+  padding: 0 12px;
+  height: var(--h-grid-row);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.bar {
+  display: inline-block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pending {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--pending-bar-bg);
+  border-bottom: 1px solid var(--pending-bar-border);
+  color: var(--pending-bar-text);
+  font-size: var(--fs-small);
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 260px;
+  resize: vertical;
+  background: var(--bg-app);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  line-height: 20px;
+  outline: none;
+}
+
+.textarea:focus {
+  border-color: var(--accent);
+}
+
+.menuScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.popover {
+  position: fixed;
+  z-index: 41;
+}

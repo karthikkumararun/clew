@@ -45,10 +45,15 @@ export function splitDialect(driver: string): SplitDialect {
     case "mariadb":
     case "sqlite":
       return driver;
+    case "redis":
+      return "lines"; // one command per line
     default:
       return null;
   }
 }
+
+/** Drivers whose console takes a command language instead of SQL. */
+export const isNoSql = (driver: string) => driver === "mongodb" || driver === "redis";
 
 /** `sql-formatter` language of a driver. */
 export function formatterLanguage(driver: string) {
@@ -72,7 +77,7 @@ export function formatterLanguage(driver: string) {
 }
 
 /** ClickHouse has no transactions: consoles there are always auto-commit. */
-export const supportsTransactions = (driver: string) => driver !== "clickhouse";
+export const supportsTransactions = (driver: string) => driver !== "clickhouse" && !isNoSql(driver);
 
 /** Human name used in the status bar: "SQL · PostgreSQL dialect". */
 export function dialectLabel(driver: string): string {
@@ -86,5 +91,7 @@ export function dialectLabel(driver: string): string {
     oracle: "Oracle",
     clickhouse: "ClickHouse",
   };
+  if (driver === "mongodb") return "MongoDB shell";
+  if (driver === "redis") return "Redis commands";
   return `SQL · ${names[driver] ?? "Standard"} dialect`;
 }

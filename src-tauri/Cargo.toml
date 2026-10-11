@@ -51,6 +51,8 @@ reqwest = { version = "0.13.5", default-features = false, features = ["rustls", 
 tiberius = { version = "0.13.0", default-features = false, features = ["tds73", "rustls", "chrono", "rust_decimal"] }
 tokio-util = { version = "0.7.20", features = ["compat"] }
 oracle = "0.6.3"
+mongodb = { version = "3.9.1", default-features = false, features = ["rustls-tls", "compat-3-0-0"] }
+redis = { version = "1.7.1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-insecure", "aio"] }
 
 [profile.release]
 codegen-units = 1

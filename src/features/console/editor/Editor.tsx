@@ -13,7 +13,7 @@ import {
   rectangularSelection,
 } from "@codemirror/view";
 import { useEffect, useRef } from "react";
-import { editorDialect, splitDialect } from "./dialects";
+import { editorDialect, isNoSql, splitDialect } from "./dialects";
 import { statementExtensions } from "./statementField";
 import type { StatementRange } from "./statements";
 import { editorTheme, sizeTheme } from "./theme";
@@ -35,6 +35,10 @@ export interface EditorProps {
 
 // The default keymap minus the keys the shell owns: Mod+Enter runs, Escape cancels.
 const editingKeys = defaultKeymap.filter((b) => b.key !== "Mod-Enter" && b.key !== "Escape");
+
+/** SQL highlighting for SQL drivers; the command languages of Mongo and Redis have none. */
+const languageFor = (driver: string): Extension =>
+  isNoSql(driver) ? [] : sql({ dialect: editorDialect(driver), upperCaseKeywords: false });
 
 /** CodeMirror 6 wrapped for React. The document is owned by the tab state. */
 export function Editor(props: EditorProps) {
@@ -74,11 +78,14 @@ export function Editor(props: EditorProps) {
           ...historyKeymap,
           ...editingKeys,
         ]),
-        lang.current.of(sql({ dialect: editorDialect(p.driver), upperCaseKeywords: false })),
+        lang.current.of(languageFor(p.driver)),
         editorTheme,
         size.current.of(sizeTheme(p.fontSize)),
         extra.current.of(p.extensions ?? []),
-        EditorView.contentAttributes.of({ "aria-label": "SQL editor", spellcheck: "false" }),
+        EditorView.contentAttributes.of({
+          "aria-label": isNoSql(p.driver) ? "Command editor" : "SQL editor",
+          spellcheck: "false",
+        }),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) latest.current.onChange(u.state.doc.toString());
           if (u.selectionSet || u.docChanged) {
@@ -116,7 +123,7 @@ export function Editor(props: EditorProps) {
   useEffect(() => {
     viewRef.current?.dispatch({
       effects: [
-        lang.current.reconfigure(sql({ dialect: editorDialect(props.driver) })),
+        lang.current.reconfigure(languageFor(props.driver)),
         dialect.current.reconfigure(
           statementExtensions(splitDialect(props.driver), (r) => latest.current.onRunStatement(r)),
         ),

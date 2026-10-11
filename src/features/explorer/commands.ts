@@ -99,7 +99,13 @@ export function registerExplorerCommands(): () => void {
       category: "Explorer",
       run: async (arg) => {
         const t = target(arg);
-        if (t?.entry && isTableLike(t.entry.kind)) {
+        if (t?.entry && t.conn.driver === "mongodb" && isTableLike(t.entry.kind)) {
+          await delegate("collection.open", {
+            connectionId: t.conn.id,
+            database: namespaceOf(t.entry.path).database,
+            collection: t.entry.name,
+          });
+        } else if (t?.entry && isTableLike(t.entry.kind)) {
           await delegate("table.open", { connectionId: t.conn.id, path: t.entry.path });
         }
       },
@@ -114,7 +120,10 @@ export function registerExplorerCommands(): () => void {
         await delegate("console.new", {
           connectionId: t.conn.id,
           ...namespaceOf(t.entry.path),
-          sql: `SELECT * FROM ${qualifiedName(t.conn.driver, t.entry.path)} LIMIT 100;`,
+          sql:
+            t.conn.driver === "mongodb"
+              ? `db.${t.entry.name}.find({})`
+              : `SELECT * FROM ${qualifiedName(t.conn.driver, t.entry.path)} LIMIT 100;`,
         });
       },
     }),

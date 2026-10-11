@@ -5,6 +5,7 @@ import { registerConnectionCommands } from "./connections/commands";
 import { useConnections } from "./connections/connectionsStore";
 import { registerConsoleCommands } from "./features/console/commands";
 import { installQuitGuard } from "./features/console/quit";
+import { registerCollectionCommands } from "./features/documents/CollectionTab";
 import { registerTableCommands } from "./features/table-editor/TableTab";
 import { registerExplorerCommands } from "./features/explorer/commands";
 import { registerShellCommands } from "./shell/shellCommands";
@@ -17,6 +18,7 @@ export default function App() {
     const offExplorer = registerExplorerCommands();
     const offConsole = registerConsoleCommands();
     const offTable = registerTableCommands();
+    const offCollection = registerCollectionCommands();
     const offQuit = installQuitGuard();
     void useConnections.getState().load();
     return () => {
@@ -26,6 +28,7 @@ export default function App() {
       offExplorer();
       offConsole();
       offTable();
+      offCollection();
       offQuit();
     };
   }, []);

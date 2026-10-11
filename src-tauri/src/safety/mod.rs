@@ -3,3 +3,4 @@
 
 pub mod classify;
 pub mod guard;
+pub mod nosql;
