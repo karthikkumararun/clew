@@ -13,6 +13,8 @@ pub mod settings;
 pub mod state;
 pub mod store;
 pub mod table_query;
+#[cfg(feature = "e2e")]
+pub mod testmode;
 pub mod transport;
 pub mod window;
 
@@ -71,13 +73,31 @@ fn spawn_idle_sweeper(sessions: Arc<sessions::SessionManager>) {
     });
 }
 
+fn resolve_data_dir(app: &tauri::App) -> tauri::Result<std::path::PathBuf> {
+    #[cfg(feature = "e2e")]
+    if let Some(dir) = testmode::data_dir_override() {
+        std::fs::create_dir_all(&dir)?;
+        return Ok(dir);
+    }
+    Ok(paths::app_data_dir(&app.path().data_dir()?))
+}
+
+fn secret_store(data_dir: &std::path::Path) -> Arc<dyn connections::secrets::SecretStore> {
+    #[cfg(feature = "e2e")]
+    if testmode::active() {
+        return Arc::new(testmode::FileSecretStore::new(data_dir));
+    }
+    let _ = data_dir;
+    Arc::new(connections::secrets::KeyringStore)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let data_dir = paths::app_data_dir(&app.path().data_dir()?);
+            let data_dir = resolve_data_dir(app)?;
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
             let registry = Arc::new(drivers::registry::Registry::with_defaults());
             let host_key_prompts = Arc::new(transport::hostkey::PendingPrompts::default());
@@ -96,7 +116,7 @@ pub fn run() {
             let handle = app.handle().clone();
             let (connections, loaded) = connections::service::ConnectionService::new(
                 &data_dir,
-                Arc::new(connections::secrets::KeyringStore),
+                secret_store(&data_dir),
                 Arc::new(connections::service::EventPasswordPrompter {
                     pending: password_prompts.clone(),
                     emit: Arc::new(move |prompt| {
@@ -150,6 +170,10 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            #[cfg(feature = "e2e")]
+            testmode::e2e_dialog_next,
+            #[cfg(feature = "e2e")]
+            testmode::e2e_now,
             commands::app::app_paths,
             commands::app::app_quit_confirmed,
             commands::app::oracle_client_status,

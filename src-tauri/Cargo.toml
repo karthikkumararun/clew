@@ -62,6 +62,8 @@ panic = "abort"
 strip = true
 
 [features]
+# End-to-end test mode (isolated data dir, file secrets, scripted dialogs). Never in release builds.
+e2e = []
 # Integration tests that need the docker-compose services (see docker-compose.yml).
 integration = []
 # SQL Server and Oracle: big images, run on a schedule (see .github/workflows/heavy-integration.yml).
