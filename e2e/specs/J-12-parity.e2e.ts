@@ -87,7 +87,7 @@ describe("J-12 driver parity", () => {
   }
 
   it(`shows the same values on every driver`, () => {
-    const [[firstName, first], ...rest] = [...results.entries()];
+    const [[, first], ...rest] = [...results.entries()];
     expect(rest.length).toBeGreaterThan(0);
     for (const [name, got] of rest) {
       for (const key of Object.keys(QUERIES)) {

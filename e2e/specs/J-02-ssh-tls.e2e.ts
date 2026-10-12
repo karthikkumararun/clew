@@ -14,7 +14,6 @@ describe("J-02 SSH and TLS", () => {
   const keys = resolve("docker", "bastion", "keys");
   const certs = resolve("docker", "postgres-tls", "certs");
   const knownHosts = join(data.dir, "known_hosts");
-  const result = () => $('[role="status"], [role="alert"]');
 
   // a failed step must not leave the dialog open for the next one
   afterEach(async () => {
