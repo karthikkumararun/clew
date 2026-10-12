@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Connection } from "../../src/lib/ipc/generated/Connection";
 import type { ConnectionsFile } from "../../src/lib/ipc/generated/ConnectionsFile";
@@ -56,4 +56,15 @@ export function seedConnections(dataDir: string, connections: Connection[]): voi
   const file: ConnectionsFile = { version: 1, groups: [], connections };
   mkdirSync(dataDir, { recursive: true });
   writeFileSync(join(dataDir, "connections.json"), JSON.stringify(file, null, 2));
+}
+
+/** Put a password into the test-mode secret store (`e2e-secrets.json`) before the app starts. */
+export function seedPassword(dataDir: string, connectionId: string, password: string): void {
+  mkdirSync(dataDir, { recursive: true });
+  const file = join(dataDir, "e2e-secrets.json");
+  const current = existsSync(file)
+    ? (JSON.parse(readFileSync(file, "utf8")) as Record<string, string>)
+    : {};
+  current[`${connectionId}:password`] = password;
+  writeFileSync(file, JSON.stringify(current));
 }
