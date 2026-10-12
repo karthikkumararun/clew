@@ -1,3 +1,4 @@
+import { covers } from "../helpers/covers";
 import { expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections } from "../helpers/connections";
@@ -9,7 +10,7 @@ import { Explorer } from "../pages/Explorer";
 describe("J-00 hello", () => {
   const data = withDataDir();
 
-  it("starts with a seeded connection in the explorer", async () => {
+  it(`starts with a seeded connection in the explorer ${covers("e2e-testing › Real-app end-to-end harness")}`, async () => {
     seedConnections(data.dir, [connectionFactory.sqlite("hello-sqlite", `${data.dir}/hello.db`)]);
     await launchApp(data);
     await expect(Explorer.connection("hello-sqlite")).toBeDisplayed();

@@ -260,6 +260,7 @@ pub(crate) mod tests {
         assert_eq!(names(&s), ["renamed"]);
     }
 
+    /// (spec: connection-management › Concurrent edits)
     #[test]
     fn a_change_made_on_disk_meanwhile_is_merged_not_lost() {
         let dir = tempfile::tempdir().unwrap();
@@ -282,6 +283,7 @@ pub(crate) mod tests {
         assert_eq!(disk.file().connections.len(), 3);
     }
 
+    /// (spec: connection-management › Concurrent edits)
     #[test]
     fn a_hand_edit_is_picked_up_before_writing() {
         let dir = tempfile::tempdir().unwrap();

@@ -1,3 +1,4 @@
+import { covers } from "../helpers/covers";
 import { $, browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections } from "../helpers/connections";
@@ -31,7 +32,7 @@ describe("J-13 keyboard only", () => {
     await expect(TabStrip.tabs()).toBeElementsArrayOfSize(1);
   });
 
-  it("opens a second console with the shortcut and switches tabs with the arrow keys", async () => {
+  it(`opens a second console with the shortcut and switches tabs with the arrow keys ${covers("sql-console › New console")}`, async () => {
     await pressMod("t");
     await browser.waitUntil(async () => (await TabStrip.tabs()).length === 2, {
       timeoutMsg: "second console expected",
@@ -45,7 +46,7 @@ describe("J-13 keyboard only", () => {
     await expect(first).toHaveAttribute("aria-selected", "true");
   });
 
-  it("opens Settings with the shortcut and closes it with Escape, returning focus", async () => {
+  it(`opens Settings with the shortcut and closes it with Escape, returning focus ${covers("app-shell › Platform mapping")}`, async () => {
     await pressMod(",");
     const dialog = await $('[role="dialog"]');
     await dialog.waitForDisplayed({ timeout: 10_000 });

@@ -511,6 +511,7 @@ mod tests {
         map_data_source(&ds, Some(dir))
     }
 
+    /// (spec: connection-management › Detect DataGrip)
     #[test]
     fn discovers_all_versions_newest_first() {
         let root = tempfile::tempdir().unwrap();
@@ -534,6 +535,7 @@ mod tests {
         assert!(discover_in(&root.path().join("missing")).is_empty());
     }
 
+    /// (spec: connection-management › Map drivers and settings)
     #[test]
     fn postgres_with_ssh_tunnel_and_ssl_carries_everything_over() {
         let dir = config();
@@ -593,6 +595,7 @@ mod tests {
         }
     }
 
+    /// (spec: connection-management › Oracle data source)
     #[test]
     fn oracle_service_name_and_sid() {
         let dir = config();
@@ -623,6 +626,7 @@ mod tests {
         ));
     }
 
+    /// (spec: connection-management › Credentials embedded in a URL)
     #[test]
     fn url_only_data_sources_lose_the_credentials_from_the_url() {
         let dir = config();
@@ -637,6 +641,7 @@ mod tests {
         assert!(!serde_json::to_string(&c).unwrap().contains("hunter2"));
     }
 
+    /// (spec: connection-management › Unsupported driver)
     #[test]
     fn unsupported_drivers_map_to_nothing_and_file_databases_work() {
         let dir = config();

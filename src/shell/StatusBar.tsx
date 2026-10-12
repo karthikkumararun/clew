@@ -13,7 +13,7 @@ export function StatusBar() {
       );
     });
   return (
-    <footer className={styles.bar} aria-label="Status bar">
+    <footer className={styles.bar} aria-label="Status bar" data-metric="status-bar">
       {render("left")}
       <span className={styles.spacer} />
       {render("right")}

@@ -54,6 +54,7 @@ fn req(c: Connection, password: SecretUpdate) -> SaveRequest {
     }
 }
 
+/// (spec: connection-management › Save with password)
 #[test]
 fn no_secret_ever_lands_in_connections_json() {
     let f = fixture(None);
@@ -107,6 +108,7 @@ fn production_connections_default_to_all_safeguards_on() {
     assert_ne!(Environment::Local.default_safeguards(), s);
 }
 
+/// (spec: connection-management › Keychain unavailable)
 #[test]
 fn a_locked_keychain_saves_the_connection_with_a_warning() {
     let f = fixture(None);
@@ -117,6 +119,7 @@ fn a_locked_keychain_saves_the_connection_with_a_warning() {
     assert!(f.svc.secret_status("c1").keychain_unavailable);
 }
 
+/// (spec: connection-management › Duplicate)
 #[test]
 fn duplicate_copies_the_secrets_and_names_the_copy() {
     let f = fixture(None);
@@ -129,6 +132,7 @@ fn duplicate_copies_the_secrets_and_names_the_copy() {
     assert_eq!(again.name, "db (copy) 2");
 }
 
+/// (spec: connection-management › Delete)
 #[test]
 fn delete_removes_the_connection_and_its_secrets() {
     let f = fixture(None);
@@ -181,6 +185,7 @@ async fn resolve_uses_the_keychain_without_asking() {
     assert_eq!(f.prompter.asked.load(Ordering::SeqCst), 0);
 }
 
+/// (spec: connection-management › Ask every time)
 #[tokio::test]
 async fn ask_mode_prompts_once_per_session_and_forgets_on_close() {
     let f = fixture(Some("typed"));
@@ -332,6 +337,7 @@ mod export_tests {
         c
     }
 
+    /// (spec: connection-management › Export with passwords and an SSH key)
     #[test]
     fn exports_secrets_keys_and_sql_files_and_imports_them_back() {
         let f = fixture(None);
@@ -393,6 +399,7 @@ mod export_tests {
         assert_eq!(back.sql_files[0].rel_path, "q.sql");
     }
 
+    /// (spec: connection-management › Export without secrets)
     #[test]
     fn without_secrets_the_file_is_plain_and_holds_none() {
         let f = fixture(None);
@@ -411,6 +418,7 @@ mod export_tests {
         assert!(read_export(&text, None).unwrap().secrets.is_empty());
     }
 
+    /// (spec: connection-management › Keychain access denied during export; connection-management › Missing SSH key file)
     #[test]
     fn a_locked_keychain_and_a_missing_key_become_warnings() {
         let f = fixture(None);

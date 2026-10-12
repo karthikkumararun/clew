@@ -121,6 +121,7 @@ fn shell(db: &str, text: &str) -> DocRequest {
     }
 }
 
+/// (spec: driver-framework › Server version in status)
 #[tokio::test]
 async fn test_connection_reports_the_replica_set() {
     let driver = Registry::with_defaults().get("mongodb").unwrap();
@@ -141,6 +142,7 @@ async fn bad_host_fails_with_connection_error() {
     assert_eq!(e.code, ErrorCode::ConnectionLost, "{e:?}");
 }
 
+/// (spec: driver-framework › Cursor paging)
 #[tokio::test]
 async fn first_page_then_more_sorted_by_id_desc() {
     let (mut s, db) = fresh("paging").await;
@@ -271,6 +273,7 @@ async fn explain_reports_index_or_collscan() {
     assert!(!items.iter().any(|i| i.name == "name_1"));
 }
 
+/// (spec: document-browser › Concurrent modification)
 #[tokio::test]
 async fn edits_detect_a_concurrent_change() {
     let (mut s, db) = fresh("edit").await;
@@ -320,6 +323,7 @@ async fn edits_detect_a_concurrent_change() {
     assert!(matches!(r, DocReply::Conflict { current: None }));
 }
 
+/// (spec: driver-framework › ObjectId display)
 #[tokio::test]
 async fn replace_keeps_types() {
     let (mut s, db) = fresh("replace").await;
@@ -368,6 +372,7 @@ async fn read_only_sessions_refuse_writes() {
     assert_eq!(docs.len(), 2);
 }
 
+/// (spec: document-browser › Mixed types)
 #[tokio::test]
 async fn inferred_schema_from_a_sample() {
     let (mut s, db) = fresh("schema").await;
@@ -408,6 +413,7 @@ async fn inferred_schema_from_a_sample() {
     assert_eq!(k.present_percent, 25.0);
 }
 
+/// (spec: document-browser › Aggregate)
 #[tokio::test]
 async fn the_shell_runs_collection_commands() {
     let (mut s, db) = fresh("shell").await;
@@ -485,6 +491,7 @@ async fn shell_text_evaluates_to_canonical_json() {
     assert!(e.position.is_some());
 }
 
+/// (spec: document-browser › Unsupported JavaScript)
 #[tokio::test]
 async fn javascript_is_refused_with_the_documented_message() {
     let (mut s, db) = fresh("js").await;
@@ -682,6 +689,7 @@ async fn console_results_page_from_the_open_cursor() {
     assert!(!c.mgr.fetch_more(&c.session, id, 50, emit).await.unwrap());
 }
 
+/// (spec: document-browser › Unsupported JavaScript)
 #[tokio::test]
 async fn the_console_refuses_javascript_with_the_documented_message() {
     let c = console("clew_test_console_js").await;

@@ -37,7 +37,8 @@ export const Console = {
   errorRanges: () => $$(".cm-lintRange-error"),
   /** The editor's current text. */
   async text(): Promise<string> {
-    return (await (await this.editor()).getProperty("innerText")) as string;
+    // WebKit's innerText ends the last editor line with a line break the document does not have
+    return ((await (await this.editor()).getProperty("innerText")) as string).replace(/\n$/, "");
   },
   output: () => $("aria/Output"),
 };

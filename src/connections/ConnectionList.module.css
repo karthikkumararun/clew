@@ -205,3 +205,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+.chipBadges {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+}

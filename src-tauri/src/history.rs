@@ -97,7 +97,7 @@ impl HistorySink for StoreHistory {
         let store = self.0.clone();
         tokio::spawn(async move {
             if let Err(e) = store.history_insert(&entry).await {
-                eprintln!("couldn't record history: {e}");
+                crate::applog::log(&format!("couldn't record history: {e}"));
             }
         });
     }
@@ -161,6 +161,7 @@ mod tests {
         assert_eq!(like_pattern("100%_done\\"), "%100\\%\\_done\\\\%");
     }
 
+    /// (spec: query-history › Successful run recorded)
     #[tokio::test]
     async fn records_and_lists_newest_first() {
         let store = Store::open_in_memory().await.unwrap();
@@ -204,6 +205,7 @@ mod tests {
         assert_eq!(page.next, None);
     }
 
+    /// (spec: query-history › Search)
     #[tokio::test]
     async fn search_is_a_case_insensitive_substring_over_the_text() {
         let store = Store::open_in_memory().await.unwrap();
@@ -289,6 +291,7 @@ mod tests {
         assert_eq!(last.next, None);
     }
 
+    /// (spec: query-history › Retention)
     #[tokio::test]
     async fn keeps_only_the_newest_entries_per_connection() {
         let store = Store::open_in_memory().await.unwrap();
@@ -346,6 +349,7 @@ mod tests {
         assert_eq!(kept.entries.len(), 1, "the newest survive");
     }
 
+    /// (spec: query-history › Clear one connection)
     #[tokio::test]
     async fn clears_one_connection_or_all() {
         let store = Store::open_in_memory().await.unwrap();

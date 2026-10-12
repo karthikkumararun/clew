@@ -146,6 +146,7 @@ mod tests {
         assert_eq!(load(dir.path()).settings, s);
     }
 
+    /// (spec: app-shell › Corrupt settings file)
     #[test]
     fn corrupt_file_is_backed_up_and_defaults_used() {
         let dir = tempfile::tempdir().unwrap();

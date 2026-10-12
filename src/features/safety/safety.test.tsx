@@ -162,7 +162,7 @@ afterEach(() => {
 });
 
 describe("read-only sessions", () => {
-  it("blocks a write: nothing is sent and Output offers to switch", async () => {
+  it("blocks a write: nothing is sent and Output offers to switch (spec: production-safeguards › Write in a read-only console)", async () => {
     check.mockResolvedValue(
       report({
         decision: "block",
@@ -188,7 +188,7 @@ describe("read-only sessions", () => {
     ).toBeInTheDocument();
   });
 
-  it("switches only this session to read-write after confirmation", async () => {
+  it("switches only this session to read-write after confirmation (spec: production-safeguards › Toggle)", async () => {
     const { runtime } = await mountConsole("select 1");
     await run();
     fireEvent.click(await screen.findByRole("button", { name: "PRODUCTION · READ-ONLY" }));
@@ -248,7 +248,7 @@ describe("confirm writes", () => {
       statements: [{ text: UPDATE, class: "write", estimate: 1 }],
     });
 
-  it("lists the connection, the statement and the estimate; Cancel is the default", async () => {
+  it("lists the connection, the statement and the estimate; Cancel is the default (spec: production-safeguards › Confirm a write)", async () => {
     readOnlyOf.mockResolvedValue(false);
     check.mockResolvedValue(confirm());
     await mountConsole(UPDATE);
@@ -263,7 +263,7 @@ describe("confirm writes", () => {
     expect(api.execute).not.toHaveBeenCalled();
   });
 
-  it("runs the statement with the token only after Confirm", async () => {
+  it("runs the statement with the token only after Confirm (spec: production-safeguards › Confirm a write)", async () => {
     readOnlyOf.mockResolvedValue(false);
     check.mockResolvedValue(confirm());
     await mountConsole(UPDATE);
@@ -311,7 +311,7 @@ describe("dangerous statements", () => {
       ],
     });
 
-  it("requires typing the connection name on production", async () => {
+  it("requires typing the connection name on production (spec: production-safeguards › DELETE without WHERE on production)", async () => {
     readOnlyOf.mockResolvedValue(false);
     check.mockResolvedValue(danger("typed_confirm"));
     await mountConsole("DELETE FROM orders");
@@ -330,7 +330,7 @@ describe("dangerous statements", () => {
     expect(api.execute.mock.calls[0][3]).toBe("tok-1");
   });
 
-  it("only warns elsewhere, with Cancel as the default", async () => {
+  it("only warns elsewhere, with Cancel as the default (spec: production-safeguards › Same statement on local)", async () => {
     readOnlyOf.mockResolvedValue(false);
     check.mockResolvedValue({ ...danger("confirm"), environment: "local", connection: "local-db" });
     await mountConsole("DELETE FROM orders");
@@ -390,7 +390,7 @@ describe("manual commit", () => {
   });
 });
 
-describe("quitting with an open transaction", () => {
+describe("quitting with an open transaction (spec: production-safeguards › Quit with open transaction)", () => {
   async function withOpenTransaction() {
     const { runtime } = await mountConsole("select 1");
     runtime.store.setState({ sessionId: "s1", txOpen: true, txPending: 2 });
@@ -444,7 +444,8 @@ describe("production visibility", () => {
     await openConsole({ connectionId: "c1" });
     await openConsole({ connectionId: "c2" });
     render(<TabStrip />);
-    const tabs = screen.getAllByRole("tab");
+    // the stripe is on the wrapper around each tab and its close button
+    const tabs = screen.getAllByRole("tab").map((t) => t.parentElement!);
     expect(tabs.map((t) => t.getAttribute("data-env"))).toEqual(["production", "staging"]);
     const stripe = (el: HTMLElement) => el.style.getPropertyValue("--stripe");
     expect(stripe(tabs[0])).toBe("var(--env-prod)");

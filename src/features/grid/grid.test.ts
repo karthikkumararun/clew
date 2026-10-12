@@ -131,7 +131,7 @@ describe("cell looks", () => {
     expect(lookOf(NULL, { foreignKey: true }).underline).toBe(false);
   });
 
-  it("marks truncated values with an ellipsis", () => {
+  it("marks truncated values with an ellipsis (spec: data-grid › Truncated value)", () => {
     const look = lookOf({ kind: "text", value: "start of a very long", truncated: true });
     expect(look).toMatchObject({
       text: "start of a very long…",
@@ -250,7 +250,7 @@ describe("sort, columns and transpose", () => {
     expect(s.get(0, 0)).toEqual({ kind: "bigint", value: "9007199254740992" });
   });
 
-  it("transposes one row into column name and value", () => {
+  it("transposes one row into column name and value (spec: data-grid › Transpose one row)", () => {
     const t = new TransposedSource(sourceOf(columns, [rows[0]]));
     expect(t.columns.map((c) => c.name)).toEqual(["column", "value"]);
     expect(t.rowCount).toBe(2);
@@ -304,7 +304,7 @@ describe("SQL literals and copy formats", () => {
     expect(flavorOf("duckdb")).toBe("postgres");
   });
 
-  it("copies a range as TSV with NULL as an empty field", () => {
+  it("copies a range as TSV with NULL as an empty field (spec: data-grid › Copy a range)", () => {
     const tsv = format({ columns: cols.slice(0, 2), rows: rows.map((r) => r.slice(0, 2)) }, "tsv", {
       flavor: "postgres",
       table: '"orders"',
@@ -332,7 +332,7 @@ describe("SQL literals and copy formats", () => {
     );
   });
 
-  it("copies as INSERT with dialect quoting", () => {
+  it("copies as INSERT with dialect quoting (spec: data-grid › Copy as INSERT)", () => {
     expect(toInserts("postgres", '"public"."orders"', cols, rows)).toBe(
       `INSERT INTO "public"."orders" ("id", "note", "ok", "at", "blob") VALUES (1, 'it''s', TRUE, '2026-10-08 09:00:00', '\\x00ff');\n` +
         `INSERT INTO "public"."orders" ("id", "note", "ok", "at", "blob") VALUES (2, NULL, FALSE, NULL, NULL);\n`,

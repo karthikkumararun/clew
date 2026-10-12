@@ -1049,6 +1049,7 @@ dependencies = [
  "quick-xml 0.37.5",
  "rcgen",
  "redis",
+ "regex",
  "reqwest",
  "russh",
  "rust_decimal",

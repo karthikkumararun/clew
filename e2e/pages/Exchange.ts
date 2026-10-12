@@ -21,9 +21,14 @@ export const Exchange = {
   /** The row checkbox of one importable connection. */
   candidate: (name: string) =>
     $(`.//*[@role="dialog"]//input[starts-with(@aria-label, "Import ${name}")]`),
-  passphrase: () => $("#pp1"),
-  confirm: () => $("#pp2"),
-  unlock: () => $("#ip"),
+  /** An input by the exact text of its label (never by id). */
+  field: (label: string) =>
+    $(
+      `.//*[@role="dialog"]//input[@id = .//label[normalize-space()="${label}"]/@for or @id = //label[normalize-space()="${label}"]/@for]`,
+    ),
+  passphrase: () => Exchange.field("Passphrase"),
+  confirm: () => Exchange.field("Confirm passphrase"),
+  unlock: () => Exchange.field("Passphrase"),
   alert: () => $('[role="dialog"] [role="alert"]'),
   summary: () => $("[role=dialog]"),
 };

@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { readFileSync } from "node:fs";
 import { Star } from "../components/icons";
 import App from "../App";
 import { resetUiState } from "../lib/uiState";
@@ -9,8 +8,6 @@ import { clearCommands } from "./registry/commands";
 import { clearShortcuts } from "./registry/shortcuts";
 import { registerSidePanel, useSlots } from "./registry/slots";
 import { useStatusItems } from "./registry/statusItems";
-
-const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
 function resetAll() {
   resetUiState();
@@ -33,27 +30,9 @@ function resetAll() {
 
 beforeEach(resetAll);
 
-describe("canvas metrics", () => {
-  const tokens = read("../styles/tokens.css");
-  it("tokens carry the canvas sizes", () => {
-    expect(tokens).toMatch(/--h-titlebar:\s*44px/);
-    expect(tokens).toMatch(/--h-tabstrip:\s*36px/);
-    expect(tokens).toMatch(/--h-statusbar:\s*26px/);
-    expect(tokens).toMatch(/--w-sidebar:\s*272px/);
-  });
-
-  it("toolbar, status bar and sidebar header use those tokens", () => {
-    expect(read("./Toolbar.module.css")).toMatch(/height:\s*var\(--h-titlebar\)/);
-    expect(read("./StatusBar.module.css")).toMatch(/height:\s*var\(--h-statusbar\)/);
-    expect(read("./Sidebar.module.css")).toMatch(/height:\s*var\(--h-tabstrip\)/);
-  });
-
-  it("macOS toolbar insets the brand by 78px for the traffic lights", () => {
-    expect(read("./Toolbar.module.css")).toMatch(
-      /\[data-overlay="true"\][^}]*padding-left:\s*78px/,
-    );
-  });
-});
+// Sizes (44px toolbar, 36px tab strip, 26px status bar, 272px sidebar, the macOS 78px inset) are
+// measured on rendered boxes in e2e/design/D-01-metrics.e2e.ts and J-15; jsdom performs no layout,
+// so asserting token declarations here would not observe them (defect class C5).
 
 describe("workspace layout", () => {
   it("renders the brand mark", () => {
@@ -80,7 +59,7 @@ describe("workspace layout", () => {
     expect(handle).toHaveAttribute("aria-valuenow", "240");
   });
 
-  it("Mod+B collapses and expands the sidebar", () => {
+  it("Mod+B collapses and expands the sidebar (spec: app-shell › Toggle the sidebar)", () => {
     render(<App />);
     expect(screen.getByRole("complementary", { name: "Explorer" })).toBeInTheDocument();
     fireEvent.keyDown(window, { code: "KeyB", key: "b", metaKey: true });
@@ -95,7 +74,7 @@ describe("workspace layout", () => {
     expect(localStorage.getItem("clew:layout.sidebarOpen")).toBe("false");
   });
 
-  it("collapses automatically below 900px and opens as an overlay", () => {
+  it("collapses automatically below 900px and opens as an overlay (spec: app-shell › Narrow window)", () => {
     Object.defineProperty(window, "innerWidth", { value: 800, configurable: true, writable: true });
     render(<App />);
     expect(screen.queryByRole("complementary", { name: "Explorer" })).not.toBeInTheDocument();
@@ -163,7 +142,7 @@ describe("side panel", () => {
 });
 
 describe("status bar", () => {
-  it("shows only the app version on the right when nothing else is registered", () => {
+  it("shows only the app version on the right when nothing else is registered (spec: app-shell › No active connection)", () => {
     render(<App />);
     const bar = screen.getByRole("contentinfo", { name: "Status bar" });
     expect(bar).toHaveTextContent(/^Clew v\d/);

@@ -25,6 +25,7 @@ export function TabStrip() {
   const moveTab = useWorkspace((s) => s.moveTab);
 
   const refs = useRef(new Map<string, HTMLDivElement>());
+  const bodies = useRef(new Map<string, HTMLDivElement>());
   const drag = useRef<DragState | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; side: "before" | "after" } | null>(
     null,
@@ -86,65 +87,82 @@ export function TabStrip() {
       e.preventDefault();
       const next = tabs[(index + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
       activateTab(next.id);
-      refs.current.get(next.id)?.focus();
+      bodies.current.get(next.id)?.focus();
     }
   };
 
   return (
-    <div role="tablist" aria-label="Open editors" className={styles.strip}>
-      {tabs.map((tab, index) => {
-        const kind = getTabKind(tab.kind);
-        const Icon = kind?.icon;
-        const env = kind?.env?.(tab.state);
-        const subtitle = kind?.subtitle?.(tab.state);
-        const dirty = isTabDirty(tab);
-        const title = kind?.title(tab.state) ?? tab.key;
-        return (
-          <div
-            key={tab.id}
-            ref={(el) => {
-              if (el) refs.current.set(tab.id, el);
-              else refs.current.delete(tab.id);
-            }}
-            role="tab"
-            tabIndex={tab.id === activeTabId ? 0 : -1}
-            aria-selected={tab.id === activeTabId}
-            data-env={env}
-            data-dragging={draggingId === tab.id}
-            data-drop={dropTarget?.id === tab.id ? dropTarget.side : undefined}
-            className={styles.tab}
-            style={env ? ({ "--stripe": ENV_COLORS[env] } as React.CSSProperties) : undefined}
-            onPointerDown={(e) => onPointerDown(e, tab)}
-            onPointerMove={onPointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onAuxClick={(e) => {
-              if (e.button === 1) requestClose(tab.id);
-            }}
-            onKeyDown={(e) => onKeyDown(e, tab, index)}
-          >
-            {Icon ? (
-              <span className={styles.icon}>
-                <Icon size={13} />
-              </span>
-            ) : null}
-            <span>{title}</span>
-            {subtitle ? <span className={styles.subtitle}>{subtitle}</span> : null}
-            {dirty ? (
-              <span className={styles.dirty} role="img" aria-label="Unsaved changes" />
-            ) : null}
-            <button
-              type="button"
-              className={styles.close}
-              aria-label={`Close ${title}`}
-              tabIndex={-1}
-              onClick={() => requestClose(tab.id)}
+    <div className={styles.strip} data-metric="tab-strip">
+      <div role="tablist" aria-label="Open editors" className={styles.list}>
+        {tabs.map((tab, index) => {
+          const kind = getTabKind(tab.kind);
+          const Icon = kind?.icon;
+          const env = kind?.env?.(tab.state);
+          const subtitle = kind?.subtitle?.(tab.state);
+          const dirty = isTabDirty(tab);
+          const title = kind?.title(tab.state) ?? tab.key;
+          const selected = tab.id === activeTabId;
+          // The wrapper carries the pointer handling and the stripe; the tab itself holds only
+          // the label, and the close button sits beside it, not inside it (an interactive
+          // control must not be nested in a tab).
+          return (
+            <div
+              key={tab.id}
+              ref={(el) => {
+                if (el) refs.current.set(tab.id, el);
+                else refs.current.delete(tab.id);
+              }}
+              role="presentation"
+              data-selected={selected}
+              data-env={env}
+              data-dragging={draggingId === tab.id}
+              data-drop={dropTarget?.id === tab.id ? dropTarget.side : undefined}
+              className={styles.tab}
+              style={env ? ({ "--stripe": ENV_COLORS[env] } as React.CSSProperties) : undefined}
+              onPointerDown={(e) => onPointerDown(e, tab)}
+              onPointerMove={onPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onAuxClick={(e) => {
+                if (e.button === 1) requestClose(tab.id);
+              }}
             >
-              <Close size={10} />
-            </button>
-          </div>
-        );
-      })}
+              <div
+                ref={(el) => {
+                  if (el) bodies.current.set(tab.id, el);
+                  else bodies.current.delete(tab.id);
+                }}
+                role="tab"
+                tabIndex={selected ? 0 : -1}
+                aria-selected={selected}
+                className={styles.tabBody}
+                onKeyDown={(e) => onKeyDown(e, tab, index)}
+              >
+                {Icon ? (
+                  <span className={styles.icon}>
+                    <Icon size={13} />
+                  </span>
+                ) : null}
+                <span>{title}</span>
+                {subtitle ? <span className={styles.subtitle}>{subtitle}</span> : null}
+                {dirty ? (
+                  <span className={styles.dirty} role="img" aria-label="Unsaved changes" />
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className={styles.close}
+                aria-label={`Close ${title}`}
+                aria-hidden="true"
+                tabIndex={-1}
+                onClick={() => requestClose(tab.id)}
+              >
+                <Close size={10} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
       <IconButton
         aria-label="New console"
         className={styles.add}

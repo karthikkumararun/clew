@@ -3,6 +3,8 @@ import { launchApp } from "./app";
 import { connectionFactory, seedConnections, seedPassword } from "./connections";
 import { SERVICES, createIsolatedDb } from "./db";
 import type { IsolatedDb, ServerDialect } from "./db";
+import { journeyDialect } from "./dialect";
+import type { Dialect } from "../seed/generate";
 import type { TestDataDir } from "./dataDir";
 import { Explorer } from "../pages/Explorer";
 import { browser } from "@wdio/globals";
@@ -19,20 +21,26 @@ export interface ShopSession {
  */
 export async function openShopConsole(
   data: Pick<TestDataDir, "dir" | "dialogQueue">,
-  dialect: ServerDialect = "postgres",
+  dialect: Dialect = journeyDialect(),
   environment: "local" | "development" | "staging" | "production" = "local",
 ): Promise<ShopSession> {
   const db = await createIsolatedDb(dialect);
   const connection = `shop-${dialect}`;
-  const s = SERVICES[dialect];
-  const conn = connectionFactory.network(dialect, connection, {
-    port: s.port,
-    database: db.name,
-    user: s.user,
-    environment,
-  });
-  seedConnections(data.dir, [conn]);
-  seedPassword(data.dir, conn.id, s.password);
+  let conn;
+  if (dialect === "sqlite") {
+    conn = connectionFactory.sqlite(connection, db.name, environment);
+    seedConnections(data.dir, [conn]);
+  } else {
+    const s = SERVICES[dialect as ServerDialect];
+    conn = connectionFactory.network(dialect as ServerDialect, connection, {
+      port: s.port,
+      database: db.name,
+      user: s.user,
+      environment,
+    });
+    seedConnections(data.dir, [conn]);
+    seedPassword(data.dir, conn.id, s.password);
+  }
   await launchApp(data);
   await Explorer.select(connection);
   await browser.keys("Enter");

@@ -85,6 +85,7 @@ async fn test_connection_reports_the_server() {
     assert!(info.version.starts_with('7'), "{info:?}");
 }
 
+/// (spec: driver-framework › Large keyspace)
 #[tokio::test]
 async fn scan_is_incremental_and_reports_types_and_ttls() {
     const DB: u32 = 1;
@@ -387,6 +388,7 @@ async fn console(db: u32) -> conformance::Connected {
     c
 }
 
+/// (spec: key-value-browser › Run a command)
 #[tokio::test]
 async fn console_replies_become_tables() {
     let c = console(10).await;
@@ -451,6 +453,7 @@ async fn blocking_commands_are_refused_in_the_console() {
     }
 }
 
+/// (spec: key-value-browser › Dangerous command on production)
 #[tokio::test]
 async fn flushdb_on_production_needs_the_connection_name_typed() {
     let c = console(15).await;

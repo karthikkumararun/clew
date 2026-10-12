@@ -146,7 +146,7 @@ describe("recent connections", () => {
     expect(recents[0]).toMatchObject({ driver: "postgres", env: "local", lastUsed: "3 d ago" });
   });
 
-  it("publishes to the Welcome list and connects on open", async () => {
+  it("publishes to the Welcome list and connects on open (spec: connection-management › Open recent)", async () => {
     const consoles = vi.fn();
     registerCommand({ id: "console.new", title: "c", category: "c", run: consoles });
     const off = registerConnectionCommands();
@@ -180,7 +180,7 @@ describe("recent connections", () => {
 });
 
 describe("pasted URL", () => {
-  it("opens the dialog prefilled, with the password in the field", async () => {
+  it("opens the dialog prefilled, with the password in the field (spec: connection-management › Postgres URL with password)", async () => {
     api.parseUrl.mockResolvedValue({
       driver: "postgres",
       settings: {
@@ -209,7 +209,7 @@ describe("pasted URL", () => {
     });
   });
 
-  it("keeps the dialog closed and shows the error for an unknown scheme", async () => {
+  it("keeps the dialog closed and shows the error for an unknown scheme (spec: connection-management › Unrecognised URL)", async () => {
     api.parseUrl.mockRejectedValue({
       code: "unknown_url_scheme",
       message: "Clew doesn't recognise this URL scheme",
@@ -221,7 +221,7 @@ describe("pasted URL", () => {
 });
 
 describe("organising connections", () => {
-  it("deletes after confirmation, removes it from the list and closes its tabs", async () => {
+  it("deletes after confirmation, removes it from the list and closes its tabs (spec: connection-management › Delete)", async () => {
     useWorkspace.setState({
       tabs: [
         { id: "t1", kind: "console", key: "k1", state: { connectionId: "c1" } },
@@ -247,7 +247,7 @@ describe("organising connections", () => {
     expect(useWorkspace.getState().tabs.map((t) => t.id)).toEqual(["t2"]);
   });
 
-  it("duplicates into the edit dialog", async () => {
+  it("duplicates into the edit dialog (spec: connection-management › Duplicate)", async () => {
     const copy = make("c3", "prod-postgres (copy)");
     api.duplicate.mockResolvedValue({ connection: copy, warnings: [] });
     api.list.mockResolvedValue({ version: 1, groups: [], connections: [prod, dev, copy] });
@@ -266,7 +266,7 @@ describe("organising connections", () => {
     });
   });
 
-  it("renames through the backend and offers to rename the Scripts folder", async () => {
+  it("renames through the backend and offers to rename the Scripts folder (spec: connection-management › Rename a connection)", async () => {
     const offer = { from: "/s/prod-postgres", to: "/s/renamed" };
     api.rename.mockResolvedValueOnce(null).mockResolvedValueOnce(offer);
     await act(async () => useConnections.getState().rename("c1", "  renamed "));
@@ -320,7 +320,7 @@ describe("organising connections", () => {
 });
 
 describe("connect and disconnect", () => {
-  it("asks Commit / Roll back / Cancel when a console has an open transaction", async () => {
+  it("asks Commit / Roll back / Cancel when a console has an open transaction (spec: connection-management › Disconnect with an open transaction)", async () => {
     useConnections.setState({
       connected: {
         c1: { server: { product: "PostgreSQL", version: "16", round_trip_ms: 1 }, transport: null },
@@ -356,7 +356,7 @@ describe("toolbar chip", () => {
     useWorkspace.setState({ tabs: [tab], activeTabId: "t1" });
     render(<ConnectionChip />);
     expect(
-      screen.getByRole("button", { name: /prod-postgres, analytics · public/ }),
+      screen.getByRole("button", { name: /prod-postgres analytics · public/ }),
     ).toBeInTheDocument();
   });
 
@@ -366,7 +366,7 @@ describe("toolbar chip", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("switching schema asks the session to change it and the chip follows", async () => {
+  it("switching schema asks the session to change it and the chip follows (spec: connection-management › Switch schema)", async () => {
     useWorkspace.setState({ tabs: [tab], activeTabId: "t1" });
     api.introspect.mockImplementation(async (_id: string, path: unknown[]) =>
       path.length === 0
@@ -400,7 +400,7 @@ describe("toolbar chip", () => {
 });
 
 describe("read-only note", () => {
-  it("explains what read-only means for SQL Server and DuckDB", async () => {
+  it("explains what read-only means for SQL Server and DuckDB (spec: driver-framework › No session read-only)", async () => {
     const { readOnlyNote } = await import("./ConnectionDialog");
     expect(readOnlyNote("sqlserver")).toMatch(/no session-level read-only/);
     expect(readOnlyNote("duckdb")).toMatch(/reconnect/);

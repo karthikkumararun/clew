@@ -226,6 +226,7 @@ async fn a_missing_key_file_is_a_clear_error() {
     assert!(err.message.contains("/no/such/key"));
 }
 
+/// (spec: driver-framework › Agent auth)
 #[cfg(unix)]
 #[tokio::test]
 async fn agent_auth_uses_a_key_held_by_the_agent() {
@@ -287,6 +288,7 @@ async fn agent_auth_without_an_agent_is_a_clear_error() {
     assert_eq!(err.code, ErrorCode::AuthFailed);
 }
 
+/// (spec: driver-framework › Unknown host key)
 #[tokio::test]
 async fn an_unknown_host_key_prompts_and_accepting_remembers_it() {
     let _serial = SERIAL.lock().await;
@@ -319,6 +321,7 @@ async fn rejecting_an_unknown_host_key_connects_to_nothing() {
     );
 }
 
+/// (spec: driver-framework › Changed host key)
 #[tokio::test]
 async fn a_changed_host_key_is_refused_without_prompting_or_sending_credentials() {
     let _serial = SERIAL.lock().await;

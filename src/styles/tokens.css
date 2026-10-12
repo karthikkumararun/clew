@@ -25,7 +25,7 @@
   --text: #e6e8eb;
   --text-secondary: #c9ced6;
   --text-muted: #9aa3ae; /* labels, meta (>= 4.5:1 on panels) */
-  --text-dim: #7d8794; /* types, counts, NULL, comments */
+  --text-dim: #848e9b; /* types, counts, NULL, comments */
   --text-gutter: #4e5661; /* editor line numbers only */
 
   /* Accent: the golden thread */

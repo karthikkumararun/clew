@@ -13,7 +13,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   ref,
 ) {
   const cls = [styles.btn, styles[variant], className].filter(Boolean).join(" ");
-  return <button ref={ref} type={type} className={cls} {...rest} />;
+  return (
+    <button
+      ref={ref}
+      type={type}
+      className={cls}
+      data-metric={variant === "default" ? "dialog-button" : "button"}
+      {...rest}
+    />
+  );
 });
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

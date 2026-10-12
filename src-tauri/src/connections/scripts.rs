@@ -484,6 +484,7 @@ mod service_tests {
         });
     }
 
+    /// (spec: connection-management › Rename a connection)
     #[test]
     #[cfg(unix)]
     fn renaming_offers_to_move_the_folder_and_declining_keeps_the_link() {

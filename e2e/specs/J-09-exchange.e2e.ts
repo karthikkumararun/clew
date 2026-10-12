@@ -11,12 +11,12 @@ import { Exchange } from "../pages/Exchange";
 // J-09 encrypted connection export and import, wrong passphrase and tampered file.
 describe("J-09 export and import", () => {
   const data = withDataDir();
-  const file =
-    "/private/tmp/claude-501/-Users-karthikarun-AI-projects-clew/5c951376-4b42-401c-8d06-173adabac8d7/scratchpad/connections.clew";
+  const file = join(data.dir, "..", "connections.clew");
   const PASSWORD = "s3cret-db-password";
   const PASSPHRASE = "correct horse battery staple";
 
   before(async () => {
+    // Never connected to, only exported and imported: needs no running database.
     const c = connectionFactory.network("postgres", "exchange-pg", {
       port: 54316,
       database: "clew",

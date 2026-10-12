@@ -26,7 +26,10 @@ export async function launchApp(data: Pick<TestDataDir, "dialogQueue">): Promise
   await waitForShell();
 }
 
-/** The window is up: the explorer is there whether or not it has connections. */
+/**
+ * The window is up: the toolbar is there in every layout. (The explorer is not: a saved layout can
+ * hide it, and the app must still start.)
+ */
 export async function waitForShell(timeout = 30_000): Promise<void> {
-  await $("aria/Explorer").waitForDisplayed({ timeout });
+  await $("aria/Toggle sidebar").waitForDisplayed({ timeout });
 }

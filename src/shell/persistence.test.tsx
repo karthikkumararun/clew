@@ -78,7 +78,7 @@ const openDoc = (name: string, text: string) =>
   useWorkspace.getState().openTab<Doc>({ kind: "console", key: name, state: { name, text } });
 
 describe("session restore", () => {
-  it("reopens three console tabs in order with the same text", () => {
+  it("reopens three console tabs in order with the same text (spec: app-shell › Restart restores tabs)", () => {
     openDoc("one", "select 1");
     openDoc("two", "select 2");
     const third = openDoc("three", "select 3");
@@ -214,7 +214,7 @@ describe("settings", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("changing the editor font size applies immediately and persists", async () => {
+  it("changing the editor font size applies immediately and persists (spec: app-shell › Change editor font size)", async () => {
     const user = userEvent.setup();
     const stop = useSettings.subscribe((s) => applySettingsToDocument(s.settings));
     render(<App />);
@@ -261,7 +261,7 @@ describe("settings", () => {
     expect(useSettings.getState().settings.checkForUpdates).toBe(true);
   });
 
-  it("shows a non-blocking notice when the settings file was corrupt", async () => {
+  it("shows a non-blocking notice when the settings file was corrupt (spec: app-shell › Corrupt settings file)", async () => {
     ipc.settingsGet.mockResolvedValue({
       settings: DEFAULT_SETTINGS,
       notice: "Settings could not be read, so defaults are in use.",

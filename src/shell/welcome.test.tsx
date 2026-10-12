@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe("Welcome screen", () => {
-  it("shows on first run with an empty Recent list", () => {
+  it("shows on first run with an empty Recent list (spec: app-shell › First run)", () => {
     render(<App />);
     expect(screen.getByTestId("welcome")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Clew", level: 1 })).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe("Welcome screen", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
   });
 
-  it("is replaced by the editor when a tab opens, and returns after the last tab closes", () => {
+  it("is replaced by the editor when a tab opens, and returns after the last tab closes (spec: app-shell › Last tab closed)", () => {
     render(<App />);
     let id = "";
     act(() => {
@@ -66,7 +66,7 @@ describe("Welcome screen", () => {
     expect(screen.getByTestId("welcome")).toBeInTheDocument();
   });
 
-  it("footer shows the real connections path and app version", async () => {
+  it("footer shows the real connections path and app version (spec: app-shell › Footer path is real)", async () => {
     render(<App />);
     await waitFor(() =>
       expect(screen.getByTestId("connections-path")).toHaveTextContent(

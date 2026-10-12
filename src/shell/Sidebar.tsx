@@ -38,6 +38,7 @@ export function Sidebar() {
     <SplitPane
       edge="right"
       label="sidebar"
+      metric="sidebar"
       defaultSize={SIDEBAR.default}
       min={SIDEBAR.min}
       max={SIDEBAR.max}

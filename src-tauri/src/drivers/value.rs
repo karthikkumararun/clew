@@ -326,6 +326,7 @@ mod tests {
         serde_json::to_value(v).unwrap()
     }
 
+    /// (spec: driver-framework › Exact decimals)
     #[test]
     fn decimals_keep_every_digit() {
         let text = "12345678901234567890.0123456789";
@@ -451,6 +452,7 @@ mod tests {
         );
     }
 
+    /// (spec: driver-framework › Unsupported type)
     #[test]
     fn unknown_types_fall_back_to_other_and_are_read_only() {
         let v = Value::other("POINT(1 2)", "geometry");

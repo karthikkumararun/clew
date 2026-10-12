@@ -77,3 +77,8 @@
   border-top: 1px solid var(--border);
   background: var(--bg-panel-sunken);
 }
+
+/* `hidden` must win over the flex display above (a dialog with its own header hides this one). */
+.header[hidden] {
+  display: none;
+}

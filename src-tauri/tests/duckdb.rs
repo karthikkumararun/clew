@@ -182,6 +182,7 @@ async fn switching_a_session_to_read_write_is_not_possible() {
 
 // ---- querying files and values ---------------------------------------------------------------
 
+/// (spec: driver-framework › Query a Parquet file)
 #[tokio::test]
 async fn parquet_files_can_be_queried_directly() {
     let (dir, cfg) = fresh();

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { DriverBadge, EnvDot } from "../components/Badge";
 import { Menu } from "../components/Menu";
 import type { MenuItem } from "../components/Menu";
@@ -51,6 +51,12 @@ export function ConnectionChip() {
   const tab = useActiveConnectionTab();
   const file = useConnections((s) => s.file);
   const [items, setItems] = useState<MenuItem[] | null>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  // Closing the menu hands focus back to the chip that opened it.
+  const closeMenu = () => {
+    setItems(null);
+    chipRef.current?.focus();
+  };
   const state = tab ? connectionStateOf(tab.state) : null;
   const connection = state ? file.connections.find((c) => c.id === state.connectionId) : undefined;
   if (!tab || !state || !connection) return null;
@@ -73,7 +79,7 @@ export function ConnectionChip() {
   };
 
   const pick = async (id: string) => {
-    setItems(null);
+    closeMenu();
     const [kind, ...rest] = id.split(":");
     const name = rest.join(":");
     try {
@@ -98,17 +104,27 @@ export function ConnectionChip() {
   return (
     <span className={styles.chipWrap}>
       <button
+        ref={chipRef}
         type="button"
         className={styles.chip}
         aria-haspopup="menu"
         aria-expanded={items !== null}
-        aria-label={`Connection ${connection.name}${scope ? `, ${scope}` : ""}`}
-        onClick={() => (items ? setItems(null) : void openMenu())}
+        onClick={() => (items ? closeMenu() : void openMenu())}
       >
-        <EnvDot env={BADGE_ENV[connection.environment]} />
-        <DriverBadge driver={badgeDriver(connection.driver)} />
+        {/* the name comes from the content: decorative badges are hidden from it, and the word
+            "Connection" is read but not drawn */}
+        <span className="sr-only">Connection </span>
+        <span aria-hidden="true" className={styles.chipBadges}>
+          <EnvDot env={BADGE_ENV[connection.environment]} />
+          <DriverBadge driver={badgeDriver(connection.driver)} />
+        </span>
         <span className={styles.chipName}>{connection.name}</span>
-        {scope ? <span className={styles.chipScope}>{scope}</span> : null}
+        {scope ? (
+          <>
+            {" "}
+            <span className={styles.chipScope}>{scope}</span>
+          </>
+        ) : null}
         <ChevronDown size={10} />
       </button>
       {items ? (
@@ -122,7 +138,7 @@ export function ConnectionChip() {
                   ? items
                   : [{ id: "none", label: "Nothing to switch to", disabled: true }]
               }
-              onClose={() => setItems(null)}
+              onClose={closeMenu}
               onSelect={(id) => void pick(id)}
             />
           </div>

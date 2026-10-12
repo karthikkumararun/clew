@@ -71,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("Import tab", () => {
-  it("scans the newest DataGrip folder and checks only new rows", async () => {
+  it("scans the newest DataGrip folder and checks only new rows (spec: connection-management › Duplicate connection; connection-management › Unsupported driver)", async () => {
     render(<ImportExportDialog />);
     await screen.findByRole("checkbox", { name: "Import analytics-prod" });
     expect(api.scan).toHaveBeenCalledWith({
@@ -90,7 +90,7 @@ describe("Import tab", () => {
     expect(screen.getByRole("button", { name: "Import 2 connections · 6 files" })).toBeEnabled();
   });
 
-  it("commits the checked rows; an existing row is merge-only", async () => {
+  it("commits the checked rows; an existing row is merge-only (spec: connection-management › Merge into an existing connection)", async () => {
     render(<ImportExportDialog />);
     fireEvent.click(await screen.findByRole("checkbox", { name: "Import prod-postgres" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Import billing-mysql" })); // uncheck
@@ -127,7 +127,7 @@ describe("Import tab", () => {
     });
   });
 
-  it("asks for DataGrip's KeePass master password and rescans with it", async () => {
+  it("asks for DataGrip's KeePass master password and rescans with it (spec: connection-management › Passwords from DataGrip's KeePass database)", async () => {
     api.scan.mockImplementation(
       async (s: { includePasswords?: boolean; keepassPassword?: string | null }) => {
         if (s.includePasswords && !s.keepassPassword)
@@ -152,7 +152,7 @@ describe("Import tab", () => {
     expect(screen.queryByLabelText("DataGrip's master password")).not.toBeInTheDocument();
   });
 
-  it("unlocks an encrypted Clew file and shows a wrong passphrase", async () => {
+  it("unlocks an encrypted Clew file and shows a wrong passphrase (spec: connection-management › Wrong passphrase)", async () => {
     api.pickFile.mockResolvedValue("/tmp/clew-connections.clew");
     api.inspect.mockResolvedValue({
       encrypted: true,

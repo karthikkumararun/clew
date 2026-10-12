@@ -284,7 +284,7 @@ afterEach(() => {
 });
 
 describe("opening a table", () => {
-  it("opens a tab titled with the table and loads the first page ordered by the primary key", async () => {
+  it("opens a tab titled with the table and loads the first page ordered by the primary key (spec: table-editor › Open a table)", async () => {
     mount();
     expect(getTabKind(TABLE_KIND)!.title(tabState())).toBe("orders");
     await screen.findByRole("grid");
@@ -324,7 +324,7 @@ describe("opening a table", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens the current query in a console", async () => {
+  it("opens the current query in a console (spec: table-editor › Open in console)", async () => {
     mount();
     await screen.findByRole("grid");
     fireEvent.click(screen.getByRole("button", { name: /Open in console/ }));
@@ -340,7 +340,7 @@ describe("opening a table", () => {
 });
 
 describe("filter and order", () => {
-  it("applies WHERE and ORDER BY on Enter and reloads", async () => {
+  it("applies WHERE and ORDER BY on Enter and reloads (spec: table-editor › Apply a filter)", async () => {
     mount();
     await screen.findByRole("grid");
     fireEvent.change(screen.getByLabelText("WHERE"), {
@@ -360,7 +360,7 @@ describe("filter and order", () => {
     );
   });
 
-  it("shows a rejected filter under the input and keeps the previous rows", async () => {
+  it("shows a rejected filter under the input and keeps the previous rows (spec: table-editor › Bad filter)", async () => {
     mount();
     await screen.findByRole("grid");
     expect(rows()).toHaveLength(2);
@@ -393,7 +393,7 @@ describe("filter and order", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
-  it("adds a quick filter from a cell, ANDed with the existing WHERE", async () => {
+  it("adds a quick filter from a cell, ANDed with the existing WHERE (spec: table-editor › Quick filter from a cell)", async () => {
     mount({ where: "user_id = 1042" });
     await screen.findByRole("grid");
     const cell = within(screen.getAllByRole("row")[1]).getAllByRole("gridcell")[2];
@@ -455,7 +455,7 @@ describe("paging and counts", () => {
     );
   });
 
-  it("loads rows 101–200 on the next page", async () => {
+  it("loads rows 101–200 on the next page (spec: table-editor › Next page)", async () => {
     mount({ pageSize: 100 });
     await screen.findByRole("grid");
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("of 1,284"));
@@ -508,7 +508,7 @@ describe("paging and counts", () => {
 });
 
 describe("structure, indexes, relations and DDL", () => {
-  it("lists the columns with type, nullability, default, keys and comments", async () => {
+  it("lists the columns with type, nullability, default, keys and comments (spec: table-editor › View structure)", async () => {
     mount();
     await screen.findByRole("grid");
     fireEvent.click(screen.getByRole("tab", { name: "Structure" }));
@@ -696,7 +696,7 @@ describe("record panel", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens the referenced table filtered to the row", async () => {
+  it("opens the referenced table filtered to the row (spec: table-editor › Follow a reference)", async () => {
     recordDatabase();
     mount();
     await screen.findByRole("grid");
@@ -710,7 +710,7 @@ describe("record panel", () => {
     expect(opened.view).toBe("data");
   });
 
-  it("lists referencing tables with counts and opens them filtered", async () => {
+  it("lists referencing tables with counts and opens them filtered (spec: table-editor › Referenced by)", async () => {
     recordDatabase();
     mount();
     await screen.findByRole("grid");

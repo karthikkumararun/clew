@@ -73,7 +73,7 @@ beforeEach(() => {
 });
 
 describe("ConnectionDialog", () => {
-  it("shows the network form for PostgreSQL and the file form for SQLite", async () => {
+  it("shows the network form for PostgreSQL and the file form for SQLite (spec: connection-management › File driver form)", async () => {
     open();
     expect(screen.getByLabelText("Host")).toHaveValue("localhost");
     expect(screen.getByLabelText("Port")).toHaveValue("5432");
@@ -86,7 +86,7 @@ describe("ConnectionDialog", () => {
     expect(screen.getByRole("button", { name: "Choose…" })).toBeInTheDocument();
   });
 
-  it("changes the port with the driver unless it was edited, and updates the URL preview", () => {
+  it("changes the port with the driver unless it was edited, and updates the URL preview (spec: connection-management › Switch driver)", () => {
     open();
     fireEvent.click(screen.getByRole("button", { name: /MySQL/ }));
     expect(screen.getByLabelText("Port")).toHaveValue("3306");
@@ -97,7 +97,7 @@ describe("ConnectionDialog", () => {
     expect(screen.getByLabelText("Port")).toHaveValue("3310");
   });
 
-  it("suggests <env>-<driver> as the name until the user types one", () => {
+  it("suggests <env>-<driver> as the name until the user types one (spec: connection-management › Name suggestion)", () => {
     open();
     const name = screen.getByLabelText("Name");
     expect(name).toHaveValue("local-postgres");
@@ -110,7 +110,7 @@ describe("ConnectionDialog", () => {
     expect(name).toHaveValue("Warehouse");
   });
 
-  it("shows the Production safeguards box, all checked, only for production", () => {
+  it("shows the Production safeguards box, all checked, only for production (spec: connection-management › Production safeguards box)", () => {
     open();
     expect(screen.queryByTestId("prod-safeguards")).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "Production" }));
@@ -121,7 +121,7 @@ describe("ConnectionDialog", () => {
     expect(screen.queryByTestId("prod-safeguards")).toBeNull();
   });
 
-  it("marks an empty host and a bad port invalid and saves nothing", async () => {
+  it("marks an empty host and a bad port invalid and saves nothing (spec: connection-management › Validation)", async () => {
     open();
     fireEvent.change(screen.getByLabelText("Host"), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Port"), { target: { value: "70000" } });
@@ -198,7 +198,7 @@ describe("ConnectionDialog", () => {
 });
 
 describe("Test connection", () => {
-  it("shows the server and timing on success, with the SSH host when tunnelled", async () => {
+  it("shows the server and timing on success, with the SSH host when tunnelled (spec: connection-management › Success)", async () => {
     api.test.mockResolvedValue({ product: "PostgreSQL", version: "16.2", round_trip_ms: 42 });
     open();
     fireEvent.click(screen.getByRole("button", { name: "Test connection" }));
@@ -213,7 +213,7 @@ describe("Test connection", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("42 ms via bastion"));
   });
 
-  it("shows the failure in danger colour with a Details toggle", async () => {
+  it("shows the failure in danger colour with a Details toggle (spec: connection-management › Failure)", async () => {
     api.test.mockRejectedValue({
       code: "auth_failed",
       message: "Password authentication failed for user “karthik”",
@@ -228,7 +228,7 @@ describe("Test connection", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("offers Cancel test after 2 seconds and aborts the attempt", async () => {
+  it("offers Cancel test after 2 seconds and aborts the attempt (spec: connection-management › Cancel a slow test)", async () => {
     vi.useFakeTimers();
     try {
       api.test.mockImplementation(() => new Promise(() => {}));
@@ -268,7 +268,7 @@ describe("Oracle Instant Client", () => {
     expect(screen.getByRole("button", { name: "Test connection" })).toBeEnabled();
   });
 
-  it("says what to install when it is missing, and blocks Test connection", () => {
+  it("says what to install when it is missing, and blocks Test connection (spec: driver-framework › Instant Client missing)", () => {
     oracle.status = { found: false, dir: null, version: null, searched: ["/opt/oracle"] };
     open(newDraft("oracle"));
     const note = screen.getByRole("alert");

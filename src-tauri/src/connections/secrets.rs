@@ -66,12 +66,27 @@ pub trait SecretStore: Send + Sync {
 }
 
 /// The real keychain.
-#[derive(Debug, Default)]
-pub struct KeyringStore;
+#[derive(Debug)]
+pub struct KeyringStore {
+    service: &'static str,
+}
+
+impl Default for KeyringStore {
+    fn default() -> Self {
+        Self { service: SERVICE }
+    }
+}
 
 impl KeyringStore {
+    /// The real keychain under another service name. Only the end-to-end smoke suite uses this,
+    /// so a test run never touches the user's own `Clew` items.
+    #[cfg(feature = "e2e")]
+    pub fn with_service(service: &'static str) -> Self {
+        Self { service }
+    }
+
     fn entry(&self, connection_id: &str, kind: SecretKind) -> Result<keyring::Entry, SecretError> {
-        keyring::Entry::new(SERVICE, &account(connection_id, kind))
+        keyring::Entry::new(self.service, &account(connection_id, kind))
             .map_err(|e| SecretError::Unavailable(e.to_string()))
     }
 }

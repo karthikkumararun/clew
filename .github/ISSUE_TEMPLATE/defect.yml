@@ -1,0 +1,103 @@
+name: Defect
+description: Something in Clew behaves differently from its spec or design
+title: "[defect] "
+labels: ["defect"]
+body:
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Version and commit (About dialog, or "Copy diagnostics")
+      placeholder: "0.1.0 (abc1234)"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options: [macOS, Windows, Linux]
+    validations:
+      required: true
+  - type: dropdown
+    id: driver
+    attributes:
+      label: Connection driver involved
+      options:
+        - none
+        - postgres
+        - mysql
+        - mariadb
+        - sqlite
+        - duckdb
+        - clickhouse
+        - mssql
+        - oracle
+        - mongodb
+        - redis
+        - neo4j
+    validations:
+      required: true
+  - type: dropdown
+    id: capability
+    attributes:
+      label: Capability
+      options:
+        - app-icon
+        - app-shell
+        - connection-management
+        - data-grid
+        - database-explorer
+        - document-browser
+        - driver-framework
+        - key-value-browser
+        - production-safeguards
+        - query-history
+        - sql-console
+        - table-editor
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: S1 data loss, security, crash or unusable feature. S2 feature broken, workaround exists. S3 wrong but minor. S4 cosmetic.
+      options:
+        - S1
+        - S2
+        - S3
+        - S4
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. …\n2. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Link or name the spec scenario (`capability › Scenario`) or the canvas screen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+    validations:
+      required: true
+  - type: dropdown
+    id: repro
+    attributes:
+      label: Reproduces on a second run?
+      options: ["yes", "no", "not tried"]
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: Attachments
+      description: Screenshot and the diagnostics report (About > Copy diagnostics). It contains no passwords or hostnames.

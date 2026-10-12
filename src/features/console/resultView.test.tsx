@@ -161,7 +161,7 @@ describe("sorting loaded rows", () => {
     expect(header).toHaveAttribute("aria-sort", "none");
   });
 
-  it("says the sort covers only the loaded rows when the server has more", async () => {
+  it("says the sort covers only the loaded rows when the server has more (spec: data-grid › Client-side sort notice)", async () => {
     await run(ROWS, true);
     expect(screen.queryByRole("status", { name: "" })).toBeNull();
     fireEvent.click(screen.getByRole("columnheader", { name: "name" }));

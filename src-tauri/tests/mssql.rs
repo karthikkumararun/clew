@@ -170,6 +170,7 @@ async fn an_unreachable_host_times_out() {
 
 // ---- batches ---------------------------------------------------------------------------------
 
+/// (spec: driver-framework › GO separators)
 #[tokio::test]
 async fn go_separates_batches_and_variables_stay_inside_one() {
     let c = connect(&cfg()).await;
@@ -287,6 +288,7 @@ async fn values_keep_their_types() {
     assert_eq!(r.columns()[3].type_name, "DATETIME2");
 }
 
+/// (spec: driver-framework › No session read-only)
 #[tokio::test]
 async fn read_only_sessions_are_blocked_by_the_guard_alone() {
     let mut ro = cfg();

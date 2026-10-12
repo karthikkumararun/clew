@@ -22,7 +22,7 @@ vi.mock("../files", () => ({
 }));
 
 describe("passphrase rules", () => {
-  it("needs 12 characters and a matching confirmation", () => {
+  it("needs 12 characters and a matching confirmation (spec: connection-management › Weak or mismatched passphrase)", () => {
     expect(passphraseProblem("short", "short")).toMatch(/at least 12/);
     expect(passphraseProblem("long enough passphrase", "different one entirely")).toMatch(
       /don't match/,
@@ -70,7 +70,7 @@ beforeEach(() => {
 });
 
 describe("Export tab", () => {
-  it("lists connections by group and keeps Export disabled until the passphrase is valid", async () => {
+  it("lists connections by group and keeps Export disabled until the passphrase is valid (spec: connection-management › Weak or mismatched passphrase)", async () => {
     render(<ImportExportDialog />);
     expect(screen.getByText("Production")).toBeInTheDocument();
     expect(screen.getByText("Ungrouped")).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe("Export tab", () => {
     expect(screen.getByText(/Send the passphrase separately/)).toBeInTheDocument();
   });
 
-  it("offers a plain .json export without a passphrase when no secrets are included", async () => {
+  it("offers a plain .json export without a passphrase when no secrets are included (spec: connection-management › Export without secrets)", async () => {
     api.summary.mockResolvedValue(
       summary({
         encrypted: false,

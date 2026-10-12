@@ -1,0 +1,40 @@
+name: Defect labels
+
+# The Defect form has dropdowns for severity, capability and OS; this turns them into labels
+# (spec: release-qa › Defect reporting).
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    if: contains(github.event.issue.labels.*.name, 'defect')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.issue.body || "";
+            const field = (name) => {
+              const m = new RegExp(`### ${name}\\s+([^\\n]+)`).exec(body);
+              return m ? m[1].trim() : "";
+            };
+            const labels = [];
+            const sev = field("Severity");
+            if (/^S[1-4]$/.test(sev)) labels.push(`severity:${sev}`);
+            const cap = field("Capability");
+            if (cap && cap !== "_No response_") labels.push(`capability:${cap}`);
+            const os = field("OS");
+            if (os && os !== "_No response_") labels.push(`platform:${os.toLowerCase()}`);
+            if (labels.length === 0) return;
+            const { owner, repo } = context.repo;
+            const number = context.payload.issue.number;
+            // keep one severity label: drop the ones that no longer match
+            const current = context.payload.issue.labels.map((l) => l.name);
+            for (const l of current.filter((n) => n.startsWith("severity:") && !labels.includes(n))) {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: l });
+            }
+            await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels });

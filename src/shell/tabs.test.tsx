@@ -61,7 +61,7 @@ const ids = () =>
 const active = () => useWorkspace.getState().activeTabId;
 
 describe("workspaceStore", () => {
-  it("focuses the existing tab instead of opening a duplicate", () => {
+  it("focuses the existing tab instead of opening a duplicate (spec: app-shell › Open and focus)", () => {
     const a = open("a");
     open("b");
     const again = open("a-again", {}, "a");
@@ -70,7 +70,7 @@ describe("workspaceStore", () => {
     expect(active()).toBe(a);
   });
 
-  it("closing the active tab activates its left neighbour", () => {
+  it("closing the active tab activates its left neighbour (spec: app-shell › Close tab)", () => {
     open("a");
     const b = open("b");
     const c = open("c");
@@ -79,7 +79,7 @@ describe("workspaceStore", () => {
     expect(active()).toBe(b);
   });
 
-  it("closing the first tab activates the first remaining tab", () => {
+  it("closing the first tab activates the first remaining tab (spec: app-shell › Close tab)", () => {
     const a = open("a");
     const b = open("b");
     useWorkspace.getState().activateTab(a);
@@ -100,7 +100,7 @@ describe("workspaceStore", () => {
     expect(active()).toBeNull();
   });
 
-  it("reorders tabs", () => {
+  it("reorders tabs (spec: app-shell › Reorder and switch)", () => {
     open("a");
     open("b");
     const c = open("c");
@@ -108,7 +108,7 @@ describe("workspaceStore", () => {
     expect(ids()).toEqual(["c", "a", "b"]);
   });
 
-  it("cycles tabs with activateRelative, wrapping at the ends", () => {
+  it("cycles tabs with activateRelative, wrapping at the ends (spec: app-shell › Reorder and switch)", () => {
     const a = open("a");
     open("b");
     useWorkspace.getState().activateRelative(1);
@@ -128,10 +128,10 @@ describe("workspaceStore", () => {
 describe("dirty close prompt", () => {
   const dirty = () => open("weekly", { text: "select 1", saved: "" });
 
-  it("asks Save / Discard / Cancel before closing a dirty tab", () => {
+  it("asks Save / Discard / Cancel before closing a dirty tab (spec: app-shell › Close a tab with unsaved changes)", () => {
     render(<App />);
     act(() => void dirty());
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     expect(screen.getByRole("dialog", { name: "Unsaved changes" })).toBeInTheDocument();
     for (const name of ["Save", "Discard", "Cancel"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe("dirty close prompt", () => {
   it("Cancel keeps the tab", () => {
     render(<App />);
     act(() => void dirty());
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(useWorkspace.getState().tabs).toHaveLength(1);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("dirty close prompt", () => {
   it("Discard closes without saving", async () => {
     render(<App />);
     act(() => void dirty());
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
     await waitFor(() => expect(useWorkspace.getState().tabs).toHaveLength(0));
     expect(save).not.toHaveBeenCalled();
@@ -160,7 +160,7 @@ describe("dirty close prompt", () => {
   it("Save persists then closes", async () => {
     render(<App />);
     act(() => void dirty());
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(useWorkspace.getState().tabs).toHaveLength(0));
     expect(save).toHaveBeenCalledOnce();
@@ -169,7 +169,7 @@ describe("dirty close prompt", () => {
   it("a failed save keeps the tab open", async () => {
     render(<App />);
     act(() => void open("weekly", { text: "x", saved: "", saveOk: false }));
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -180,7 +180,7 @@ describe("dirty close prompt", () => {
     useSettings.setState({ settings: { ...DEFAULT_SETTINGS, confirmCloseUnsaved: false } });
     render(<App />);
     act(() => void dirty());
-    fireEvent.click(screen.getByRole("button", { name: "Close weekly" }));
+    fireEvent.click(screen.getByLabelText("Close weekly"));
     expect(useWorkspace.getState().tabs).toHaveLength(0);
   });
 });
@@ -193,7 +193,7 @@ describe("tab strip", () => {
     expect(tab).toHaveTextContent("weekly");
     expect(tab).toHaveTextContent("prod-postgres");
     expect(screen.getByRole("img", { name: "Unsaved changes" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close weekly" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Close weekly")).toBeInTheDocument();
   });
 
   it("renders the active tab's kind", () => {
@@ -208,12 +208,13 @@ describe("tab strip", () => {
   it("draws a --env-prod stripe on production tabs", () => {
     render(<App />);
     act(() => void open("orders", { env: "production" }));
-    const tab = screen.getByRole("tab", { name: /orders/ });
+    // the stripe lives on the wrapper around the tab and its close button
+    const tab = screen.getByRole("tab", { name: /orders/ }).parentElement!;
     expect(tab).toHaveAttribute("data-env", "production");
     expect(tab.style.getPropertyValue("--stripe")).toBe("var(--env-prod)");
   });
 
-  it("Mod+W closes the active tab and Mod+Shift+[ / ] switch tabs", () => {
+  it("Mod+W closes the active tab and Mod+Shift+[ / ] switch tabs (spec: app-shell › Close tab; app-shell › Reorder and switch)", () => {
     render(<App />);
     act(() => void open("a"));
     act(() => void open("b"));
@@ -227,7 +228,7 @@ describe("tab strip", () => {
     expect(screen.getByTestId("editor")).toHaveTextContent("b");
   });
 
-  it("reorders by dragging a tab past its neighbour", () => {
+  it("reorders by dragging a tab past its neighbour (spec: app-shell › Reorder and switch)", () => {
     render(<App />);
     act(() => void open("a"));
     act(() => void open("b"));
@@ -244,7 +245,7 @@ describe("tab strip", () => {
         y: 0,
       }) as DOMRect;
     const tabs = screen.getAllByRole("tab");
-    tabs.forEach((el, i) => (el.getBoundingClientRect = rect(i * 100)));
+    tabs.forEach((el, i) => (el.parentElement!.getBoundingClientRect = rect(i * 100)));
     fireEvent.pointerDown(tabs[2], { button: 0, clientX: 250, pointerId: 1 });
     fireEvent.pointerMove(tabs[2], { clientX: 10, pointerId: 1 });
     fireEvent.pointerUp(tabs[2], { clientX: 10, pointerId: 1 });

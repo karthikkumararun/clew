@@ -1,3 +1,4 @@
+import { covers } from "../helpers/covers";
 import { $, browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections, seedPassword } from "../helpers/connections";
@@ -86,7 +87,7 @@ describe("J-12 driver parity", () => {
     });
   }
 
-  it(`shows the same values on every driver`, () => {
+  it(`shows the same values on every driver ${covers("driver-framework › Conformance across SQL drivers")}`, () => {
     const [[, first], ...rest] = [...results.entries()];
     expect(rest.length).toBeGreaterThan(0);
     for (const [name, got] of rest) {
