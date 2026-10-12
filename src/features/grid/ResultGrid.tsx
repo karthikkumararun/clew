@@ -32,6 +32,7 @@ import { HEADER_HEIGHT, ROW_HEIGHT, gridTheme, token } from "./theme";
 import { visibleColumns, moveColumn } from "./views";
 import type { SortState } from "./views";
 import styles from "./ResultGrid.module.css";
+import { GridMirror, MIRROR_ENABLED } from "./GridMirror";
 
 const MIN_WIDTH = 48;
 const MAX_WIDTH = 720;
@@ -414,6 +415,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
           if (range.y + range.height >= source.rowCount - NEAR_END_ROWS) onNearEnd?.();
         }}
       />
+      {MIRROR_ENABLED ? <GridMirror source={source} visible={visible} /> : null}
       {viewer ? (
         <CellViewer
           value={source.get(visible[viewer.col], viewer.row)}
