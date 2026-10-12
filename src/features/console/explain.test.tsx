@@ -350,7 +350,7 @@ afterEach(() => {
 });
 
 describe("errors in the editor", () => {
-  it("shows the message and hint in Output and underlines the failing token", async () => {
+  it("shows the message and hint in Output and underlines the failing token (spec: sql-console › Unknown column)", async () => {
     const sql = "select o.carrier\nfrom orders o";
     api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
       send({
@@ -495,7 +495,7 @@ describe("Explain plan", () => {
     ]);
   });
 
-  it("Explain Analyze of a write asks first, then runs it inside a rolled-back transaction", async () => {
+  it("Explain Analyze of a write asks first, then runs it inside a rolled-back transaction (spec: sql-console › Explain analyze on a write)", async () => {
     await mountConsole("update orders set total = 0", 3);
     let done: Promise<boolean> = Promise.resolve(false);
     act(() => {

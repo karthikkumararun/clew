@@ -30,7 +30,7 @@ vi.setConfig({ testTimeout: 60_000 });
 const src = loadSources();
 
 describe("icon sources", () => {
-  it("are valid, on palette and contrast-safe", () => {
+  it("are valid, on palette and contrast-safe (spec: app-icon › Sources exist and are valid; app-icon › Colours stay on palette; app-icon › Legible contrast)", () => {
     expect(checkSources(src)).toEqual([]);
     expect(contrast(THREAD_COLOUR, STRAND_COLOUR)).toBeGreaterThanOrEqual(MIN_CONTRAST);
   });
@@ -51,7 +51,7 @@ describe("icon sources", () => {
 });
 
 describe("generation", () => {
-  it("is byte-identical when run twice", async () => {
+  it("is byte-identical when run twice (spec: app-icon › Regeneration is a no-op)", async () => {
     const a = await generateAssets(src);
     const b = await generateAssets(src);
     expect(a.mark).toBe(b.mark);
@@ -64,13 +64,13 @@ describe("generation", () => {
     expect(await checkUpToDate(src)).toEqual([]);
   });
 
-  it("lists exactly the required ICO and ICNS sizes", () => {
+  it("lists exactly the required ICO and ICNS sizes (spec: app-icon › ICO contents; app-icon › ICNS contents)", () => {
     expect(parseIco(readFileSync(join(ICON_DIR, "icon.ico")))).toEqual(ICO_SIZES);
     expect(parseIcns(readFileSync(join(ICON_DIR, "icon.icns")))).toEqual(ICNS_SIZES);
     expect(checkContainers()).toEqual([]);
   });
 
-  it("renders below 48 px from the small artwork and 48+ from the master", () => {
+  it("renders below 48 px from the small artwork and 48+ from the master (spec: app-icon › 64 px uses the master)", () => {
     expect(artworkFor(src, "mac", 16)).toBe(src.small);
     expect(artworkFor(src, "win", 47)).toBe(src.small);
     expect(artworkFor(src, "mac", 64)).toBe(src.mac);
@@ -80,7 +80,7 @@ describe("generation", () => {
     expect(png.equals(renderIcon({ ...src, mac: "", win: "" }, "mac", 16))).toBe(true);
   });
 
-  it("keeps the DEV badge out of the release set", () => {
+  it("keeps the DEV badge out of the release set (spec: app-icon › Release has no badge)", () => {
     const release = readFileSync(join(ICON_DIR, "icon.png"));
     const dev = readFileSync(join(ICON_DIR, "dev", "icon.png"));
     expect(release.equals(dev)).toBe(false);
@@ -89,11 +89,11 @@ describe("generation", () => {
 });
 
 describe("default Tauri art", () => {
-  it("is absent", () => {
+  it("is absent (spec: app-icon › Clean tree)", () => {
     expect(checkNoDefaultArt()).toEqual([]);
   });
 
-  it("is reported by name", () => {
+  it("is reported by name (spec: app-icon › Default icon reintroduced)", () => {
     const dir = mkdtempSync(join(tmpdir(), "icons-"));
     cpSync(join(ICON_DIR, "icon.png"), join(dir, "icon.png"));
     const hashes = join(dir, "hashes.txt");
@@ -110,7 +110,7 @@ describe("golden images", () => {
     expect(checkGolden(src)).toEqual([]);
   });
 
-  it("fail when the thread shifts by 6 px", () => {
+  it("fail when the thread shifts by 6 px (spec: app-icon › Unintended artwork change)", () => {
     const diffDir = mkdtempSync(join(tmpdir(), "icon-diff-"));
     const shifted: Sources = {
       ...src,

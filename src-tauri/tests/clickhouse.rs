@@ -287,6 +287,7 @@ async fn the_database_refuses_writes_the_classifier_missed() {
 
 // ---- introspection ---------------------------------------------------------------------------
 
+/// (spec: driver-framework › Engine shown)
 #[tokio::test]
 async fn the_tree_shows_engines_columns_and_keys() {
     let c = connect(&cfg()).await;

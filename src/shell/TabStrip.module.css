@@ -13,6 +13,19 @@
   height: 4px;
 }
 
+.list {
+  display: flex;
+  align-items: stretch;
+  flex: none;
+}
+
+.tabBody {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+}
+
 .tab {
   position: relative;
   flex: none;
@@ -28,7 +41,7 @@
   white-space: nowrap;
 }
 
-.tab[aria-selected="true"] {
+.tab[data-selected="true"] {
   background: var(--bg-app);
   color: var(--text);
 }
@@ -45,12 +58,12 @@
   opacity: 0.45;
 }
 
-.tab[aria-selected="true"]::before {
+.tab[data-selected="true"]::before {
   opacity: 1;
 }
 
 /* Active tab underline: the gold thread. */
-.tab[aria-selected="true"]::after {
+.tab[data-selected="true"]::after {
   content: "";
   position: absolute;
   left: 0;

@@ -31,4 +31,11 @@ export const ConnectionDialog = {
     await this.field("Password").setValue(o.password);
     await this.field("Database").setValue(o.database);
   },
+
+  async fillSqlite(o: { name: string; path: string; environment?: Environment }) {
+    await this.driver("SQLite").click();
+    await this.field("Name").setValue(o.name);
+    if (o.environment) await this.environment(o.environment).click();
+    await this.field("Database file").setValue(o.path);
+  },
 };

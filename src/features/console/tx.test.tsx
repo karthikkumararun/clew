@@ -278,7 +278,7 @@ describe("closing a console with an open transaction", () => {
   }
   const tabs = () => useWorkspace.getState().tabs;
 
-  it("asks Commit / Roll back / Cancel", async () => {
+  it("asks Commit / Roll back / Cancel (spec: sql-console › Close with an open transaction)", async () => {
     await open();
     act(() => useWorkspace.getState().requestClose(tabs()[0].id));
     const dialog = await screen.findByRole("dialog");

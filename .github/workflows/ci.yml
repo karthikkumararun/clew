@@ -32,6 +32,13 @@ jobs:
       - run: pnpm test
       - name: Icons are up to date, no default Tauri art, goldens match
         run: pnpm check:icons
+      - name: Design tokens only, metrics agree with tokens, spec references resolve
+        run: |
+          pnpm check:tokens
+          pnpm check:design-metrics
+          pnpm check:design-states
+          pnpm check:coverage
+          pnpm check:spec-completeness
       - run: cargo fmt --check
         working-directory: src-tauri
       - run: cargo clippy -- -D warnings

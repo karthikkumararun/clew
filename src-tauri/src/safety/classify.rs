@@ -386,6 +386,7 @@ mod tests {
         }
     }
 
+    /// (spec: production-safeguards › Data-modifying CTE)
     #[test]
     fn writes() {
         for sql in [
@@ -453,6 +454,7 @@ mod tests {
         }
     }
 
+    /// (spec: production-safeguards › Procedure call)
     #[test]
     fn procedure_calls_and_the_unparseable_are_unknown() {
         assert_eq!(class("CALL refresh_stats()"), Unknown);

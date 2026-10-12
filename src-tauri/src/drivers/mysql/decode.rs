@@ -253,6 +253,7 @@ mod tests {
         );
     }
 
+    /// (spec: driver-framework › Zero dates)
     #[test]
     fn zero_dates_arrive_as_other_not_as_errors() {
         assert_eq!(

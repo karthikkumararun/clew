@@ -1,6 +1,8 @@
+pub mod applog;
 pub mod changes;
 pub mod commands;
 pub mod connections;
+pub mod diagnostics;
 pub mod drivers;
 pub mod error;
 pub mod exporter;
@@ -85,10 +87,15 @@ fn resolve_data_dir(app: &tauri::App) -> tauri::Result<std::path::PathBuf> {
 fn secret_store(data_dir: &std::path::Path) -> Arc<dyn connections::secrets::SecretStore> {
     #[cfg(feature = "e2e")]
     if testmode::active() {
+        if testmode::real_keychain() {
+            return Arc::new(connections::secrets::KeyringStore::with_service(
+                testmode::KEYCHAIN_SERVICE,
+            ));
+        }
         return Arc::new(testmode::FileSecretStore::new(data_dir));
     }
     let _ = data_dir;
-    Arc::new(connections::secrets::KeyringStore)
+    Arc::new(connections::secrets::KeyringStore::default())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -103,6 +110,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = resolve_data_dir(app)?;
+            applog::init(&data_dir);
             let store = tauri::async_runtime::block_on(store::Store::open(&data_dir))?;
             let registry = Arc::new(drivers::registry::Registry::with_defaults());
             let host_key_prompts = Arc::new(transport::hostkey::PendingPrompts::default());
@@ -131,10 +139,10 @@ pub fn run() {
                 }),
             );
             if let Some(backup) = loaded.backup {
-                eprintln!(
+                applog::log(&format!(
                     "connections.json was unreadable; moved to {}",
                     backup.display()
-                );
+                ));
             }
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
             sessions.set_history_sink(history::sink(store.clone()));
@@ -183,6 +191,12 @@ pub fn run() {
             testmode::e2e_restart,
             #[cfg(feature = "e2e")]
             testmode::e2e_exit,
+            #[cfg(feature = "e2e")]
+            testmode::e2e_keychain_get,
+            #[cfg(feature = "e2e")]
+            testmode::e2e_keychain_delete,
+            diagnostics::about_info,
+            diagnostics::diagnostics_bundle,
             commands::app::app_paths,
             commands::app::app_quit_confirmed,
             commands::app::oracle_client_status,

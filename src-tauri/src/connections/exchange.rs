@@ -391,6 +391,7 @@ mod tests {
         assert_eq!(read_export(&text, Some(PASS)).unwrap(), payload());
     }
 
+    /// (spec: connection-management › Export with passwords and an SSH key)
     #[test]
     fn only_a_small_header_is_readable_and_no_secret_leaks() {
         let text = encrypted();
@@ -419,6 +420,7 @@ mod tests {
         assert_eq!(v["encryption"]["cipher"], "AES-256-GCM");
     }
 
+    /// (spec: connection-management › Wrong passphrase)
     #[test]
     fn a_wrong_passphrase_is_reported_as_such() {
         assert_eq!(
@@ -431,6 +433,7 @@ mod tests {
         );
     }
 
+    /// (spec: connection-management › Tampered file)
     #[test]
     fn editing_the_header_or_the_ciphertext_breaks_authentication() {
         let text = encrypted();
@@ -457,6 +460,7 @@ mod tests {
         );
     }
 
+    /// (spec: connection-management › Weak or mismatched passphrase)
     #[test]
     fn short_passphrases_are_refused_and_secrets_need_one() {
         assert_eq!(
@@ -469,6 +473,7 @@ mod tests {
         );
     }
 
+    /// (spec: connection-management › Export without secrets)
     #[test]
     fn a_plain_export_is_readable_json_without_secrets() {
         let plain = ExportPayload {
@@ -483,6 +488,7 @@ mod tests {
         assert_eq!(read_export(&text, None).unwrap(), plain);
     }
 
+    /// (spec: connection-management › Newer format)
     #[test]
     fn newer_versions_and_foreign_files_are_rejected() {
         let text = encrypted().replace("\"version\": 1", "\"version\": 7");

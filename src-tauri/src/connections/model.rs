@@ -392,12 +392,14 @@ mod tests {
         }
     }
 
+    /// (spec: connection-management › Defaults by environment)
     #[test]
     fn production_defaults_to_all_safeguards_on() {
         let s = Environment::Production.default_safeguards();
         assert!(s.read_only_by_default && s.confirm_writes && s.manual_commit);
     }
 
+    /// (spec: connection-management › Defaults for other environments)
     #[test]
     fn other_environments_default_to_all_safeguards_off() {
         for env in [
@@ -413,6 +415,7 @@ mod tests {
         }
     }
 
+    /// (spec: connection-management › Environment from name)
     #[test]
     fn environments_are_detected_from_names() {
         assert_eq!(

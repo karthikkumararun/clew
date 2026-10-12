@@ -81,6 +81,7 @@ conformance! {
 
 // ---- files -----------------------------------------------------------------------------------
 
+/// (spec: driver-framework › Missing file)
 #[tokio::test]
 async fn a_missing_file_is_file_not_found() {
     let dir = tempfile::tempdir().unwrap();
@@ -179,6 +180,7 @@ async fn read_only_files_refuse_writes() {
 
 // ---- locking ---------------------------------------------------------------------------------
 
+/// (spec: driver-framework › Locked database)
 #[tokio::test]
 async fn a_write_blocked_past_the_busy_timeout_is_database_locked() {
     let (_dir, mut cfg) = fresh();
@@ -324,6 +326,7 @@ async fn foreign_keys_are_enforced() {
     );
 }
 
+/// (spec: driver-framework › Large values)
 #[tokio::test]
 async fn large_values_are_truncated_and_can_be_fetched_whole() {
     let (_dir, cfg) = fresh();
@@ -571,6 +574,7 @@ async fn ddl_is_the_stored_create_statement() {
     );
 }
 
+/// (spec: driver-framework › Completion snapshot)
 #[tokio::test]
 async fn the_completion_snapshot_has_tables_columns_and_functions() {
     let (_dir, cfg) = fresh();
@@ -1305,6 +1309,7 @@ async fn exporting_100k_rows_streams_to_disk_page_by_page() {
     );
 }
 
+/// (spec: data-grid › Cancelled export)
 #[tokio::test]
 async fn cancelling_an_export_deletes_the_partial_file() {
     let (dir, cfg) = fresh();

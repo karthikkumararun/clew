@@ -1,0 +1,391 @@
+{
+  "uncovered": [
+    {
+      "key": "app-icon›Size-specific artwork›16 px uses the small artwork",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Deterministic icon generation›Stale assets",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform integration›macOS bundle icon",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform integration›Windows executable icon",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Development builds are distinguishable›Dev window icon",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›In-app mark›Toolbar mark",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›In-app mark›Welcome mark",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›In-app mark›One source",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›In-app mark›About icon",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Golden images›Intended change",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform verification›Newest macOS wraps the icon",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform verification›Taskbar at 150%",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Desktop application on macOS and Windows›Launch on macOS",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Desktop application on macOS and Windows›Launch on Windows",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Desktop application on macOS and Windows›Missing WebView2 on Windows",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Workspace layout›Default layout",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Workspace layout›Resize the sidebar",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Workspace layout›Right side panel",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Brand mark in the toolbar›Toolbar brand",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Editor tabs›Overflow",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Editor tabs›Production stripe",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Persisted workspace state›Window off-screen",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Offline by default›No telemetry",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connection dialog›Oracle form",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connection dialog›Keyboard",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Import from DataGrip›Passwords from DataGrip's native keychain",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Import from DataGrip›DataGrip set to \"Do not save\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connection scripts›Save a console",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "data-grid›Grid rendering›Scroll a large result",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "database-explorer›Scripts node›Open an imported console",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Query bar›Collection scan warning",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Tree, table and JSON views›Expand nested",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Export documents›Export as JSON lines",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Oracle driver›Large objects",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Oracle driver›Editing without a primary key",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Conformance across SQL drivers›CI runs the suite",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›MongoDB driver›Server version in status",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Redis driver›Cluster detected",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Production visibility›Two windows of the same data",
+      "reason": "baseline when the check was introduced"
+    }
+  ],
+  "requirementsWithoutScenario": [],
+  "underSpecified": [
+    {
+      "key": "app-icon›Icon artwork and sources›5 listed items, 3 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Icon artwork and sources›no scenario mentions \"every generated\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Size-specific artwork›no scenario mentions \"Every raster\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform integration›6 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-icon›Platform verification›8 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Workspace layout›6 listed items, 5 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Welcome screen›12 listed items, 3 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Settings›6 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Status bar›5 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "app-shell›Offline by default›6 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connection model›36 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connection dialog›9 listed items, 7 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Paste a connection URL›17 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Connect and disconnect›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Toolbar connection chip›7 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "connection-management›Recent connections›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "data-grid›Grid rendering›10 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "data-grid›Cell viewer›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "database-explorer›Explorer tree›3 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "database-explorer›Explorer tree›no scenario mentions \"default groups\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "database-explorer›Context actions›8 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Collection tab›6 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Tree, table and JSON views›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Shell console for MongoDB›3 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "document-browser›Export documents›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Driver registry›20 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Driver registry›no scenario mentions \"default port\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Execute and stream results›6 listed items, 4 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Cancel and timeout›3 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Uniform value model›19 listed items, 3 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Lazy schema introspection›9 listed items, 4 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›MySQL and MariaDB drivers›8 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›MySQL and MariaDB drivers›no scenario mentions \"default port\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›ClickHouse driver›no scenario mentions \"default port\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Conformance across SQL drivers›10 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Document session contract›15 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Key-value session contract›9 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›MongoDB driver›9 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "driver-framework›Redis driver›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "key-value-browser›Key viewer and editor›8 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "key-value-browser›Redis command console›5 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Statement classification›6 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Read-only sessions›5 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Confirm writes›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Confirm writes›no scenario mentions \"default button\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Dangerous statements›3 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Production visibility›5 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "production-safeguards›Production visibility›no scenario mentions \"Every surface\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "query-history›Record executed statements›10 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "query-history›Record executed statements›no scenario mentions \"every statement\"",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "sql-console›SQL editor›5 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "sql-console›Schema-aware completion›5 listed items, 3 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "sql-console›SQL files›3 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "table-editor›Table editor tab›5 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "table-editor›Staged inline editing›10 listed items, 3 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "table-editor›Record panel›3 listed items, 2 scenarios",
+      "reason": "baseline when the check was introduced"
+    },
+    {
+      "key": "table-editor›Structure, indexes, relations and DDL views›6 listed items, 1 scenarios",
+      "reason": "baseline when the check was introduced"
+    }
+  ]
+}

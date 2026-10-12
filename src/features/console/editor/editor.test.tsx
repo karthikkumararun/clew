@@ -81,7 +81,7 @@ describe("SQL editor", () => {
     expect(getView("t1")!.state.doc.toString()).toBe(SQL);
   });
 
-  it("tints the statement under the cursor and puts the ▶ marker on its first line", () => {
+  it("tints the statement under the cursor and puts the ▶ marker on its first line (spec: sql-console › Current statement detection)", () => {
     mount();
     moveTo(3); // inside the SELECT … LIMIT 50;
     // The comment above the SELECT is not part of the statement: lines 2–5.
@@ -90,7 +90,7 @@ describe("SQL editor", () => {
     expect(runStatementOnLine(getView("t1")!, getView("t1")!.state.doc.line(2).from)).toBe(true);
   });
 
-  it("detects statements separated by a blank line without a semicolon", () => {
+  it("detects statements separated by a blank line without a semicolon (spec: sql-console › Statements without semicolons)", () => {
     mount({ value: "select 1\nfrom a\n\nselect 2\nfrom b" });
     moveTo(4);
     expect(tinted()).toEqual([4, 5]);

@@ -112,7 +112,7 @@ describe("Scripts node", () => {
     expect(screen.queryByRole("treeitem", { name: /^Scripts/ })).toBeNull();
   });
 
-  it("opens a script in a console bound to its connection", async () => {
+  it("opens a script in a console bound to its connection (spec: connection-management › Consoles follow their connection)", async () => {
     record("script.open");
     render(<ExplorerPanel />);
     await openScripts();
@@ -129,7 +129,7 @@ describe("Scripts node", () => {
     });
   });
 
-  it("drops a file deleted on disk after Refresh", async () => {
+  it("drops a file deleted on disk after Refresh (spec: database-explorer › File removed on disk)", async () => {
     render(<ExplorerPanel />);
     await openScripts();
     await screen.findByRole("treeitem", { name: "reports/q.sql" });

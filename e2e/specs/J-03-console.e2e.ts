@@ -2,6 +2,7 @@ import { $, browser, expect } from "@wdio/globals";
 import { covers } from "../helpers/covers";
 import { withDataDir } from "../helpers/dataDir";
 import type { IsolatedDb } from "../helpers/db";
+import { LONG_QUERY } from "../helpers/dialect";
 import { openShopConsole } from "../helpers/fixtures";
 import { Console } from "../pages/Console";
 import { Grid } from "../pages/Grid";
@@ -36,7 +37,9 @@ describe("J-03 console", () => {
     });
   });
 
-  it(`underlines the error position ${covers("sql-console › Unknown column")}`, async () => {
+  it(`underlines the error position ${covers("sql-console › Unknown column")}`, async function () {
+    // The scenario is about PostgreSQL's error position; SQLite reports none.
+    if (db.dialect !== "postgres") return this.skip();
     await Console.setText("SELECT o.carrier FROM orders o");
     await Console.run();
     await $('[aria-label="Output"]').waitForDisplayed({ timeout: 10_000 });
@@ -47,7 +50,7 @@ describe("J-03 console", () => {
   });
 
   it(`cancels a long query ${covers("sql-console › Cancel")}`, async () => {
-    await Console.setText("SELECT pg_sleep(60)");
+    await Console.setText(LONG_QUERY[db.dialect]);
     await Console.run();
     await browser.pause(1500);
     await Console.cancel();

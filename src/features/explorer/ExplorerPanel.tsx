@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { DragEvent, KeyboardEvent, ReactNode } from "react";
 import { Button, IconButton } from "../../components/Button";
 import { Menu } from "../../components/Menu";
+import { useKeepInWindow } from "../../components/useKeepInWindow";
 import type { MenuItem } from "../../components/Menu";
 import { ChevronUp, Plus, Refresh } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
@@ -81,6 +82,8 @@ export function ExplorerPanel({ extra }: { extra?: ReactNode }) {
   const typeBuffer = useRef({ text: "", at: 0 });
   const dragId = useRef<string | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useKeepInWindow(menuRef, menu !== null, menu);
   const [dropOn, setDropOn] = useState<string | null>(null);
 
   const rows = useMemo(
@@ -373,7 +376,7 @@ export function ExplorerPanel({ extra }: { extra?: ReactNode }) {
       {menu && menuItems.length > 0 ? (
         <>
           <div className={styles.menuScrim} onMouseDown={() => setMenu(null)} aria-hidden="true" />
-          <div className={styles.menuHost} style={{ left: menu.x, top: menu.y }}>
+          <div ref={menuRef} className={styles.menuHost} style={{ left: menu.x, top: menu.y }}>
             <Menu
               aria-label="Explorer actions"
               items={menuItems}

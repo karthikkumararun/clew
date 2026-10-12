@@ -171,7 +171,7 @@ describe("History tab", () => {
     expect(await screen.findByText(/Statements you run in this connection/)).toBeInTheDocument();
   });
 
-  it("searches as the user types", async () => {
+  it("searches as the user types (spec: query-history › Search)", async () => {
     await mountHistory();
     await listbox();
     api.list.mockResolvedValue({ entries: [ENTRIES[0]], next: null });
@@ -205,7 +205,7 @@ describe("History tab", () => {
     expect((tab.state as ConsoleState).text).toBe("-- notes\nUPDATE users SET name = 'x'");
   });
 
-  it("Open in new console opens the same connection with the text, without running it", async () => {
+  it("Open in new console opens the same connection with the text, without running it (spec: query-history › Re-run from history)", async () => {
     await mountHistory();
     fireEvent.click((await options())[2]);
     await act(async () =>
@@ -260,7 +260,7 @@ describe("clearing history", () => {
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
   }
 
-  it("clears one connection after confirmation", async () => {
+  it("clears one connection after confirmation (spec: query-history › Clear one connection)", async () => {
     await mountHistory();
     await openClearMenu();
     fireEvent.click(screen.getByRole("menuitem", { name: /Clear history for prod-postgres/ }));

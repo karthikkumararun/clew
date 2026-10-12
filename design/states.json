@@ -1,0 +1,43 @@
+{
+  "description": "States of each canvas screen the real app must reproduce. Each state has a fixture in e2e/fixtures/states/registry.ts and is captured by e2e/design/D-06-states.e2e.ts. A screen whose feature is not built yet is listed with `pending` (the change that adds it); it must gain states when that change lands.",
+  "screens": {
+    "Welcome": {
+      "states": [
+        { "id": "welcome-first-run", "description": "First run: no connections" },
+        { "id": "welcome-with-connections", "description": "Saved connections, nothing open" }
+      ]
+    },
+    "Main": {
+      "states": [
+        { "id": "main-console-results", "description": "Connected development console with a result grid" },
+        { "id": "main-production-readonly", "description": "Production connection: read-only badge and red stripe" }
+      ]
+    },
+    "DataGrid": {
+      "states": [
+        { "id": "grid-pending-edit", "description": "Table editor with one edited cell and the pending bar" }
+      ]
+    },
+    "ConnectionDialog": {
+      "states": [
+        { "id": "dialog-general-network", "description": "New connection, network driver, General tab" },
+        { "id": "dialog-ssh-tab", "description": "SSH tunnel tab" },
+        { "id": "dialog-tls-tab", "description": "SSL / TLS tab" },
+        { "id": "dialog-advanced-tab", "description": "Advanced tab" },
+        { "id": "dialog-sqlite-file", "description": "File driver form (SQLite)" }
+      ]
+    },
+    "ImportExport": {
+      "states": [
+        { "id": "exchange-export", "description": "Export tab" },
+        { "id": "exchange-import", "description": "Import tab, source list" }
+      ]
+    },
+    "AIAssistant": { "pending": "add-ai-assistant" },
+    "AIProviders": { "pending": "add-ai-assistant" },
+    "CommandPalette": { "pending": "add-command-palette" },
+    "GraphBrowser": { "pending": "add-graph-browser" },
+    "MongoBrowser": { "pending": "needs the nosql Docker stack: the design suite adds container-backed states on Linux" },
+    "AppIcon": { "pending": "the mark appears in Welcome and the toolbar; the icon itself is checked by the app-icon spec" }
+  }
+}

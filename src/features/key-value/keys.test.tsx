@@ -160,7 +160,7 @@ afterEach(() => {
 });
 
 describe("the key list", () => {
-  it("groups keys by prefix with their types", async () => {
+  it("groups keys by prefix with their types (spec: key-value-browser › Group by prefix)", async () => {
     mount();
     const list = await screen.findByRole("listbox", { name: "Key list" });
     const session = within(list).getByRole("button", { name: /session:\*/ });
@@ -173,7 +173,7 @@ describe("the key list", () => {
     expect(within(list).getByRole("option", { name: "session:1" })).toHaveTextContent("1hash · 1m");
   });
 
-  it("scans incrementally and never uses KEYS", async () => {
+  it("scans incrementally and never uses KEYS (spec: key-value-browser › Keep scanning)", async () => {
     scanPages = {
       start: { cursor: "17", keys: [k("a:1", "string")] },
       "17": { cursor: "0", keys: [k("a:2", "string"), k("a:1", "string")] },
@@ -278,7 +278,7 @@ describe("viewing keys", () => {
     expect(within(table).getByText("free")).toBeInTheDocument();
   });
 
-  it("pages a long list in chunks", async () => {
+  it("pages a long list in chunks (spec: key-value-browser › Large collection)", async () => {
     details.queue = detail("queue", "list", 1200);
     pages.queue = {
       kind: "page",
@@ -344,7 +344,7 @@ describe("editing", () => {
     };
   });
 
-  it("changes a hash field with HSET and refreshes", async () => {
+  it("changes a hash field with HSET and refreshes (spec: key-value-browser › Edit a hash field)", async () => {
     mount(0, { selected: "session:42" });
     fireEvent.click(await screen.findByRole("button", { name: "Edit plan" }));
     const dialog = await screen.findByRole("dialog");

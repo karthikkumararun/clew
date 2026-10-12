@@ -37,7 +37,7 @@ describe("formatShortcut", () => {
 });
 
 describe("shortcut registry", () => {
-  it("maps Mod to Cmd on macOS and Ctrl on Windows", () => {
+  it("maps Mod to Cmd on macOS and Ctrl on Windows (spec: app-shell › Platform mapping)", () => {
     const run = vi.fn();
     const off = installShortcutListener();
     registerShortcut({ id: "k", keys: "Mod+K", scope: "global", run });
@@ -66,7 +66,7 @@ describe("shortcut registry", () => {
     off();
   });
 
-  it("rejects a second registration of the same keys in the same scope", () => {
+  it("rejects a second registration of the same keys in the same scope (spec: app-shell › Conflict detection)", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     const first = vi.fn();
     const second = vi.fn();
@@ -94,7 +94,7 @@ describe("shortcut registry", () => {
     spy.mockRestore();
   });
 
-  it("editor scope wins over global for focus inside the editor", () => {
+  it("editor scope wins over global for focus inside the editor (spec: app-shell › Editor-scoped shortcuts)", () => {
     setPlatformForTests("mac");
     const global = vi.fn();
     const editor = vi.fn();

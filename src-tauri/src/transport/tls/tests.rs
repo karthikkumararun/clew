@@ -142,6 +142,7 @@ async fn verify_full_accepts_a_matching_certificate() {
     );
 }
 
+/// (spec: driver-framework › verify-full with wrong hostname)
 #[tokio::test]
 async fn verify_full_rejects_the_wrong_host_name() {
     let pki = pki();

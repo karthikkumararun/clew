@@ -716,6 +716,7 @@ mod tests {
         assert_eq!(v("Infinity"), Bson::Double(f64::INFINITY));
     }
 
+    /// (spec: document-browser › Relaxed syntax)
     #[test]
     fn constructors() {
         assert_eq!(
@@ -777,6 +778,7 @@ mod tests {
         assert_eq!(v(r#""a\né\"""#), Bson::String("a\né\"".into()));
     }
 
+    /// (spec: document-browser › Invalid filter)
     #[test]
     fn errors_carry_a_position() {
         let e = parse_value("{ a: }").unwrap_err();
@@ -861,6 +863,7 @@ mod tests {
         ));
     }
 
+    /// (spec: document-browser › Unsupported JavaScript)
     #[test]
     fn javascript_is_refused() {
         for src in [

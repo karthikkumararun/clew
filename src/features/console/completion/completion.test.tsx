@@ -91,7 +91,7 @@ describe("tableRefs", () => {
 });
 
 describe("suggest", () => {
-  it("lists the columns of an aliased table after `alias.`, with types", () => {
+  it("lists the columns of an aliased table after `alias.`, with types (spec: sql-console › Alias columns)", () => {
     const s = suggest(
       input("select o. from orders o", { before: "select o.", after: " from orders o" }),
     );
@@ -292,7 +292,7 @@ describe("in the editor", () => {
     expect(names(view)).not.toContain("name");
   });
 
-  it("offers keywords before the snapshot arrives, then schema items without retyping", async () => {
+  it("offers keywords before the snapshot arrives, then schema items without retyping (spec: sql-console › Snapshot not loaded yet)", async () => {
     let release: (s: SchemaSnapshot) => void = () => {};
     api.snapshot.mockImplementation(() => new Promise((r) => (release = r)));
     const view = mount("sel");

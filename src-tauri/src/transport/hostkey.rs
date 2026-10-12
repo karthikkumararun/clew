@@ -232,6 +232,7 @@ mod tests {
         assert_eq!(kh.check("bastion", 22, &k).unwrap(), HostKeyStatus::Known);
     }
 
+    /// (spec: driver-framework › Changed host key)
     #[test]
     fn a_changed_key_is_a_mismatch_in_either_file() {
         let dir = tempfile::tempdir().unwrap();

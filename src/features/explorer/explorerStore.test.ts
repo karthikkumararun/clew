@@ -74,7 +74,7 @@ beforeEach(() => {
 afterEach(() => stop());
 
 describe("lazy expansion", () => {
-  it("connects first, then loads the databases, and only the expanded levels", async () => {
+  it("connects first, then loads the databases, and only the expanded levels (spec: database-explorer › Expand a disconnected connection)", async () => {
     await useExplorer.getState().toggle("c1");
     expect(useConnections.getState().connect).toHaveBeenCalledWith("c1");
     expect(api.children).toHaveBeenCalledTimes(1);
@@ -116,7 +116,7 @@ describe("lazy expansion", () => {
 });
 
 describe("errors", () => {
-  it("isolates a failure to its node and retries", async () => {
+  it("isolates a failure to its node and retries (spec: database-explorer › Load error)", async () => {
     await useExplorer.getState().toggle("c1");
     api.children.mockRejectedValueOnce({ code: "driver", message: "permission denied" });
     await useExplorer.getState().toggle(ID.db);
@@ -132,7 +132,7 @@ describe("errors", () => {
 });
 
 describe("refresh", () => {
-  it("reloads the subtree and keeps expanded children expanded", async () => {
+  it("reloads the subtree and keeps expanded children expanded (spec: database-explorer › Refresh)", async () => {
     const ex = useExplorer.getState();
     await ex.toggle("c1");
     for (const id of [ID.db, ID.schema, ID.tables, ID.orders]) await ex.toggle(id);
@@ -206,7 +206,7 @@ describe("persisted state and connection sync", () => {
 });
 
 describe("restart and tab sync", () => {
-  it("restores the expanded path after a simulated restart, only once the connection connects", async () => {
+  it("restores the expanded path after a simulated restart, only once the connection connects (spec: database-explorer › Restart)", async () => {
     const ex = useExplorer.getState();
     await ex.toggle("c1");
     for (const id of [ID.db, ID.schema, ID.tables]) await ex.toggle(id);
@@ -226,7 +226,7 @@ describe("restart and tab sync", () => {
     expect(useExplorer.getState().selectedId).toBe(ID.tables);
   });
 
-  it("reveals and selects a table when its editor tab becomes active", async () => {
+  it("reveals and selects a table when its editor tab becomes active (spec: database-explorer › Switch tab)", async () => {
     useConnections.setState({ connected: { c1: {} as never } });
     const path: NodePath = [...TABLES, { kind: "table", name: "orders" }];
     useWorkspace.setState({

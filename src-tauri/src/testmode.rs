@@ -17,6 +17,10 @@ pub const ENV_DATA_DIR: &str = "CLEW_DATA_DIR";
 pub const ENV_DIALOG_QUEUE: &str = "CLEW_E2E_DIALOG_QUEUE";
 pub const ENV_NOW: &str = "CLEW_E2E_NOW";
 pub const ENV_DATAGRIP_ROOT: &str = "CLEW_E2E_DATAGRIP_ROOT";
+/// `1` makes a run use the real OS keychain under [`KEYCHAIN_SERVICE`] instead of the secrets file.
+/// Only the smoke suite sets it (spec: e2e-testing › Native platform smoke checks).
+pub const ENV_KEYCHAIN: &str = "CLEW_E2E_KEYCHAIN";
+pub const KEYCHAIN_SERVICE: &str = "Clew-e2e";
 /// A queue line with this text answers a dialog as cancelled.
 pub const CANCEL: &str = "CANCEL";
 const SECRETS_FILE: &str = "e2e-secrets.json";
@@ -46,6 +50,11 @@ pub fn datagrip_root() -> Option<PathBuf> {
     std::env::var_os(ENV_DATAGRIP_ROOT)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
+}
+
+/// The run asked for the real keychain (test service name).
+pub fn real_keychain() -> bool {
+    active() && std::env::var(ENV_KEYCHAIN).is_ok_and(|v| v == "1")
 }
 
 /// Update checks and the Copilot download stay off in test mode, whatever the settings say.
@@ -173,6 +182,33 @@ pub fn e2e_exit(app: tauri::AppHandle) {
         std::thread::sleep(std::time::Duration::from_millis(2500));
         app.exit(0)
     });
+}
+
+fn keychain_entry(account: &str) -> Result<keyring::Entry, String> {
+    if !real_keychain() {
+        return Err("the real keychain is not enabled for this run".into());
+    }
+    keyring::Entry::new(KEYCHAIN_SERVICE, account).map_err(|e| e.to_string())
+}
+
+/// Read an item of the test service straight from the OS keychain (`<connection id>:password`).
+/// Lets a journey prove that a secret really reached the OS, not just the app's own store.
+#[tauri::command]
+pub fn e2e_keychain_get(account: String) -> Result<Option<String>, String> {
+    match keychain_entry(&account)?.get_password() {
+        Ok(p) => Ok(Some(p)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Remove an item of the test service; a missing item is fine. Journeys call it in cleanup.
+#[tauri::command]
+pub fn e2e_keychain_delete(account: String) -> Result<(), String> {
+    match keychain_entry(&account)?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 /// The fixed clock, if the run set one.

@@ -21,6 +21,7 @@ export function SidePanel() {
     <SplitPane
       edge="left"
       label={def.title}
+      metric="side-panel"
       defaultSize={SIDE_PANEL.default}
       min={SIDE_PANEL.min}
       max={SIDE_PANEL.max}

@@ -12,3 +12,6 @@ coverage/
 docker/postgres-tls/certs/
 docker/bastion/keys/
 e2e/artifacts/
+
+# local QA loop state (scripts/qa-lib.ts)
+.qa/

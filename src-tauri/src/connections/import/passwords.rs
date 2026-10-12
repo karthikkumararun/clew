@@ -240,6 +240,7 @@ pub(crate) mod tests {
             .unwrap();
     }
 
+    /// (spec: connection-management › Passwords from DataGrip's KeePass database)
     #[test]
     fn keepass_lookup_matches_entries_by_data_source_id() {
         let dir = tempfile::tempdir().unwrap();

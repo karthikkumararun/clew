@@ -1,0 +1,114 @@
+import { copyFileSync } from "node:fs";
+import { $, browser } from "@wdio/globals";
+import type { Connection } from "../../../src/lib/ipc/generated/Connection";
+import { connectionFactory } from "../../helpers/connections";
+import { createIsolatedDb } from "../../helpers/db";
+import { tablesPath } from "../../helpers/dialect";
+import { Console } from "../../pages/Console";
+import { ConnectionDialog } from "../../pages/ConnectionDialog";
+import { Exchange } from "../../pages/Exchange";
+import { Explorer } from "../../pages/Explorer";
+import { Grid } from "../../pages/Grid";
+import { TableEditor } from "../../pages/TableEditor";
+import { Welcome } from "../../pages/Welcome";
+
+/**
+ * How to reproduce a state of a canvas screen from the canvas sample data (connection names such
+ * as dev-sqlite and prod-sqlite, the Ada Lovelace rows of the `shop` seed). The runner seeds
+ * `connections`, restarts the app, then calls `steps` (spec: design-conformance › Screen state matrix).
+ */
+export interface StateFixture {
+  connections?(dir: string): Promise<Connection[]> | Connection[];
+  steps?(): Promise<void>;
+  /** Selectors of regions whose pixels change from run to run (timings, ids): masked in comparisons. */
+  masks?: string[];
+}
+
+const STATUS_BAR = '[data-metric="status-bar"]';
+
+/** A saved connection to a fresh copy of the `shop` seed (SQLite, so no containers). */
+async function shopConnection(dir: string, name: string, env: Connection["environment"]) {
+  const lite = await createIsolatedDb("sqlite");
+  const path = `${dir}/${name}.sqlite`;
+  copyFileSync(lite.name, path);
+  await lite.cleanup();
+  return connectionFactory.sqlite(name, path, env);
+}
+
+async function openConsole(name: string) {
+  await Explorer.select(name);
+  await browser.keys("Enter");
+  await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+}
+
+async function dialogTab(tab: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced") {
+  await Explorer.newConnectionButton().click();
+  await $('[role="dialog"]').waitForDisplayed({ timeout: 10_000 });
+  await ConnectionDialog.tab(tab).click();
+}
+
+export const STATES: Record<string, StateFixture> = {
+  "welcome-first-run": {
+    steps: async () => {
+      await Welcome.newConnection().waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "welcome-with-connections": {
+    connections: async (dir) => [
+      await shopConnection(dir, "dev-sqlite", "development"),
+      await shopConnection(dir, "prod-sqlite", "production"),
+    ],
+    steps: async () => {
+      await Explorer.row("dev-sqlite").waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "main-console-results": {
+    connections: async (dir) => [await shopConnection(dir, "dev-sqlite", "development")],
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await Console.setText("SELECT id, name, email, plan FROM users ORDER BY id LIMIT 20");
+      await Console.run();
+      await browser.waitUntil(async () => (await Grid.rowCount()) > 0, {
+        timeoutMsg: "rows expected",
+      });
+    },
+  },
+  "main-production-readonly": {
+    connections: async (dir) => [await shopConnection(dir, "prod-sqlite", "production")],
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("prod-sqlite");
+      await $('.//button[starts-with(normalize-space(.), "PRODUCTION")]').waitForDisplayed({
+        timeout: 10_000,
+      });
+    },
+  },
+  "grid-pending-edit": {
+    connections: async (dir) => [await shopConnection(dir, "dev-sqlite", "development")],
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      const lite = { dialect: "sqlite" as const, name: "", cleanup: async () => {} };
+      await Explorer.reveal(tablesPath("dev-sqlite", lite));
+      await Explorer.open("orders");
+      await browser.waitUntil(async () => (await Grid.rowCount()) > 0, {
+        timeoutMsg: "rows expected",
+      });
+      await TableEditor.editCell(0, "status", "shipped");
+      await TableEditor.pendingBar().waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "dialog-general-network": { steps: () => dialogTab("General") },
+  "dialog-ssh-tab": { steps: () => dialogTab("SSH tunnel") },
+  "dialog-tls-tab": { steps: () => dialogTab("SSL / TLS") },
+  "dialog-advanced-tab": { steps: () => dialogTab("Advanced") },
+  "dialog-sqlite-file": {
+    steps: async () => {
+      await dialogTab("General");
+      await ConnectionDialog.driver("SQLite").click();
+    },
+  },
+  "exchange-export": { steps: () => Exchange.open("export") },
+  "exchange-import": { steps: () => Exchange.open("import") },
+};

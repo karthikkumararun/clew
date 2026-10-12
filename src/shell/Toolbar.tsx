@@ -28,7 +28,12 @@ export function Toolbar() {
   const toggleSidebar = useLayout((s) => s.toggleSidebar);
 
   return (
-    <header className={styles.toolbar} data-tauri-drag-region data-overlay={isMac()}>
+    <header
+      className={styles.toolbar}
+      data-tauri-drag-region
+      data-overlay={isMac()}
+      data-metric="toolbar"
+    >
       <div className={styles.brand} data-tauri-drag-region>
         <ClewMark size={20} />
         <span className={styles.wordmark} data-tauri-drag-region>

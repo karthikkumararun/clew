@@ -4,7 +4,8 @@ import { registerTabStatusItems } from "./tabStatus";
 import { useSettings } from "../stores/settingsStore";
 import { useLayout } from "../stores/layoutStore";
 import { useWorkspace } from "../stores/workspaceStore";
-import { APP_VERSION } from "../lib/appInfo";
+import { AboutLink } from "./AboutDialog";
+import { useAbout } from "./aboutStore";
 
 /** Commands and status items owned by the shell itself. Returns a disposer. */
 export function registerShellCommands(): () => void {
@@ -22,6 +23,12 @@ export function registerShellCommands(): () => void {
       category: "App",
       shortcut: "Mod+,",
       run: () => useSettings.getState().openDialog(),
+    }),
+    registerCommand({
+      id: "app.about",
+      title: "About Clew",
+      category: "App",
+      run: () => useAbout.getState().show(),
     }),
     registerCommand({
       id: "tab.close",
@@ -52,7 +59,7 @@ export function registerShellCommands(): () => void {
       id: "app.version",
       side: "right",
       order: 1000,
-      render: () => `Clew v${APP_VERSION}`,
+      render: () => <AboutLink />,
     }),
   ];
   return () => disposers.forEach((d) => d());

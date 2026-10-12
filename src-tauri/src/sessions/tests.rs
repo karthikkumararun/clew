@@ -334,6 +334,7 @@ async fn streams_columns_rows_done() {
     assert_eq!(kinds(&log), ["columns#0", "rows", "done"]);
 }
 
+/// (spec: driver-framework › Statement without a result set)
 #[tokio::test]
 async fn statement_without_result_set_reports_rows_affected() {
     let h = harness(None).await;
@@ -352,6 +353,7 @@ async fn statement_without_result_set_reports_rows_affected() {
     assert_eq!(kinds(&log), ["done"]);
 }
 
+/// (spec: driver-framework › SQL error with position)
 #[tokio::test]
 async fn query_error_is_returned_and_emitted_with_position() {
     let h = harness(None).await;
@@ -392,6 +394,7 @@ async fn unknown_session_is_an_error() {
 
 // ---- script mode -----------------------------------------------------------------------------
 
+/// (spec: driver-framework › Multiple statements)
 #[tokio::test]
 async fn script_runs_statements_in_order_with_their_own_results() {
     let h = harness(None).await;
@@ -432,6 +435,7 @@ async fn script_runs_statements_in_order_with_their_own_results() {
     assert_eq!(ids, [1, 2, 3]);
 }
 
+/// (spec: driver-framework › Multiple statements)
 #[tokio::test]
 async fn script_stops_at_the_first_error() {
     let h = harness(None).await;
@@ -448,6 +452,7 @@ async fn script_stops_at_the_first_error() {
     );
 }
 
+/// (spec: driver-framework › Multiple statements)
 #[tokio::test]
 async fn script_can_continue_on_error() {
     let h = harness(None).await;
@@ -487,6 +492,7 @@ async fn continue_on_error_still_stops_when_the_connection_is_lost() {
 
 // ---- transactions share one session ----------------------------------------------------------
 
+/// (spec: driver-framework › Transaction spans statements)
 #[tokio::test]
 async fn statements_in_one_tab_run_on_one_physical_connection() {
     let h = harness(None).await;
@@ -508,6 +514,7 @@ async fn each_tab_gets_its_own_session() {
 
 // ---- cancel ----------------------------------------------------------------------------------
 
+/// (spec: driver-framework › User cancels)
 #[tokio::test]
 async fn cancel_stops_a_running_statement_and_leaves_the_session_usable() {
     let h = harness(None).await;
@@ -559,6 +566,7 @@ async fn cancelling_a_script_stops_the_remaining_statements() {
 
 // ---- timeout ---------------------------------------------------------------------------------
 
+/// (spec: driver-framework › Timeout)
 #[tokio::test]
 async fn a_statement_over_the_query_timeout_is_cancelled_with_a_timeout_error() {
     let h = harness(Some(1)).await;
@@ -594,6 +602,7 @@ async fn fast_statements_are_unaffected_by_the_timeout() {
 
 // ---- lost connection -------------------------------------------------------------------------
 
+/// (spec: driver-framework › Lost connection)
 #[tokio::test]
 async fn lost_connection_fails_once_then_reconnects_on_the_next_execute() {
     let h = harness(None).await;
@@ -620,6 +629,7 @@ async fn lost_connection_fails_once_then_reconnects_on_the_next_execute() {
     assert_eq!(kinds(&log), ["notice", "columns#0", "rows", "done"]);
 }
 
+/// (spec: driver-framework › Lost connection)
 #[tokio::test]
 async fn reconnect_reports_a_rolled_back_transaction() {
     let h = harness(None).await;
@@ -677,6 +687,7 @@ async fn committed_transactions_are_not_reported_as_rolled_back() {
 
 // ---- metadata pool ---------------------------------------------------------------------------
 
+/// (spec: driver-framework › Introspection does not block a running query)
 #[tokio::test]
 async fn introspection_does_not_wait_for_a_running_query() {
     let h = harness(None).await;
@@ -697,6 +708,7 @@ async fn introspection_does_not_wait_for_a_running_query() {
 
 // ---- registry / lifecycle --------------------------------------------------------------------
 
+/// (spec: driver-framework › Unknown driver in a saved connection)
 #[tokio::test]
 async fn connecting_with_an_unknown_driver_is_driver_unavailable() {
     let mgr = SessionManager::new(Arc::new(Registry::new()), ssh_env());
@@ -712,6 +724,7 @@ async fn opening_a_session_for_an_unconnected_connection_fails() {
     assert!(mgr.open_session("nope").await.is_err());
 }
 
+/// (spec: driver-framework › Host unreachable)
 #[tokio::test]
 async fn a_slow_host_times_out_naming_host_and_port() {
     let mut config = cfg(None);

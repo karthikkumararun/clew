@@ -245,7 +245,7 @@ describe("which tables can be edited", () => {
     expect(screen.getByRole("button", { name: "Add row" })).toBeDisabled();
   });
 
-  it("explains a table without a unique key", async () => {
+  it("explains a table without a unique key (spec: table-editor › Not editable)", async () => {
     api.meta.mockResolvedValue({
       ...META,
       columns: META.columns.map((c) => ({ ...c, primaryKey: false })),
@@ -296,7 +296,7 @@ describe("staging edits", () => {
     expect(screen.getByRole("button", { name: "Set DEFAULT" })).toBeEnabled();
   });
 
-  it("undoes a single change with Mod+Z", async () => {
+  it("undoes a single change with Mod+Z (spec: table-editor › Undo a single change)", async () => {
     await mount();
     await edit(0, 1, "shipped");
     await edit(1, 1, "returned");
@@ -354,7 +354,7 @@ describe("staging edits", () => {
 });
 
 describe("preview and submit", () => {
-  it("previews the generated SQL, keyed by primary key", async () => {
+  it("previews the generated SQL, keyed by primary key (spec: table-editor › Preview SQL)", async () => {
     await mount();
     await edit(0, 1, "shipped");
     fireEvent.click(screen.getByRole("button", { name: "Preview SQL" }));
@@ -444,7 +444,7 @@ describe("preview and submit", () => {
     expect(bar).toHaveTextContent("1 pending change");
   });
 
-  it("keeps every change and marks the failing row when the transaction fails", async () => {
+  it("keeps every change and marks the failing row when the transaction fails (spec: table-editor › Submit fails)", async () => {
     api.apply.mockResolvedValue({
       applied: 0,
       failure: {
@@ -468,7 +468,7 @@ describe("preview and submit", () => {
     expect(within(bar).queryByRole("button", { name: "Reload" })).toBeNull();
   });
 
-  it("tells the user a row changed under them and offers to reload", async () => {
+  it("tells the user a row changed under them and offers to reload (spec: table-editor › Row changed by someone else)", async () => {
     api.apply.mockResolvedValue({
       applied: 0,
       failure: {
@@ -494,7 +494,7 @@ describe("preview and submit", () => {
 });
 
 describe("leaving with pending changes", () => {
-  it("stays on the page when cancelled", async () => {
+  it("stays on the page when cancelled (spec: table-editor › Leaving with pending changes)", async () => {
     totalRows = 500;
     await mount(writable, { page: 0 });
     await waitFor(() => expect(screen.getByRole("button", { name: "Next page" })).toBeEnabled());
@@ -531,7 +531,7 @@ describe("leaving with pending changes", () => {
     await waitFor(() => expect(tabState().page).toBe(1));
   });
 
-  it("asks before closing the tab", async () => {
+  it("asks before closing the tab (spec: table-editor › Leaving with pending changes)", async () => {
     const id = await mount();
     await edit(0, 1, "shipped");
     const tab = useWorkspace.getState().tabs.find((t) => t.id === id)!;

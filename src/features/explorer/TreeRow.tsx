@@ -246,6 +246,7 @@ export function TreeRow(p: TreeRowProps) {
   return (
     <div
       {...common}
+      data-metric="tree-row"
       role="treeitem"
       aria-expanded={expandable ? expanded : undefined}
       aria-busy={loading || undefined}

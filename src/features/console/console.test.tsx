@@ -195,7 +195,7 @@ describe("restoring after a restart", () => {
 });
 
 describe("Mod+T", () => {
-  it("opens for the connection selected in the explorer", async () => {
+  it("opens for the connection selected in the explorer (spec: sql-console › New console)", async () => {
     useExplorer.setState({ selectedId: "c2/database:analytics" });
     expect(
       dispatchShortcut(new KeyboardEvent("keydown", { key: "t", code: "KeyT", metaKey: true })),
@@ -210,7 +210,7 @@ describe("Mod+T", () => {
     expect(tabs().map((t) => (t.state as ConsoleState).connectionId)).toEqual(["c1", "c1"]);
   });
 
-  it("asks which connection first when there is no context", async () => {
+  it("asks which connection first when there is no context (spec: sql-console › No connection chosen)", async () => {
     render(<ConnectionPickerHost />);
     let done: Promise<boolean> = Promise.resolve(false);
     act(() => {

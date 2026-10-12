@@ -147,6 +147,7 @@ both! {
 
 both! {
     specifics:
+    // (spec: driver-framework › Cancel a long query)
     cancel_select_sleep => |_f| async move {
         // The spec scenario: SELECT SLEEP(60). MySQL returns from an interrupted SLEEP() without
         // an error, so only the timing and the session's health are checked.

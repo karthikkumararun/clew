@@ -25,7 +25,7 @@ describe("CellViewer", () => {
     value: { id: 7, tags: ["a", "b"], nested: { ok: true, none: null } },
   };
 
-  it("shows indented, highlighted JSON that folds", () => {
+  it("shows indented, highlighted JSON that folds (spec: data-grid › JSON cell)", () => {
     render(<CellViewer value={json} column={col} onClose={() => {}} />);
     expect(screen.getByRole("dialog")).toHaveTextContent("payload · jsonb");
     const tree = screen.getByRole("tree", { name: "JSON" });
@@ -39,7 +39,7 @@ describe("CellViewer", () => {
     expect(tree).toHaveTextContent('"ok": true');
   });
 
-  it("copies the pretty-printed JSON", async () => {
+  it("copies the pretty-printed JSON (spec: data-grid › JSON cell)", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     render(<CellViewer value={json} column={col} onClose={() => {}} />);
@@ -69,7 +69,7 @@ describe("CellViewer", () => {
     expect(screen.getByText("NULL")).toBeInTheDocument();
   });
 
-  it("fetches the whole value of a truncated cell", async () => {
+  it("fetches the whole value of a truncated cell (spec: data-grid › Truncated value)", async () => {
     const full: Value = { kind: "text", value: "the whole long value" };
     render(
       <CellViewer

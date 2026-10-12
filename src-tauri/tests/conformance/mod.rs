@@ -243,6 +243,7 @@ impl Connected {
 // Scenarios
 // ---------------------------------------------------------------------------------------------
 
+/// (spec: driver-framework › Successful test)
 pub async fn test_connection_reports_the_server(s: &Suite) {
     let mgr = manager();
     let info: ServerInfo = mgr.test_connection(&s.cfg).await.expect("test connection");
@@ -263,6 +264,7 @@ pub async fn session_reports_the_server(s: &Suite) {
     assert_eq!(info.product, s.dialect.product);
 }
 
+/// (spec: driver-framework › Large result is paged)
 pub async fn large_results_are_paged(s: &Suite) {
     let c = connect(&s.cfg).await;
     let sql = (s.dialect.generate_rows)(1200);
@@ -335,6 +337,7 @@ pub async fn column_metadata(s: &Suite) {
     assert!(!cols[0].type_name.is_empty());
 }
 
+/// (spec: driver-framework › Statement without a result set)
 pub async fn rows_affected_without_a_result_set(s: &Suite, table: &str) {
     let c = connect(&s.cfg).await;
     c.must(&format!("DROP TABLE IF EXISTS {table}")).await;
@@ -362,6 +365,7 @@ pub async fn rows_affected_without_a_result_set(s: &Suite, table: &str) {
     c.must(&format!("DROP TABLE {table}")).await;
 }
 
+/// (spec: driver-framework › Multiple statements)
 pub async fn scripts_run_in_order_and_stop_on_error(s: &Suite) {
     let c = connect(&s.cfg).await;
     let ok = run_script(
@@ -388,6 +392,7 @@ pub async fn scripts_run_in_order_and_stop_on_error(s: &Suite) {
     assert_eq!(carried.rows().len(), 2, "continue-on-error runs the rest");
 }
 
+/// (spec: driver-framework › SQL error with position)
 pub async fn syntax_errors_carry_a_position(s: &Suite) {
     let c = connect(&s.cfg).await;
     let r = c.run(s.dialect.syntax_error).await;
@@ -401,6 +406,7 @@ pub async fn syntax_errors_carry_a_position(s: &Suite) {
     assert_eq!(c.must("SELECT 1").await.scalar_int(), 1);
 }
 
+/// (spec: driver-framework › Transaction spans statements)
 pub async fn transactions_span_statements(s: &Suite, table: &str) {
     let c = connect(&s.cfg).await;
     c.must(&format!("DROP TABLE IF EXISTS {table}")).await;
@@ -448,6 +454,7 @@ pub async fn temporary_tables_belong_to_the_session(s: &Suite, table: &str) {
     assert!(r.result.is_err(), "a temp table is private to its session");
 }
 
+/// (spec: driver-framework › User cancels)
 pub async fn cancel_stops_a_long_query(s: &Suite) {
     let c = connect(&s.cfg).await;
     let mgr = c.mgr.clone();
@@ -476,6 +483,7 @@ pub async fn cancel_stops_a_long_query(s: &Suite) {
     );
 }
 
+/// (spec: driver-framework › Timeout)
 pub async fn the_query_timeout_cancels_the_statement(s: &Suite) {
     let mut cfg = s.cfg.clone();
     cfg.query_timeout_secs = Some(1);
@@ -491,6 +499,7 @@ pub async fn the_query_timeout_cancels_the_statement(s: &Suite) {
     assert_eq!(c.must("SELECT 1").await.scalar_int(), 1);
 }
 
+/// (spec: driver-framework › Lost connection)
 pub async fn a_killed_connection_is_reported_then_reconnected(s: &Suite) {
     let (Some(id_sql), Some(kill)) = (s.dialect.backend_id_sql, s.dialect.kill_sql) else {
         return;
@@ -520,6 +529,7 @@ pub async fn a_killed_connection_is_reported_then_reconnected(s: &Suite) {
     c.must(id_sql).await;
 }
 
+/// (spec: driver-framework › Lost connection)
 pub async fn an_open_transaction_is_reported_rolled_back_after_a_kill(s: &Suite) {
     let (Some(id_sql), Some(kill)) = (s.dialect.backend_id_sql, s.dialect.kill_sql) else {
         return;
@@ -539,6 +549,7 @@ pub async fn an_open_transaction_is_reported_rolled_back_after_a_kill(s: &Suite)
     );
 }
 
+/// (spec: driver-framework › Introspection does not block a running query)
 pub async fn introspection_works_while_a_query_runs(s: &Suite) {
     let c = connect(&s.cfg).await;
     let mgr = c.mgr.clone();
@@ -564,6 +575,7 @@ pub async fn introspection_works_while_a_query_runs(s: &Suite) {
     let _ = task.await;
 }
 
+/// (spec: driver-framework › Wrong password)
 pub async fn wrong_credentials_are_auth_failed(cfg: &ResolvedConfig, secret: &str) {
     let mgr = manager();
     let err = mgr
@@ -577,6 +589,7 @@ pub async fn wrong_credentials_are_auth_failed(cfg: &ResolvedConfig, secret: &st
     );
 }
 
+/// (spec: driver-framework › Host unreachable)
 pub async fn an_unreachable_host_times_out(cfg: &ResolvedConfig, host: &str) {
     let mgr = manager();
     let started = Instant::now();
@@ -593,6 +606,7 @@ pub async fn an_unreachable_host_times_out(cfg: &ResolvedConfig, host: &str) {
     assert!(started.elapsed() < Duration::from_secs(8));
 }
 
+/// (spec: driver-framework › Unknown driver in a saved connection)
 pub async fn unknown_driver_is_unavailable(cfg: &ResolvedConfig) {
     let mut cfg = cfg.clone();
     cfg.driver = "no-such-driver".into();

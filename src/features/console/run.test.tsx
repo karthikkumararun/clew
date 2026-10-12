@@ -150,7 +150,7 @@ afterEach(() => {
 const SQL = "select 1;\n\nselect id, name\nfrom users;\n\nselect 3";
 
 describe("run modes", () => {
-  it("runs only the statement under the cursor and shows its rows", async () => {
+  it("runs only the statement under the cursor and shows its rows (spec: sql-console › Run current statement)", async () => {
     const { runtime } = await mountConsole(SQL, SQL.indexOf("from users"));
     await act(async () => void (await runCommand("console.run")));
     expect(api.execute).toHaveBeenCalledTimes(1);
@@ -178,7 +178,7 @@ describe("run modes", () => {
     expect(api.execute.mock.calls[0][1].script).toBe(true);
   });
 
-  it("runs the whole script and shows every result set as a sub-tab", async () => {
+  it("runs the whole script and shows every result set as a sub-tab (spec: sql-console › Run script with several results)", async () => {
     api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
       rowsResult(send, 1, 0, [[int(1), text("a")]]);
       rowsResult(send, 2, 1, [[int(2), text("b")]]);
@@ -201,7 +201,7 @@ describe("run modes", () => {
     expect(runtime.store.getState().output).toHaveLength(3);
   });
 
-  it("shows Output for a statement without rows", async () => {
+  it("shows Output for a statement without rows (spec: sql-console › Statement without rows)", async () => {
     api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
       send({ event: "done", result_id: 1, summary: summary({ rows_affected: 3, elapsed_ms: 4 }) });
       return null;
@@ -252,7 +252,7 @@ describe("cancel and a busy session", () => {
     expect(await screen.findByRole("button", { name: /^Run/ })).toBeInTheDocument();
   });
 
-  it("cancels on the Cancel button and logs how long it ran", async () => {
+  it("cancels on the Cancel button and logs how long it ran (spec: sql-console › Cancel)", async () => {
     const run = hang();
     await mountConsole("select pg_sleep(60)", 3);
     act(() => void runCommand("console.run"));
@@ -273,7 +273,7 @@ describe("cancel and a busy session", () => {
     await flush();
   });
 
-  it("asks before running while another query runs, and runs after cancelling", async () => {
+  it("asks before running while another query runs, and runs after cancelling (spec: sql-console › Run while another query runs)", async () => {
     const first = hang();
     await mountConsole("select 1;\n\nselect 2", 3);
     act(() => void runCommand("console.run"));
@@ -326,7 +326,7 @@ describe("cancel and a busy session", () => {
 });
 
 describe("results", () => {
-  it("fetches the next page when the end of the loaded rows is in view", async () => {
+  it("fetches the next page when the end of the loaded rows is in view (spec: sql-console › Fetch more rows on scroll)", async () => {
     api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
       rowsResult(
         send,
@@ -414,7 +414,7 @@ describe("results", () => {
 });
 
 describe("schema changes", () => {
-  it("refreshes the completion snapshot after a successful DDL statement", async () => {
+  it("refreshes the completion snapshot after a successful DDL statement (spec: sql-console › Stale schema)", async () => {
     api.execute.mockImplementation(async (_s: string, _r: unknown, send: Send) => {
       send({ event: "done", result_id: 1, summary: summary({ rows_affected: 0 }) });
       return null;

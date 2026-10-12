@@ -1,0 +1,27 @@
+name: Fix PR check
+
+# Pull requests from fix/* branches or labelled "defect" must carry a test (or say why not), a
+# linked issue, a spec scenario and a defect class (spec: release-qa › Fix pull request check).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  fix-pr:
+    if: startsWith(github.head_ref, 'fix/') || contains(github.event.pull_request.labels.*.name, 'defect')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsx scripts/check-fix-pr.ts ${{ github.event.pull_request.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}

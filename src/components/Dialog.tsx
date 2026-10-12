@@ -72,6 +72,7 @@ export function Dialog({
         aria-labelledby={titleId}
         tabIndex={-1}
         className={styles.dialog}
+        data-metric="dialog"
         style={{ maxWidth }}
         onKeyDown={onKeyDown}
       >

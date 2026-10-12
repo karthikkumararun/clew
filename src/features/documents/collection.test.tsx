@@ -221,7 +221,7 @@ afterEach(() => {
 });
 
 describe("opening a collection", () => {
-  it("shows the first 50 documents sorted by _id descending", async () => {
+  it("shows the first 50 documents sorted by _id descending (spec: document-browser › Open a collection)", async () => {
     mount();
     await screen.findByText(/^\(1\) ObjectId\("6703/);
     const [find] = calls("find") as { sort: string; filter: string; page_size: number }[];
@@ -276,7 +276,7 @@ describe("the query bar", () => {
     await waitFor(() => expect(calls("find").length).toBeGreaterThanOrEqual(3));
   });
 
-  it("shows a parse error under the bar and keeps the old documents", async () => {
+  it("shows a parse error under the bar and keeps the old documents (spec: document-browser › Invalid filter)", async () => {
     mount();
     await screen.findByText(/^\(1\)/);
     findError = { message: "Filter: Expected a value but the text ended", detail: "position:6" };
@@ -392,7 +392,7 @@ describe("editing", () => {
     expect(calls("update")).toHaveLength(0);
   });
 
-  it("offers Reload or Overwrite when the document changed underneath", async () => {
+  it("offers Reload or Overwrite when the document changed underneath (spec: document-browser › Concurrent modification)", async () => {
     writeReply = (req) =>
       (req as { force?: boolean }).force
         ? { kind: "written", inserted: [], matched: 1, modified: 1, deleted: 0 }
@@ -479,7 +479,7 @@ describe("editing", () => {
 });
 
 describe("schema, indexes and export", () => {
-  it("shows the inferred schema", async () => {
+  it("shows the inferred schema (spec: document-browser › Mixed types)", async () => {
     mount({ pane: "schema" });
     const table = await screen.findByRole("table", { name: "Inferred schema" });
     expect(within(table).getByText("coupon")).toBeInTheDocument();
@@ -558,7 +558,7 @@ describe("the side list and the aggregation view", () => {
     );
   });
 
-  it("runs a pipeline and shows the grouped results", async () => {
+  it("runs a pipeline and shows the grouped results (spec: document-browser › Aggregate)", async () => {
     api.docCall.mockImplementation(
       async (_s: string, req: DocRequest, onDocs?: (id: number, d: EJson[]) => void) => {
         if (req.op === "aggregate") {
@@ -599,7 +599,7 @@ describe("the side list and the aggregation view", () => {
 });
 
 describe("more of the spec", () => {
-  it("changes a field's type through the type menu", async () => {
+  it("changes a field's type through the type menu (spec: document-browser › Change a field type)", async () => {
     mount();
     fireEvent.click(await screen.findByRole("button", { name: "Expand all" }));
     fireEvent.doubleClick((await screen.findByText("1042")).closest("tr")!);

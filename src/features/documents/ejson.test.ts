@@ -14,7 +14,7 @@ import {
 const oid = { $oid: "6703f1c2a9e41d7c2e0fb812" };
 
 suite("describe", () => {
-  it("names every BSON type the canvas shows", () => {
+  it("names every BSON type the canvas shows (spec: driver-framework › ObjectId display)", () => {
     expect(describe(oid)).toMatchObject({
       type: "ObjectId",
       display: 'ObjectId("6703f1c2a9e41d7c2e0fb812")',

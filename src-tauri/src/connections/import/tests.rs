@@ -88,6 +88,7 @@ fn by_name<'a>(scan: &'a Scan, name: &str) -> &'a Candidate {
     scan.candidates.iter().find(|c| c.name == name).unwrap()
 }
 
+/// (spec: connection-management › Unsupported driver; connection-management › Credentials embedded in a URL)
 #[test]
 fn datagrip_scan_lists_statuses_counts_and_notes() {
     let f = fx();
@@ -113,6 +114,7 @@ fn datagrip_scan_lists_statuses_counts_and_notes() {
     );
 }
 
+/// (spec: connection-management › Duplicate connection)
 #[test]
 fn already_in_clew_is_detected_by_driver_host_port_database_and_user() {
     let f = fx();
@@ -140,6 +142,7 @@ fn already_in_clew_is_detected_by_driver_host_port_database_and_user() {
     assert_eq!(c.note.as_deref(), Some("Already in Clew"));
 }
 
+/// (spec: connection-management › Environment from name; connection-management › Consoles follow their connection; connection-management › Credentials embedded in a URL)
 #[test]
 fn commit_creates_connections_with_environment_group_secrets_and_linked_consoles() {
     let f = fx();
@@ -255,6 +258,7 @@ fn environment_option_overrides_detection_and_single_group_collects_all() {
     );
 }
 
+/// (spec: connection-management › Merge into an existing connection)
 #[test]
 fn merge_only_links_consoles_to_the_existing_connection_without_a_new_one() {
     let f = fx();
@@ -295,6 +299,7 @@ fn merge_only_links_consoles_to_the_existing_connection_without_a_new_one() {
     assert_eq!(std::fs::read_dir(&scripts).unwrap().count(), 4);
 }
 
+/// (spec: connection-management › Name collision)
 #[test]
 fn name_and_file_collisions_get_suffixes_and_nothing_is_overwritten() {
     let f = fx();
@@ -363,6 +368,7 @@ fn unavailable_candidates_cannot_be_imported_and_scans_expire() {
     );
 }
 
+/// (spec: connection-management › Import from DBeaver)
 #[test]
 fn dbeaver_and_pgpass_scans_import_with_optional_passwords() {
     let f = fx();
@@ -412,6 +418,7 @@ fn dbeaver_and_pgpass_scans_import_with_optional_passwords() {
     );
 }
 
+/// (spec: connection-management › Passwords from DataGrip's KeePass database)
 #[test]
 fn datagrip_passwords_need_the_keepass_master_password_when_datagrip_uses_keepass() {
     let f = fx();
@@ -563,6 +570,7 @@ fn export_then_import_round_trips_settings_secrets_keys_and_sql_files() {
     );
 }
 
+/// (spec: connection-management › Wrong passphrase; connection-management › Tampered file; connection-management › Newer format; connection-management › Duplicate connection)
 #[test]
 fn clew_import_failures_are_specific() {
     let f = fx();

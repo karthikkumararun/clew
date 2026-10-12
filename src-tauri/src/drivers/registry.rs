@@ -162,6 +162,7 @@ mod tests {
         assert_eq!(sql, ["PostgreSQL", "SQLite"]);
     }
 
+    /// (spec: driver-framework › Unknown driver in a saved connection)
     #[test]
     fn unknown_driver_is_driver_unavailable_and_names_it() {
         let err = fake_registry().get("oracle").err().unwrap();
@@ -174,6 +175,7 @@ mod tests {
         assert!(fake_registry().get("sqlite").is_ok());
     }
 
+    /// (spec: driver-framework › List drivers)
     #[test]
     fn default_registry_ships_postgres_mysql_mariadb_and_sqlite() {
         let r = Registry::with_defaults();

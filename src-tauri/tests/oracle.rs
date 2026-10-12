@@ -148,6 +148,7 @@ async fn a_missing_client_is_explained() {
 
 // ---- scripts, PL/SQL and output --------------------------------------------------------------
 
+/// (spec: driver-framework › PL/SQL block in a script); (spec: driver-framework › DBMS_OUTPUT)
 #[tokio::test]
 async fn a_plsql_block_in_a_script_runs_as_one_statement_and_prints_its_output() {
     let c = connect(&cfg()).await;
@@ -334,6 +335,7 @@ async fn large_objects_are_truncated() {
 
 // ---- read-only -------------------------------------------------------------------------------
 
+/// (spec: driver-framework › Read-only session)
 #[tokio::test]
 async fn read_only_sessions_block_writes_and_the_database_backs_it_up() {
     let seed = connect(&cfg()).await;

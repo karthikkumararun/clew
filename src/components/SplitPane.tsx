@@ -18,6 +18,8 @@ export interface SplitPaneProps {
   persistKey?: string;
   onSizeChange?: (size: number) => void;
   label: string;
+  /** `data-metric` name of the pane, for design measurements. */
+  metric?: string;
   children: ReactNode;
 }
 
@@ -31,6 +33,7 @@ export function SplitPane({
   persistKey,
   onSizeChange,
   label,
+  metric,
   children,
 }: SplitPaneProps) {
   const [size, setSizeState] = useState(() =>
@@ -83,7 +86,7 @@ export function SplitPane({
   };
 
   return (
-    <div className={styles.pane} style={{ width: size }}>
+    <div className={styles.pane} style={{ width: size }} data-metric={metric}>
       {children}
       <div
         role="separator"

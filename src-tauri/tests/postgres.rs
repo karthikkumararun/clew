@@ -64,6 +64,7 @@ async fn test_connection() {
     test_connection_reports_the_server(&suite()).await;
 }
 
+/// (spec: driver-framework › Server version in status); (spec: driver-framework › Successful test)
 #[tokio::test]
 async fn the_server_version_shows_in_the_session() {
     let s = suite();
@@ -191,6 +192,7 @@ async fn source_table_and_column_are_reported_for_editing() {
     c.must("DROP TABLE conf_pg_src").await;
 }
 
+/// (spec: driver-framework › Exact decimals); (spec: driver-framework › Unsupported type)
 #[tokio::test]
 async fn type_decoding_covers_the_value_model() {
     let c = connect(&suite().cfg).await;
@@ -332,6 +334,7 @@ async fn enums_and_domains_decode_as_text() {
     c.must("DROP DOMAIN conf_dom").await;
 }
 
+/// (spec: driver-framework › Large values)
 #[tokio::test]
 async fn large_values_are_truncated_and_can_be_fetched_whole() {
     let c = connect(&suite().cfg).await;
@@ -474,6 +477,7 @@ fn find<'a>(nodes: &'a [TreeNode], name: &str) -> &'a TreeNode {
     })
 }
 
+/// (spec: driver-framework › Expand tables); (spec: driver-framework › Column details)
 #[tokio::test]
 async fn the_tree_loads_lazily_down_to_columns() {
     let c = connect(&suite().cfg).await;
@@ -590,6 +594,7 @@ async fn the_tree_loads_lazily_down_to_columns() {
     c.must("DROP SCHEMA conf_tree CASCADE").await;
 }
 
+/// (spec: driver-framework › Permission denied on a schema)
 #[tokio::test]
 async fn a_schema_without_usage_is_listed_as_access_denied() {
     let c = connect(&suite().cfg).await;
@@ -622,6 +627,7 @@ async fn a_schema_without_usage_is_listed_as_access_denied() {
     c.must("DROP ROLE conf_viewer").await;
 }
 
+/// (spec: driver-framework › Completion snapshot)
 #[tokio::test]
 async fn the_completion_snapshot_has_everything_in_one_call() {
     let c = connect(&suite().cfg).await;
@@ -713,6 +719,7 @@ async fn require_fails_when_the_server_has_no_tls() {
     assert_eq!(err.code, ErrorCode::TlsFailed, "{err:?}");
 }
 
+/// (spec: driver-framework › verify-full with wrong hostname)
 #[tokio::test]
 async fn verify_full_with_the_wrong_host_name_is_tls_failed_and_names_the_mismatch() {
     let err = manager()
@@ -1073,6 +1080,7 @@ async fn staged_changes_apply_with_typed_parameters_and_roll_back_on_conflict() 
     c.must("DROP TYPE ch_status").await;
 }
 
+/// (spec: production-safeguards › Database-level enforcement)
 #[tokio::test]
 async fn read_only_sessions_are_enforced_by_the_database_and_estimates_come_from_explain() {
     use clew_lib::safety::guard::{Decision, Policy};

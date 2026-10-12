@@ -125,6 +125,78 @@ describe("rendering", () => {
     expect(container.querySelector('[title="12,480 rows · exact"]')).not.toBeNull();
   });
 
+  it("shows four environment headers in order, each with its connections (spec: database-explorer › All four environments)", () => {
+    useConnections.setState({
+      file: file([
+        conn("a", "local-db", { environment: "local" }),
+        conn("b", "dev-db", { environment: "development" }),
+        conn("c", "stage-db", { environment: "staging" }),
+        conn("d", "prod-db", { environment: "production" }),
+      ]),
+    });
+    render(<ExplorerPanel />);
+    const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
+    expect(labels).toEqual([
+      "PRODUCTION",
+      expect.stringContaining("prod-db"),
+      "STAGING",
+      expect.stringContaining("stage-db"),
+      "DEVELOPMENT",
+      expect.stringContaining("dev-db"),
+      "LOCAL",
+      expect.stringContaining("local-db"),
+    ]);
+  });
+
+  it("hides environment headers with no connections (spec: database-explorer › Empty headers are hidden)", () => {
+    useConnections.setState({
+      file: file([
+        conn("a", "local-db", { environment: "local" }),
+        conn("d", "prod-db", { environment: "production" }),
+      ]),
+    });
+    render(<ExplorerPanel />);
+    const heads = screen
+      .getAllByRole("treeitem")
+      .map((r) => r.textContent ?? "")
+      .filter((t) => t === t.toUpperCase());
+    expect(heads).toEqual(["PRODUCTION", "LOCAL"]);
+  });
+
+  it("moves a connection under STAGING when its environment changes (spec: database-explorer › Environment change moves the connection)", () => {
+    useConnections.setState({ file: file([conn("a", "my-db", { environment: "local" })]) });
+    const { rerender } = render(<ExplorerPanel />);
+    expect(screen.getAllByRole("treeitem").map((r) => r.textContent)[0]).toBe("LOCAL");
+    act(() =>
+      useConnections.setState({ file: file([conn("a", "my-db", { environment: "staging" })]) }),
+    );
+    rerender(<ExplorerPanel />);
+    const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
+    expect(labels).toEqual(["STAGING", expect.stringContaining("my-db")]);
+  });
+
+  it("switches to the user's groups once one exists, with the rest under Ungrouped (spec: database-explorer › User creates a group)", () => {
+    useConnections.setState({
+      file: file(
+        [
+          conn("a", "client-db", { environment: "production", groupId: "g9" }),
+          conn("b", "other-db", { environment: "local" }),
+        ],
+        [{ id: "g9", name: "Client A", order: 0 }],
+      ),
+    });
+    render(<ExplorerPanel />);
+    const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
+    expect(labels).toEqual([
+      "Client A",
+      expect.stringContaining("client-db"),
+      "Ungrouped",
+      expect.stringContaining("other-db"),
+    ]);
+    expect(labels).not.toContain("PRODUCTION");
+    expect(labels).not.toContain("LOCAL");
+  });
+
   it("groups connections by environment when there are no groups of their own", () => {
     useConnections.setState({
       file: file([
@@ -144,7 +216,7 @@ describe("rendering", () => {
     ]);
   });
 
-  it("shows the empty state with New connection and Import", () => {
+  it("shows the empty state with New connection and Import (spec: database-explorer › No connections)", () => {
     useConnections.setState({ file: file([]) });
     render(<ExplorerPanel />);
     expect(screen.getByText("No connections yet.")).toBeInTheDocument();
@@ -161,7 +233,7 @@ describe("rendering", () => {
     expect(within(row("public")).queryByRole("img", { name: "Loading" })).toBeNull();
   });
 
-  it("shows a red error row with Retry that reloads only that node", () => {
+  it("shows a red error row with Retry that reloads only that node (spec: database-explorer › Load error)", () => {
     api.children.mockResolvedValue([]);
     useExplorer.setState((s) => ({
       nodes: {
@@ -193,7 +265,7 @@ describe("collapse and expand", () => {
 });
 
 describe("drag between groups", () => {
-  it("moves a connection onto another group header", () => {
+  it("moves a connection onto another group header (spec: database-explorer › Group order)", () => {
     render(<ExplorerPanel />);
     const drag = { dataTransfer: { setData: vi.fn(), effectAllowed: "" } };
     fireEvent.dragStart(row(/prod-postgres/), drag);
@@ -216,7 +288,7 @@ describe("filter", () => {
   const type = (value: string) =>
     fireEvent.change(screen.getByLabelText("Filter explorer"), { target: { value } });
 
-  it('"ord" keeps orders, order_items and their ancestors, highlighting the match', () => {
+  it('"ord" keeps orders, order_items and their ancestors, highlighting the match (spec: database-explorer › Filter tables)', () => {
     render(<ExplorerPanel />);
     type("ord");
     const labels = screen.getAllByRole("treeitem").map((r) => r.textContent);
@@ -242,7 +314,7 @@ describe("filter", () => {
     expect(useExplorer.getState().filter).toBe("");
   });
 
-  it("says so when nothing loaded matches", () => {
+  it("says so when nothing loaded matches (spec: database-explorer › Nothing matches)", () => {
     render(<ExplorerPanel />);
     type("zzz");
     expect(
@@ -297,7 +369,7 @@ describe("keyboard", () => {
     expect(selected()).toBe("group:g1");
   });
 
-  it("Enter runs the default action: console for a connection, table editor for a table", () => {
+  it("Enter runs the default action: console for a connection, table editor for a table (spec: database-explorer › Default action on a table; database-explorer › Default action on a connection)", () => {
     record("connection.open");
     record("table.open");
     seed({ selected: "c1" });
@@ -400,7 +472,7 @@ describe("context menus", () => {
     ]);
   });
 
-  it("Generate DDL opens a console with the statement", async () => {
+  it("Generate DDL opens a console with the statement (spec: database-explorer › Generate DDL)", async () => {
     record("console.new");
     registerExplorerCommands();
     api.ddl.mockResolvedValue("CREATE TABLE orders (id int8);");
@@ -412,7 +484,7 @@ describe("context menus", () => {
     ]);
   });
 
-  it("Count rows replaces the estimate in place", async () => {
+  it("Count rows replaces the estimate in place (spec: database-explorer › Count rows)", async () => {
     registerExplorerCommands();
     api.count.mockResolvedValue(12480);
     render(<ExplorerPanel />);

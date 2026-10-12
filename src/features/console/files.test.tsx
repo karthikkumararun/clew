@@ -288,7 +288,7 @@ describe("file changes on disk", () => {
   const edit = (id: string, text: string) =>
     act(() => useWorkspace.getState().updateTabState<Partial<ConsoleState>>(id, { text }));
 
-  it("reloads a console without unsaved edits", async () => {
+  it("reloads a console without unsaved edits (spec: sql-console › File changed on disk)", async () => {
     await fileConsole();
     api.read.mockResolvedValue(opened("select 1 -- edited elsewhere"));
     await act(async () => handleExternalChange(FILE));
@@ -309,7 +309,7 @@ describe("file changes on disk", () => {
     expect(useNotices.getState().notices).toHaveLength(0);
   });
 
-  it("asks which version to keep when there are unsaved edits", async () => {
+  it("asks which version to keep when there are unsaved edits (spec: sql-console › File changed on disk)", async () => {
     const id = await fileConsole();
     edit(id, "select 2 -- mine");
     api.read.mockResolvedValue(opened("select 1 -- theirs"));
@@ -359,7 +359,7 @@ describe("file changes on disk", () => {
 });
 
 describe("status bar items", () => {
-  it("shows cursor, encoding, dialect and transaction state for the active console", async () => {
+  it("shows cursor, encoding, dialect and transaction state for the active console (spec: sql-console › Cursor moves)", async () => {
     const id = (await openConsole({ connectionId: "c1" }))!;
     render(<StatusBar />);
     expect(screen.getByText("Ln 1, Col 1")).toBeInTheDocument();

@@ -1,0 +1,268 @@
+name: E2E
+
+# Real-app end-to-end suites (spec: e2e-testing › Suites and triggers). Deliberately no
+# pull_request trigger: ordinary pull requests run unit, component and Rust tests only (ci.yml).
+on:
+  push:
+    branches: ["release/**"]
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Suite to run
+        type: choice
+        default: all
+        options: [all, smoke, design, full, heavy]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name != 'workflow_dispatch' || contains(fromJSON('["all","smoke"]'), github.event.inputs.suite)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: System libraries for Tauri and xvfb
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev pkg-config xvfb
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm qa:build
+      - name: Smoke journeys
+        if: runner.os != 'Linux'
+        run: pnpm qa:e2e --suite smoke
+      - name: Smoke journeys (xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm qa:e2e --suite smoke
+      - name: Upload failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-smoke-${{ matrix.os }}
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+      - name: Upload run summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-summary-smoke-${{ matrix.os }}
+          path: e2e/artifacts/summary.json
+          if-no-files-found: ignore
+
+  # Design conformance: rendered metrics, accessibility, overlay integrity and the window-size
+  # matrix. Container-free, so it runs on all three OSes; Windows also runs at 125% and 150%
+  # display scaling (spec: design-conformance › Window-size and scale matrix).
+  design:
+    if: github.event_name != 'workflow_dispatch' || contains(fromJSON('["all","design"]'), github.event.inputs.suite)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14, label: macos }
+          - { os: ubuntu-latest, label: linux }
+          - { os: windows-latest, label: windows-100, scale: "1" }
+          - { os: windows-latest, label: windows-125, scale: "1.25" }
+          - { os: windows-latest, label: windows-150, scale: "1.5" }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: ${{ matrix.scale && format('--force-device-scale-factor={0}', matrix.scale) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: System libraries for Tauri and xvfb
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev pkg-config xvfb
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm qa:build
+      - name: Design suite
+        if: runner.os != 'Linux'
+        run: pnpm qa:design
+      - name: Design suite (xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm qa:design
+      - name: Upload failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-design-${{ matrix.label }}
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+      - name: Upload run summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-summary-design-${{ matrix.label }}
+          path: e2e/artifacts/summary.json
+          if-no-files-found: ignore
+
+  full:
+    if: github.event_name != 'workflow_dispatch' || contains(fromJSON('["all","full"]'), github.event.inputs.suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: System libraries for Tauri and xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev pkg-config openssh-client xvfb
+      - run: pnpm install --frozen-lockfile
+      - run: ./scripts/gen-test-certs.sh
+      - name: Start the databases and the mock LLM
+        run: docker compose --profile core --profile nosql --profile ai-mock up -d --build --wait
+      - run: pnpm qa:build
+      - name: Full journeys
+        run: xvfb-run --auto-servernum pnpm qa:e2e --suite full
+      - name: Docker logs
+        if: always()
+        run: |
+          mkdir -p e2e/artifacts
+          docker compose --profile core --profile nosql --profile ai-mock logs --no-color > e2e/artifacts/docker.log
+      - name: Upload failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-full
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+      - name: Upload run summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-summary-full
+          path: e2e/artifacts/summary.json
+          if-no-files-found: ignore
+      - name: Stop the stack
+        if: always()
+        run: docker compose --profile core --profile nosql --profile ai-mock down -v
+
+  # SQL Server, Oracle and Neo4j images are large: nightly and on demand only.
+  heavy:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && contains(fromJSON('["all","heavy"]'), github.event.inputs.suite))
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: System libraries for Tauri and xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev libssl-dev pkg-config xvfb
+      - run: pnpm install --frozen-lockfile
+      - run: docker compose --profile heavy up -d --wait
+      - run: pnpm qa:build
+      - name: Heavy journeys
+        run: xvfb-run --auto-servernum pnpm qa:e2e --suite heavy
+      - name: Docker logs
+        if: always()
+        run: |
+          mkdir -p e2e/artifacts
+          docker compose --profile heavy logs --no-color > e2e/artifacts/docker.log
+      - name: Upload failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-artifacts-heavy
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+      - name: Upload run summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-summary-heavy
+          path: e2e/artifacts/summary.json
+          if-no-files-found: ignore
+      - name: Stop the stack
+        if: always()
+        run: docker compose --profile heavy down -v
+
+  # One tracking issue for the nightly run, created or updated, never duplicated.
+  nightly-issue:
+    needs: [smoke, design, full, heavy]
+    if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Create or update "Nightly e2e failing"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Nightly e2e failing"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          body="Nightly e2e run failed: $RUN_URL"
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
+
+  # Count flaky journeys over the last 14 days and open tracking issues (flake policy).
+  flake-report:
+    needs: [smoke, design, full, heavy]
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'push')
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsx scripts/e2e-flake.ts
+        env:
+          GH_TOKEN: ${{ github.token }}

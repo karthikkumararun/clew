@@ -1,8 +1,8 @@
 import { $, browser, expect } from "@wdio/globals";
 import { covers } from "../helpers/covers";
 import { withDataDir } from "../helpers/dataDir";
-import { connectServer } from "../helpers/db";
 import type { Db, IsolatedDb } from "../helpers/db";
+import { openSecond, tablesPath } from "../helpers/dialect";
 import { openShopConsole } from "../helpers/fixtures";
 import { Explorer } from "../pages/Explorer";
 import { Grid } from "../pages/Grid";
@@ -17,7 +17,7 @@ describe("J-05 table editor", () => {
   let connection: string;
   before(async () => {
     ({ db, connection } = await openShopConsole(data));
-    second = await connectServer("postgres", db.name);
+    second = await openSecond(db);
   });
   after(async () => {
     await second.close();
@@ -25,7 +25,7 @@ describe("J-05 table editor", () => {
   });
 
   it(`opens a table on its first page sorted by primary key ${covers("table-editor › Open a table")}`, async () => {
-    await Explorer.reveal([connection, db.name, "public", "tables"]);
+    await Explorer.reveal(tablesPath(connection, db));
     await Explorer.open("orders");
     await browser.waitUntil(async () => (await Grid.rowCount()) > 0, {
       timeoutMsg: "rows expected",

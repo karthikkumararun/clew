@@ -145,6 +145,7 @@ mod tests {
       }
     }"#;
 
+    /// (spec: connection-management › Import from DBeaver)
     #[test]
     fn lists_connections_with_detected_drivers() {
         let e = parse_dbeaver(SAMPLE).unwrap();
