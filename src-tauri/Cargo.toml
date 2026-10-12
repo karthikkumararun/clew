@@ -54,6 +54,9 @@ oracle = "0.6.3"
 mongodb = { version = "3.9.1", default-features = false, features = ["rustls-tls", "compat-3-0-0"] }
 redis = { version = "1.7.1", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "tls-rustls-insecure", "aio"] }
 
+tauri-plugin-wdio = { version = "1.5", optional = true }
+tauri-plugin-wdio-webdriver = { version = "1.5", optional = true }
+
 [profile.release]
 codegen-units = 1
 lto = true
@@ -63,7 +66,7 @@ strip = true
 
 [features]
 # End-to-end test mode (isolated data dir, file secrets, scripted dialogs). Never in release builds.
-e2e = []
+e2e = ["dep:tauri-plugin-wdio", "dep:tauri-plugin-wdio-webdriver"]
 # Integration tests that need the docker-compose services (see docker-compose.yml).
 integration = []
 # SQL Server and Oracle: big images, run on a schedule (see .github/workflows/heavy-integration.yml).
