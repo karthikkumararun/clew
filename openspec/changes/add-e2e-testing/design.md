@@ -84,6 +84,11 @@ Tests call `covers('connection-management › Test connection from the dialog')`
 ### Diagnostics bundle
 Rust command `diagnostics_bundle()` assembles the report; a redaction pass replaces known hostnames and usernames from saved connections, anything matching secret patterns (`password=`, bearer tokens, `sk-…`, JDBC URL credentials) and file paths under the home directory. The About dialog button copies it with the Tauri clipboard plugin.
 
+### Spike result (task 1.1)
+- **macOS (14+, WKWebView): outcome (a), embedded provider works.** `@wdio/tauri-service` 1.5.0 with `driverProvider: "embedded"`, `tauri-plugin-wdio` 1.5.0 and `tauri-plugin-wdio-webdriver` 1.5.0 (both optional deps behind the `e2e` feature), `@wdio/tauri-plugin` 1.5.0 (frontend, imported only when `VITE_CLEW_E2E=1`), WebdriverIO 9.32 (the service pins 9.x, so `@wdio/cli` stays on 9, not 10). Verified: launch, find by `aria/<name>`, click, type, screenshot, `reloadSession()` relaunch with the same `CLEW_DATA_DIR`.
+- Build: `pnpm tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json`. The e2e config adds `withGlobalTauri` and an inline `e2e` capability granting `wdio:default` and `wdio-webdriver:default`, so the default capability and release config are untouched.
+- **Windows and Linux: not yet verified** (no machine available when the spike ran). The first `release/*` CI run or a tester on those machines settles it. If the embedded provider fails there, fall back to outcome (b): `driverProvider: "external"` (`tauri-driver`) on Windows and Linux. CI must fail, not skip, a platform that cannot drive the app.
+
 ## Risks / Trade-offs
 
 - [Embedded WebDriver on macOS may be immature] → The spike decides; fallback is a reduced macOS smoke plus manual checklist, recorded here.

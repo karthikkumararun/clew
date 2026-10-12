@@ -56,6 +56,11 @@ pub fn discover_in(root: &Path) -> Vec<DataGripInstall> {
 
 /// Where DataGrip keeps its settings on this OS.
 pub fn jetbrains_root() -> Option<PathBuf> {
+    // End-to-end runs look in a fixture folder, never in the developer's real DataGrip settings.
+    #[cfg(feature = "e2e")]
+    if crate::testmode::active() {
+        return crate::testmode::datagrip_root();
+    }
     #[cfg(target_os = "macos")]
     {
         std::env::home_dir().map(|h| h.join("Library/Application Support/JetBrains"))

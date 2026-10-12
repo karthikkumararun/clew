@@ -1,0 +1,41 @@
+import { $ } from "@wdio/globals";
+import { launchApp } from "./app";
+import { connectionFactory, seedConnections, seedPassword } from "./connections";
+import { SERVICES, createIsolatedDb } from "./db";
+import type { IsolatedDb, ServerDialect } from "./db";
+import type { TestDataDir } from "./dataDir";
+import { Explorer } from "../pages/Explorer";
+import { browser } from "@wdio/globals";
+
+export interface ShopSession {
+  db: IsolatedDb;
+  /** Name of the saved connection in the explorer. */
+  connection: string;
+}
+
+/**
+ * Start the app with one saved connection to a fresh copy of the `shop` seed (password in the
+ * test secret store), connect, and open its console. Returns once the console editor is up.
+ */
+export async function openShopConsole(
+  data: Pick<TestDataDir, "dir" | "dialogQueue">,
+  dialect: ServerDialect = "postgres",
+  environment: "local" | "development" | "staging" | "production" = "local",
+): Promise<ShopSession> {
+  const db = await createIsolatedDb(dialect);
+  const connection = `shop-${dialect}`;
+  const s = SERVICES[dialect];
+  const conn = connectionFactory.network(dialect, connection, {
+    port: s.port,
+    database: db.name,
+    user: s.user,
+    environment,
+  });
+  seedConnections(data.dir, [conn]);
+  seedPassword(data.dir, conn.id, s.password);
+  await launchApp(data);
+  await Explorer.select(connection);
+  await browser.keys("Enter");
+  await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+  return { db, connection };
+}

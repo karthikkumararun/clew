@@ -1,9 +1,12 @@
 # Integration-test databases. Test-only credentials; never use these anywhere real.
 #   scripts/gen-test-certs.sh   (once, creates docker/postgres-tls/certs and docker/bastion/keys)
-#   docker compose up -d --build --wait            (add --profile heavy for SQL Server and Oracle)
+#   docker compose --profile core --profile nosql up -d --build --wait
+#     profiles: core (PostgreSQL, TLS variants, MySQL, MariaDB, SSH bastion), nosql (MongoDB, Redis),
+#     heavy (SQL Server, Oracle, ClickHouse). `pnpm qa:up` picks them for you.
 #   cargo test --features integration   (in src-tauri/)
 services:
   postgres:
+    profiles: [core]
     image: postgres:16
     environment:
       POSTGRES_USER: clew
@@ -17,6 +20,7 @@ services:
       retries: 30
 
   postgres-tls:
+    profiles: [core]
     build: ./docker/postgres-tls
     environment:
       POSTGRES_USER: clew
@@ -30,6 +34,7 @@ services:
       retries: 30
 
   postgres-tls-wrong:
+    profiles: [core]
     build:
       context: ./docker/postgres-tls
       args:
@@ -46,6 +51,7 @@ services:
       retries: 30
 
   mysql:
+    profiles: [core]
     image: mysql:8
     environment:
       MYSQL_ROOT_PASSWORD: clew
@@ -60,6 +66,7 @@ services:
       retries: 40
 
   mongo:
+    profiles: [nosql]
     image: mongo:8
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports: ["27117:27017"]
@@ -76,6 +83,7 @@ services:
       retries: 40
 
   redis:
+    profiles: [nosql]
     image: redis:7
     ports: ["63791:6379"]
     healthcheck:
@@ -85,6 +93,7 @@ services:
       retries: 20
 
   clickhouse:
+    profiles: [heavy]
     image: clickhouse/clickhouse-server:24.8
     environment:
       CLICKHOUSE_DB: clew
@@ -134,6 +143,7 @@ services:
       retries: 60
 
   mariadb:
+    profiles: [core]
     image: mariadb:11
     environment:
       MARIADB_ROOT_PASSWORD: clew
@@ -147,8 +157,20 @@ services:
       timeout: 3s
       retries: 40
 
+  # Deterministic OpenAI- and Anthropic-compatible server for the AI assistant journeys.
+  mock-llm:
+    profiles: [ai-mock]
+    build: ./docker/mock-llm
+    ports: ["18089:8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/health || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
   # SSH bastion that can reach the databases above by service name.
   bastion:
+    profiles: [core]
     build: ./docker/bastion
     ports: ["2222:22"]
     volumes:

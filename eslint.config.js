@@ -28,6 +28,10 @@ export default tseslint.config(
     },
   },
   {
+    files: ["docker/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node } },
+  },
+  {
     files: ["*.config.{js,ts}"],
     languageOptions: { globals: { ...globals.node } },
   },

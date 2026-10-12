@@ -36,5 +36,6 @@
 
 ## 6. End-to-end
 
+- [ ] 6.0 E2E: add the test-mode accessible mirror for the graph canvas (`data-testid` nodes and edges, only when `VITE_CLEW_E2E=1`), following `src/features/grid/GridMirror.tsx`
 - [ ] 6.1 E2E: add journey J-15 in `e2e/specs/` — run a Cypher query, see the graph, expand neighbours, inspect a node; unfiltered DETACH DELETE on production needs typed confirmation
 - [ ] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. graph-browser › Graph view; graph-browser › Cypher safeguards) and add the seed/compose service it needs to the matching profile

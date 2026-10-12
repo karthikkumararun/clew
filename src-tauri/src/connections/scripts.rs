@@ -33,6 +33,11 @@ pub fn sanitize_dir_name(name: &str) -> String {
 
 /// `~/Documents/Clew/Scripts`
 pub fn scripts_root() -> Option<PathBuf> {
+    // End-to-end runs keep their scripts inside the run's data directory, not the real Documents.
+    #[cfg(feature = "e2e")]
+    if let Some(dir) = crate::testmode::data_dir_override() {
+        return Some(dir.join("Scripts"));
+    }
     std::env::home_dir().map(|h| h.join("Documents").join("Clew").join("Scripts"))
 }
 

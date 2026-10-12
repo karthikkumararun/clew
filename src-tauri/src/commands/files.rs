@@ -27,6 +27,9 @@ pub async fn file_open_dialog(
     state: State<'_, AppState>,
 ) -> AppResult<Option<OpenedFile>> {
     let picked = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(answer) = super::scripted_dialog() {
+            return answer;
+        }
         app.dialog()
             .file()
             .set_title("Open SQL file")
@@ -62,6 +65,9 @@ pub async fn file_save_dialog(
         let _ = std::fs::create_dir_all(dir);
     }
     let picked = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(answer) = super::scripted_dialog() {
+            return answer;
+        }
         let mut dialog = app
             .dialog()
             .file()

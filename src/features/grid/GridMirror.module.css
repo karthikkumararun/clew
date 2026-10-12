@@ -1,0 +1,9 @@
+/* Readable by assistive tech and WebDriver, invisible and inert on screen. */
+.mirror {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  pointer-events: none;
+}

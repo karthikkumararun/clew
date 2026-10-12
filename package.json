@@ -18,6 +18,10 @@
     "tauri": "tauri",
     "icons": "tsx scripts/build-icons.ts",
     "check:icons": "tsx scripts/check-icons.ts",
+    "qa:build": "tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json",
+    "qa:e2e": "tsx scripts/qa-e2e.ts",
+    "qa:parity": "tsx scripts/seed-parity.ts",
+    "check:no-test-mode": "tsx scripts/check-no-test-mode.ts",
     "dev:app": "tauri dev --config src-tauri/tauri.dev.conf.json"
   },
   "dependencies": {
@@ -53,15 +57,25 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/lodash": "^4.17.26",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
     "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.2",
+    "@wdio/cli": "^9.32.0",
+    "@wdio/local-runner": "^9.32.0",
+    "@wdio/mocha-framework": "^9.32.0",
+    "@wdio/spec-reporter": "^9.32.0",
+    "@wdio/tauri-plugin": "^1.5.0",
+    "@wdio/tauri-service": "^1.5.0",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "jsdom": "^30.1.2",
+    "mysql2": "^3.24.5",
+    "pg": "^8.23.1",
     "pixelmatch": "^8.0.0",
     "pngjs": "^7.0.0",
     "prettier": "^3.9.9",
@@ -69,6 +83,7 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.3",
+    "webdriverio": "^9.32.0"
   }
 }

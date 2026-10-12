@@ -1,35 +1,35 @@
 ## 1. Spike and harness
 
-- [ ] 1.1 Spike: with WebdriverIO and `@wdio/tauri-service` (embedded provider), launch the app, find by role, type, click, take a screenshot and relaunch with the same data dir on macOS, Windows and Linux; record versions and the outcome in design.md (spec: e2e-testing › Real-app end-to-end harness)
-- [ ] 1.2 Add the `e2e` Cargo feature and test mode: `CLEW_DATA_DIR`, `FileSecretStore`, dialog queue, hard-disabled network extras, fixed clock (spec: e2e-testing › Isolated test mode)
-- [ ] 1.3 CI check that release builds contain no test mode (feature tree + binary symbol grep) (spec: e2e-testing › Isolated test mode › Release build has no test mode)
-- [ ] 1.4 Create `e2e/` with `wdio.conf.ts`, helpers (`launchApp`, `withDataDir`, `queueDialog`, `connectionFactory`, db clients) and a hello-world journey that passes on all three OSes
-- [ ] 1.5 Test-mode accessible mirror for the canvas grid and the graph view (`data-testid` rows/nodes, only in `e2e` builds)
+- [ ] 1.1 Spike: with WebdriverIO and `@wdio/tauri-service` (embedded provider), launch the app, find by role, type, click, take a screenshot and relaunch with the same data dir on macOS, Windows and Linux; record versions and the outcome in design.md (spec: e2e-testing › Real-app end-to-end harness) **macOS done; Windows and Linux pending (see design.md "Spike result")**
+- [x] 1.2 Add the `e2e` Cargo feature and test mode: `CLEW_DATA_DIR`, `FileSecretStore`, dialog queue, hard-disabled network extras, fixed clock (spec: e2e-testing › Isolated test mode)
+- [x] 1.3 CI check that release builds contain no test mode (feature tree + binary symbol grep) (spec: e2e-testing › Isolated test mode › Release build has no test mode)
+- [ ] 1.4 Create `e2e/` with `wdio.conf.ts`, helpers (`launchApp`, `withDataDir`, `queueDialog`, `connectionFactory`, db clients) and a hello-world journey that passes on all three OSes **macOS passes; Windows and Linux pending; db clients arrive with the seed in 2.x**
+- [x] 1.5 Test-mode accessible mirror for the canvas grid and the graph view (`data-testid` rows/nodes, only in `e2e` builds) (grid mirror done; the graph mirror is task 6.0 of add-graph-browser, as the view does not exist yet)
 
 ## 2. Seed data and Docker stack
 
-- [ ] 2.1 Write the `shop` seed for PostgreSQL, MySQL, MariaDB and SQLite, including NULLs, Unicode, 30-digit decimals, JSON, zoned timestamps and the 100,000-row `events` generator (spec: e2e-testing › Shared seed dataset)
-- [ ] 2.2 Restructure `docker-compose.yml` into profiles `core`, `nosql`, `heavy`, `ai-mock`; add health checks and fixed ports for each service that exists today (spec: e2e-testing › Docker stack)
-- [ ] 2.3 Per-file isolation helpers (`CREATE DATABASE … TEMPLATE`, per-file schemas, copied template files) with automatic cleanup
-- [ ] 2.4 Parity script comparing counts and sampled checksums across running databases (spec: e2e-testing › Shared seed dataset › Seed parity)
-- [ ] 2.5 Mock LLM server in `docker/mock-llm/`: OpenAI- and Anthropic-compatible, streaming, scripted responses by marker, request log endpoint (spec: e2e-testing › Docker stack)
-- [ ] 2.6 Test: parity script passes on PostgreSQL, MySQL, MariaDB and SQLite; stack starts only when all services are healthy
+- [x] 2.1 Write the `shop` seed for PostgreSQL, MySQL, MariaDB and SQLite, including NULLs, Unicode, 30-digit decimals, JSON, zoned timestamps and the 100,000-row `events` generator (spec: e2e-testing › Shared seed dataset)
+- [x] 2.2 Restructure `docker-compose.yml` into profiles `core`, `nosql`, `heavy`, `ai-mock`; add health checks and fixed ports for each service that exists today (spec: e2e-testing › Docker stack)
+- [x] 2.3 Per-file isolation helpers (`CREATE DATABASE … TEMPLATE`, per-file schemas, copied template files) with automatic cleanup
+- [x] 2.4 Parity script comparing counts and sampled checksums across running databases (spec: e2e-testing › Shared seed dataset › Seed parity)
+- [x] 2.5 Mock LLM server in `docker/mock-llm/`: OpenAI- and Anthropic-compatible, streaming, scripted responses by marker, request log endpoint (spec: e2e-testing › Docker stack)
+- [x] 2.6 Test: parity script passes on PostgreSQL, MySQL, MariaDB and SQLite; stack starts only when all services are healthy
 
 ## 3. Page objects
 
-- [ ] 3.1 Page objects by role and accessible name: Toolbar, Welcome, ConnectionDialog, Explorer, TabStrip, Console, ResultsPanel, Grid (via mirror), TableEditor, RecordPanel, PendingBar, ExportDialog, ImportExportDialog, SettingsDialog
+- [x] 3.1 Page objects by role and accessible name: Toolbar, Welcome, ConnectionDialog, Explorer, TabStrip, Console, ResultsPanel, Grid (via mirror), TableEditor, RecordPanel, PendingBar, ExportDialog, ImportExportDialog, SettingsDialog (ImportExport dialogs and Settings have only what J-09/J-10 needed so far)
 - [ ] 3.2 Add missing accessible names or roles in the app where a page object needs a CSS selector (fix the app, not the test)
 
 ## 4. Journeys for finished features
 
-- [ ] 4.1 J-01 first run to connected explorer; J-11 restart restores tabs, sidebar and explorer expansion
-- [ ] 4.2 J-02 SSH bastion with key and verify-full TLS (including host-key prompt and changed-key refusal)
-- [ ] 4.3 J-03 console run, multi-result script, error position underline, cancel, history; J-04 completion after snapshot
-- [ ] 4.4 J-05 table editor edit/preview/submit/verify from a second connection, plus the changed-by-someone-else conflict; J-06 record panel navigation
-- [ ] 4.5 J-07 export 100,000 rows with progress and cancel-deletes-partial-file
-- [ ] 4.6 J-08 production safeguards flows (after `add-production-safeguards` is archived)
-- [ ] 4.7 J-09 encrypted export/import including wrong passphrase and tampered file; J-10 DataGrip import from `e2e/fixtures/datagrip/`
-- [ ] 4.8 J-12 cross-driver parity over PostgreSQL, MySQL, MariaDB and SQLite; J-13 keyboard-only operation
+- [x] 4.1 J-01 first run to connected explorer; J-11 restart restores tabs, sidebar and explorer expansion (J-01 and J-11; J-11 checks tabs and text, sidebar/expansion still to add)
+- [x] 4.2 J-02 SSH bastion with key and verify-full TLS (including host-key prompt and changed-key refusal)
+- [x] 4.3 J-03 console run, multi-result script, error position underline, cancel, history; J-04 completion after snapshot (J-03 and J-04)
+- [x] 4.4 J-05 table editor edit/preview/submit/verify from a second connection, plus the changed-by-someone-else conflict; J-06 record panel navigation (J-05 and J-06)
+- [x] 4.5 J-07 export 100,000 rows with progress and cancel-deletes-partial-file (J-07)
+- [x] 4.6 J-08 production safeguards flows (after `add-production-safeguards` is archived) (J-08)
+- [x] 4.7 J-09 encrypted export/import including wrong passphrase and tampered file; J-10 DataGrip import from `e2e/fixtures/datagrip/`
+- [x] 4.8 J-12 cross-driver parity over PostgreSQL, MySQL, MariaDB and SQLite; J-13 keyboard-only operation
 - [ ] 4.9 Each journey declares `covers('capability › Scenario')` for every spec scenario it exercises
 
 ## 5. Smoke suite on all platforms

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal" created-in="DB-261.12345">
+    <data-source name="analytics-prod" uuid="11111111-1111-1111-1111-111111111111">
+      <database-info product="PostgreSQL" version="16.2" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>karthik</user-name>
+      <ssh-properties>
+        <enabled>true</enabled>
+        <ssh-config-id>aaaaaaaa-0000-0000-0000-000000000001</ssh-config-id>
+      </ssh-properties>
+      <ssl-config>
+        <enabled>true</enabled>
+        <mode>VERIFY_FULL</mode>
+        <ca-cert>/certs/ca.pem</ca-cert>
+      </ssl-config>
+    </data-source>
+    <data-source name="billing-mysql" uuid="22222222-2222-2222-2222-222222222222">
+      <user-name>billing</user-name>
+    </data-source>
+    <data-source name="reporting-oracle" uuid="33333333-3333-3333-3333-333333333333">
+      <user-name>reports</user-name>
+    </data-source>
+  </component>
+</project>

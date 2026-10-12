@@ -32,6 +32,7 @@ import { HEADER_HEIGHT, ROW_HEIGHT, gridTheme, token } from "./theme";
 import { visibleColumns, moveColumn } from "./views";
 import type { SortState } from "./views";
 import styles from "./ResultGrid.module.css";
+import { GridMirror, MIRROR_ENABLED } from "./GridMirror";
 
 const MIN_WIDTH = 48;
 const MAX_WIDTH = 720;
@@ -146,6 +147,32 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
   // Selection resets when the shape of the result changes.
   const shape = `${source.columns.length}:${visible.join(",")}`;
   useEffect(() => setSelection(EMPTY_SELECTION), [shape]);
+
+  // End-to-end builds only: let a test select a cell without hit-testing the canvas, through
+  // the same state a click would set. Dead code (and absent from the bundle) in other builds.
+  useEffect(() => {
+    if (!MIRROR_ENABLED) return;
+    const w = window as unknown as { __clewE2E?: Record<string, unknown> };
+    w.__clewE2E = {
+      ...w.__clewE2E,
+      selectCell: (col: number, row: number) => {
+        const sel: GridSelection = {
+          columns: CompactSelection.empty(),
+          rows: CompactSelection.empty(),
+          current: {
+            cell: [col, row],
+            range: { x: col, y: row, width: 1, height: 1 },
+            rangeStack: [],
+          },
+        };
+        setSelection(sel);
+        onSelectionChange?.(selectedCells(sel, source.rowCount, visible.length));
+      },
+    };
+    return () => {
+      if (w.__clewE2E) delete w.__clewE2E.selectCell;
+    };
+  }, [onSelectionChange, source.rowCount, visible.length]);
 
   const widthOf = useCallback(
     (c: number) => widths?.[c] ?? autoWidths[c] ?? autoWidth(source, c),
@@ -414,6 +441,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
           if (range.y + range.height >= source.rowCount - NEAR_END_ROWS) onNearEnd?.();
         }}
       />
+      {MIRROR_ENABLED ? <GridMirror source={source} visible={visible} /> : null}
       {viewer ? (
         <CellViewer
           value={source.get(visible[viewer.col], viewer.row)}

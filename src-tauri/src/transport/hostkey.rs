@@ -66,8 +66,17 @@ pub struct KnownHosts {
 
 impl KnownHosts {
     pub fn new(app_data_dir: &std::path::Path) -> Self {
+        // End-to-end runs never read the developer's real ~/.ssh/known_hosts.
+        #[cfg(feature = "e2e")]
+        let user_file = if crate::testmode::active() {
+            None
+        } else {
+            std::env::home_dir().map(|h| h.join(".ssh").join("known_hosts"))
+        };
+        #[cfg(not(feature = "e2e"))]
+        let user_file = std::env::home_dir().map(|h| h.join(".ssh").join("known_hosts"));
         Self {
-            user_file: std::env::home_dir().map(|h| h.join(".ssh").join("known_hosts")),
+            user_file,
             app_file: app_data_dir.join("known_hosts"),
         }
     }

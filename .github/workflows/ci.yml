@@ -42,6 +42,9 @@ jobs:
       # runs on main (and on demand), not on pull requests.
       - if: github.event_name != 'pull_request'
         run: pnpm tauri build --debug --no-bundle
+      - name: Build has no e2e test mode
+        if: github.event_name != 'pull_request'
+        run: pnpm check:no-test-mode
       # Bundle step with the real icons: the .app carries our icon.icns, and no dev badge ships.
       - name: Bundle icons (macOS)
         if: github.event_name != 'pull_request' && runner.os == 'macOS'
@@ -80,7 +83,9 @@ jobs:
       - name: Test certificates and SSH keys
         run: ./scripts/gen-test-certs.sh
       - name: Start the databases
-        run: docker compose up -d --build --wait
+        run: |
+          docker compose --profile core --profile nosql up -d --build --wait
+          docker compose --profile heavy up -d --wait clickhouse
       - name: Integration tests
         run: cargo test --features integration
         working-directory: src-tauri
@@ -88,7 +93,7 @@ jobs:
         run: git diff --exit-code -- src/lib/ipc/generated
       - name: Container logs
         if: failure()
-        run: docker compose logs --no-color --tail=200
+        run: docker compose --profile core --profile nosql --profile heavy logs --no-color --tail=200
       - name: Stop the databases
         if: always()
-        run: docker compose down -v
+        run: docker compose --profile core --profile nosql --profile heavy down -v

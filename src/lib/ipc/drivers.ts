@@ -103,21 +103,72 @@ export function sessionClose(sessionId: string): Promise<void> {
  * the promise settles when the run ends. A failure is delivered as an `error` event *and*
  * rejects the promise.
  */
-export function queryExecute(
+export async function queryExecute(
   sessionId: string,
   request: ExecOptions,
   onEvent: (event: ResultEvent) => void,
   /** What a confirmation dialog was answered with (see `safetyCheck`). */
   confirmationToken?: string,
 ): Promise<ExecSummary | null> {
+  const closing = closingEvents(onEvent);
   const channel = new Channel<ResultEvent>();
-  channel.onmessage = onEvent;
-  return invoke<ExecSummary | null>("query_execute", {
-    sessionId,
-    request,
-    ...(confirmationToken ? { confirmationToken } : {}),
-    onEvent: channel,
-  });
+  channel.onmessage = closing.onEvent;
+  let summary: ExecSummary | null;
+  try {
+    summary = await invoke<ExecSummary | null>("query_execute", {
+      sessionId,
+      request,
+      ...(confirmationToken ? { confirmationToken } : {}),
+      onEvent: channel,
+    });
+  } catch (e) {
+    await closing.afterError();
+    throw e;
+  }
+  await closing.afterDone(summary);
+  return summary;
+}
+
+/** Longest wait for a run's closing event after its command has already replied. */
+const CLOSING_EVENT_WAIT_MS = 10_000;
+
+/**
+ * A Tauri `Channel` delivers its messages on a path of its own, so a command's reply can settle
+ * before the events it sent. Callers read the results as soon as the promise settles, so the
+ * promise must wait for the run's closing event (`done`, or `error` / `cancelled`).
+ */
+function closingEvents(onEvent: (event: ResultEvent) => void) {
+  const doneMs: number[] = [];
+  let failed = false;
+  const waiters = new Set<() => void>();
+  const wake = () => waiters.forEach((w) => w());
+  const until = (ready: () => boolean) =>
+    ready()
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          const finish = () => {
+            if (!ready()) return;
+            clearTimeout(timer);
+            waiters.delete(finish);
+            resolve();
+          };
+          const timer = setTimeout(() => {
+            waiters.delete(finish);
+            resolve(); // never hang a run on a lost event
+          }, CLOSING_EVENT_WAIT_MS);
+          waiters.add(finish);
+        });
+  return {
+    onEvent(event: ResultEvent) {
+      onEvent(event);
+      if (event.event === "done") doneMs.push(event.summary.elapsed_ms);
+      if (event.event === "error" || event.event === "cancelled") failed = true;
+      wake();
+    },
+    afterDone: (summary: ExecSummary | null) =>
+      summary ? until(() => doneMs.includes(summary.elapsed_ms)) : Promise.resolve(),
+    afterError: () => until(() => failed),
+  };
 }
 
 /** Pull more rows of an open result. Resolves with whether more rows remain. */

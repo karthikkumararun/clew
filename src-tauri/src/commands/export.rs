@@ -61,6 +61,9 @@ async fn pick_path(
     format: FileFormat,
 ) -> AppResult<Option<std::path::PathBuf>> {
     let picked = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(answer) = super::scripted_dialog() {
+            return answer;
+        }
         app.dialog()
             .file()
             .set_title("Export")
@@ -157,6 +160,9 @@ pub async fn export_pick_path(
     extension: String,
 ) -> AppResult<Option<String>> {
     let picked = tauri::async_runtime::spawn_blocking(move || {
+        if let Some(answer) = super::scripted_dialog() {
+            return answer;
+        }
         app.dialog()
             .file()
             .set_title("Export")
