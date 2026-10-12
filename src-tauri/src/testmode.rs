@@ -16,6 +16,7 @@ pub const ENV_ACTIVE: &str = "CLEW_E2E";
 pub const ENV_DATA_DIR: &str = "CLEW_DATA_DIR";
 pub const ENV_DIALOG_QUEUE: &str = "CLEW_E2E_DIALOG_QUEUE";
 pub const ENV_NOW: &str = "CLEW_E2E_NOW";
+pub const ENV_DATAGRIP_ROOT: &str = "CLEW_E2E_DATAGRIP_ROOT";
 /// A queue line with this text answers a dialog as cancelled.
 pub const CANCEL: &str = "CANCEL";
 const SECRETS_FILE: &str = "e2e-secrets.json";
@@ -35,6 +36,14 @@ pub fn data_dir_override() -> Option<PathBuf> {
         return None;
     }
     std::env::var_os(ENV_DATA_DIR)
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
+/// Folder standing in for DataGrip's settings root (`.../JetBrains`) in test mode. Unset means
+/// "no DataGrip installed", so a run never reads the developer's real settings.
+pub fn datagrip_root() -> Option<PathBuf> {
+    std::env::var_os(ENV_DATAGRIP_ROOT)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
 }
