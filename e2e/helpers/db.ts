@@ -156,7 +156,10 @@ export async function createIsolatedDb(dialect: Dialect): Promise<IsolatedDb> {
     cleanup: async () => {
       const a = await connectServer(dialect);
       try {
-        await a.exec(`DROP DATABASE IF EXISTS ${name}`);
+        // FORCE: the app under test may still hold a connection to it
+        await a.exec(
+          `DROP DATABASE IF EXISTS ${name}${dialect === "postgres" ? " WITH (FORCE)" : ""}`,
+        );
       } finally {
         await a.close();
       }

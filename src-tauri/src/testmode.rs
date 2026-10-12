@@ -156,10 +156,14 @@ pub fn e2e_restart(app: tauri::AppHandle) {
 }
 
 /// Quit the process. `e2e_restart` leaves a new process that the WebDriver service does not own,
-/// so the run ends by asking it to exit.
+/// so the run ends by asking it to exit. It exits a moment later so the test runner can still
+/// close its WebDriver session; closing it against a dead server is reported as a failed run.
 #[tauri::command]
 pub fn e2e_exit(app: tauri::AppHandle) {
-    app.exit(0)
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(2500));
+        app.exit(0)
+    });
 }
 
 /// The fixed clock, if the run set one.

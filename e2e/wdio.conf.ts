@@ -8,7 +8,7 @@ const binary = process.env.CLEW_E2E_BINARY ?? resolve("src-tauri", "target", "de
 // Test mode is read by the app at start-up (src-tauri/src/testmode.rs). The service spawns the
 // app with this process's environment, so set it before the first launch.
 // The launcher creates the profile; workers inherit it through the environment (this file loads in both).
-const fresh = process.env.CLEW_DATA_DIR === undefined;
+const fresh = !process.env.CLEW_DATA_DIR;
 const data = fresh ? createDataDir() : undefined;
 if (data) {
   process.env.CLEW_DATA_DIR = data.dir;
@@ -32,9 +32,16 @@ export const config: WebdriverIO.Config = {
   reporters: ["spec"],
   mochaOpts: { ui: "bdd", timeout: 60_000 },
   logLevel: "warn",
+  // A screenshot of every failed test, named after it (spec: e2e-testing › Failure artifacts).
+  afterTest: async (test, _context, result) => {
+    if (result.passed) return;
+    const name = `${test.parent} ${test.title}`.replace(/[^\w-]+/g, "_");
+    await browser.saveScreenshot(`e2e/artifacts/FAIL-${name}.png`).catch(() => {});
+  },
   logLevels: { webdriver: "silent" }, // restarts make the old session fail on purpose
   // `launchApp` restarts the app, and the new process is not the service's child: stop it here.
   after: async () => {
+    if (!process.env.CLEW_E2E_RESTARTED) return; // the service stops a process it started itself
     await browser
       .execute(() => {
         const w = window as unknown as {
