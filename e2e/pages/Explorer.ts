@@ -23,5 +23,18 @@ export const Explorer = {
     await this.select(text);
     await browser.keys("ArrowRight");
   },
+  /** Expand each named row in turn: `reveal(["shop-postgres", db, "public", "tables"])`. */
+  async reveal(path: string[]) {
+    for (const name of path) {
+      const row = await this.row(name);
+      await row.waitForDisplayed({ timeout: 20_000 });
+      if ((await row.getAttribute("aria-expanded")) !== "true") await this.expand(name);
+    }
+  },
+  /** Open a row (a table opens its editor) with Enter. */
+  async open(text: string) {
+    await this.select(text);
+    await browser.keys("Enter");
+  },
   newConnectionButton: () => $("aria/New connection"),
 };
