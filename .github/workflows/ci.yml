@@ -42,6 +42,9 @@ jobs:
       # runs on main (and on demand), not on pull requests.
       - if: github.event_name != 'pull_request'
         run: pnpm tauri build --debug --no-bundle
+      - name: Build has no e2e test mode
+        if: github.event_name != 'pull_request'
+        run: pnpm check:no-test-mode
       # Bundle step with the real icons: the .app carries our icon.icns, and no dev badge ships.
       - name: Bundle icons (macOS)
         if: github.event_name != 'pull_request' && runner.os == 'macOS'
