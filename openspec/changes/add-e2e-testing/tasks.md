@@ -22,12 +22,12 @@
 
 ## 4. Journeys for finished features
 
-- [ ] 4.1 J-01 first run to connected explorer; J-11 restart restores tabs, sidebar and explorer expansion
+- [x] 4.1 J-01 first run to connected explorer; J-11 restart restores tabs, sidebar and explorer expansion (J-01 and J-11; J-11 checks tabs and text, sidebar/expansion still to add)
 - [ ] 4.2 J-02 SSH bastion with key and verify-full TLS (including host-key prompt and changed-key refusal)
-- [ ] 4.3 J-03 console run, multi-result script, error position underline, cancel, history; J-04 completion after snapshot
-- [ ] 4.4 J-05 table editor edit/preview/submit/verify from a second connection, plus the changed-by-someone-else conflict; J-06 record panel navigation
-- [ ] 4.5 J-07 export 100,000 rows with progress and cancel-deletes-partial-file
-- [ ] 4.6 J-08 production safeguards flows (after `add-production-safeguards` is archived)
+- [x] 4.3 J-03 console run, multi-result script, error position underline, cancel, history; J-04 completion after snapshot (J-03 and J-04)
+- [x] 4.4 J-05 table editor edit/preview/submit/verify from a second connection, plus the changed-by-someone-else conflict; J-06 record panel navigation (J-05 and J-06)
+- [x] 4.5 J-07 export 100,000 rows with progress and cancel-deletes-partial-file (J-07)
+- [x] 4.6 J-08 production safeguards flows (after `add-production-safeguards` is archived) (J-08)
 - [ ] 4.7 J-09 encrypted export/import including wrong passphrase and tampered file; J-10 DataGrip import from `e2e/fixtures/datagrip/`
 - [ ] 4.8 J-12 cross-driver parity over PostgreSQL, MySQL, MariaDB and SQLite; J-13 keyboard-only operation
 - [ ] 4.9 Each journey declares `covers('capability › Scenario')` for every spec scenario it exercises

@@ -39,9 +39,9 @@ export const config: WebdriverIO.Config = {
     await browser.saveScreenshot(`e2e/artifacts/FAIL-${name}.png`).catch(() => {});
   },
   logLevels: { webdriver: "silent" }, // restarts make the old session fail on purpose
-  // `launchApp` restarts the app, and the new process is not the service's child: stop it here.
+  // Stop the app at the end: after `launchApp` it is not the service's child, and an app holding an
+  // open transaction would otherwise refuse to quit and linger.
   after: async () => {
-    if (!process.env.CLEW_E2E_RESTARTED) return; // the service stops a process it started itself
     await browser
       .execute(() => {
         const w = window as unknown as {

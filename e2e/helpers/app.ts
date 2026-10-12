@@ -13,7 +13,6 @@ export async function launchApp(data: Pick<TestDataDir, "dialogQueue">): Promise
   // is not a window close, so give those saves time to land. No UI signal exists to wait on.
   await browser.pause(1000);
   clearDialogs(data.dialogQueue);
-  process.env.CLEW_E2E_RESTARTED = "1"; // wdio.conf.ts stops the restarted process at the end
   // The process dies mid-request, so this call is expected to fail; wdio retries it against the
   // new process, which reports an unknown session. Both outcomes mean the restart happened.
   await browser
