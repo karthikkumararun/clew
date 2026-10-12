@@ -8,12 +8,12 @@
 
 ## 2. Seed data and Docker stack
 
-- [ ] 2.1 Write the `shop` seed for PostgreSQL, MySQL, MariaDB and SQLite, including NULLs, Unicode, 30-digit decimals, JSON, zoned timestamps and the 100,000-row `events` generator (spec: e2e-testing › Shared seed dataset)
-- [ ] 2.2 Restructure `docker-compose.yml` into profiles `core`, `nosql`, `heavy`, `ai-mock`; add health checks and fixed ports for each service that exists today (spec: e2e-testing › Docker stack)
-- [ ] 2.3 Per-file isolation helpers (`CREATE DATABASE … TEMPLATE`, per-file schemas, copied template files) with automatic cleanup
-- [ ] 2.4 Parity script comparing counts and sampled checksums across running databases (spec: e2e-testing › Shared seed dataset › Seed parity)
-- [ ] 2.5 Mock LLM server in `docker/mock-llm/`: OpenAI- and Anthropic-compatible, streaming, scripted responses by marker, request log endpoint (spec: e2e-testing › Docker stack)
-- [ ] 2.6 Test: parity script passes on PostgreSQL, MySQL, MariaDB and SQLite; stack starts only when all services are healthy
+- [x] 2.1 Write the `shop` seed for PostgreSQL, MySQL, MariaDB and SQLite, including NULLs, Unicode, 30-digit decimals, JSON, zoned timestamps and the 100,000-row `events` generator (spec: e2e-testing › Shared seed dataset)
+- [x] 2.2 Restructure `docker-compose.yml` into profiles `core`, `nosql`, `heavy`, `ai-mock`; add health checks and fixed ports for each service that exists today (spec: e2e-testing › Docker stack)
+- [x] 2.3 Per-file isolation helpers (`CREATE DATABASE … TEMPLATE`, per-file schemas, copied template files) with automatic cleanup
+- [x] 2.4 Parity script comparing counts and sampled checksums across running databases (spec: e2e-testing › Shared seed dataset › Seed parity)
+- [x] 2.5 Mock LLM server in `docker/mock-llm/`: OpenAI- and Anthropic-compatible, streaming, scripted responses by marker, request log endpoint (spec: e2e-testing › Docker stack)
+- [x] 2.6 Test: parity script passes on PostgreSQL, MySQL, MariaDB and SQLite; stack starts only when all services are healthy
 
 ## 3. Page objects
 
