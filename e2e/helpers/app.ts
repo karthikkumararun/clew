@@ -13,6 +13,7 @@ export async function launchApp(data: Pick<TestDataDir, "dialogQueue">): Promise
   // is not a window close, so give those saves time to land. No UI signal exists to wait on.
   await browser.pause(1000);
   clearDialogs(data.dialogQueue);
+  const started = await timeOrigin();
   // The process dies mid-request, so this call is expected to fail; wdio retries it against the
   // new process, which reports an unknown session. Both outcomes mean the restart happened.
   await browser
@@ -21,8 +22,11 @@ export async function launchApp(data: Pick<TestDataDir, "dialogQueue">): Promise
       void w.__TAURI__.core.invoke("e2e_restart");
     })
     .catch(() => {});
-  await browser.pause(1000);
-  await browser.reloadSession();
+  // A restart is quick on macOS but takes seconds on Linux and Windows. Open a session only once
+  // the page belongs to the new process (a different `timeOrigin`) and has stayed up, so it
+  // never lands on the dying one. The port itself cannot be watched: on macOS it is re-bound
+  // faster than any poll could see it closed.
+  await reopenSession(started);
   await waitForShell();
 }
 
@@ -32,4 +36,24 @@ export async function launchApp(data: Pick<TestDataDir, "dialogQueue">): Promise
  */
 export async function waitForShell(timeout = 30_000): Promise<void> {
   await $("aria/Toggle sidebar").waitForDisplayed({ timeout });
+}
+
+const timeOrigin = () => browser.execute(() => performance.timeOrigin);
+
+async function reopenSession(before: number, timeoutMs = 90_000): Promise<void> {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    try {
+      await browser.reloadSession();
+      const first = await timeOrigin();
+      if (first !== before) {
+        await browser.pause(1000);
+        if ((await timeOrigin()) === first) return;
+      }
+    } catch {
+      /* the server is not up yet, or it was the old process dying */
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`the app did not come back within ${timeoutMs}ms of the restart`);
 }

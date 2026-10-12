@@ -18,6 +18,7 @@
     "tauri": "tauri",
     "icons": "tsx scripts/build-icons.ts",
     "check:icons": "tsx scripts/check-icons.ts",
+    "build:e2e-frontend": "tsx scripts/build-e2e-frontend.ts",
     "qa:build": "tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json",
     "qa:up": "tsx scripts/qa-up.ts",
     "qa:down": "tsx scripts/qa-down.ts",
