@@ -126,7 +126,15 @@ export async function createIsolatedDb(dialect: Dialect): Promise<IsolatedDb> {
     return {
       dialect,
       name: path,
-      cleanup: async () => rmSync(dir, { recursive: true, force: true }),
+      cleanup: async () => {
+        // Windows will not delete a file the app under test still has open: retry, then leave the
+        // temp folder for the OS rather than fail a journey that already passed.
+        try {
+          rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code !== "EBUSY") throw e;
+        }
+      },
     };
   }
 
