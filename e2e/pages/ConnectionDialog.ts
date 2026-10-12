@@ -8,7 +8,10 @@ export const ConnectionDialog = {
   testButton: () => $("aria/Test connection"),
   saveButton: () => $("aria/Save & connect"),
   cancelButton: () => $("aria/Cancel"),
-  tab: (name: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced") => $(`aria/${name}`),
+  tab: (name: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced") =>
+    $(
+      `.//*[@role="tablist"][@aria-label="Connection settings"]//*[@role="tab"][normalize-space()="${name}"]`,
+    ),
   environment: (env: Environment) => $(`aria/${env[0].toUpperCase()}${env.slice(1)}`),
 
   async fillNetwork(o: {
