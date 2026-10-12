@@ -15,6 +15,8 @@ if (data) {
   process.env.CLEW_E2E_DIALOG_QUEUE = data.dialogQueue;
 }
 process.env.CLEW_E2E = "1";
+// DataGrip import reads this fixture instead of the developer's real settings (J-10).
+process.env.CLEW_E2E_DATAGRIP_ROOT = resolve("e2e", "fixtures", "datagrip", "JetBrains");
 mkdirSync(resolve("e2e", "artifacts"), { recursive: true });
 
 export const config: WebdriverIO.Config = {

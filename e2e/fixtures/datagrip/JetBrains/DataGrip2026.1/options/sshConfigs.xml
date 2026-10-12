@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application>
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig host="bastion.example.net" id="aaaaaaaa-0000-0000-0000-000000000001" port="2222" customName="bastion" username="tunnel" authType="KEY_PAIR" keyPath="/Users/ada/.ssh/id_ed25519" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</application>

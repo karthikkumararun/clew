@@ -18,6 +18,9 @@ export const Exchange = {
   checkbox: (label: string) => $(`.//*[@role="dialog"]//label[contains(., "${label}")]//input`),
   /** Choose what to import from: DataGrip, Clew export, DBeaver, ~/.pgpass. */
   source: (name: string) => $(`.//*[@role="dialog"]//button[contains(., "${name}")]`),
+  /** The row checkbox of one importable connection. */
+  candidate: (name: string) =>
+    $(`.//*[@role="dialog"]//input[starts-with(@aria-label, "Import ${name}")]`),
   passphrase: () => $("#pp1"),
   confirm: () => $("#pp2"),
   unlock: () => $("#ip"),
