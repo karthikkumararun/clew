@@ -179,6 +179,10 @@ pub fn run() {
             testmode::e2e_dialog_next,
             #[cfg(feature = "e2e")]
             testmode::e2e_now,
+            #[cfg(feature = "e2e")]
+            testmode::e2e_restart,
+            #[cfg(feature = "e2e")]
+            testmode::e2e_exit,
             commands::app::app_paths,
             commands::app::app_quit_confirmed,
             commands::app::oracle_client_status,

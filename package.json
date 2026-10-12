@@ -18,6 +18,8 @@
     "tauri": "tauri",
     "icons": "tsx scripts/build-icons.ts",
     "check:icons": "tsx scripts/check-icons.ts",
+    "qa:build": "tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json",
+    "qa:e2e": "wdio run e2e/wdio.conf.ts",
     "check:no-test-mode": "tsx scripts/check-no-test-mode.ts",
     "dev:app": "tauri dev --config src-tauri/tauri.dev.conf.json"
   },

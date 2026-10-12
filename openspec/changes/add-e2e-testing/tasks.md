@@ -3,7 +3,7 @@
 - [ ] 1.1 Spike: with WebdriverIO and `@wdio/tauri-service` (embedded provider), launch the app, find by role, type, click, take a screenshot and relaunch with the same data dir on macOS, Windows and Linux; record versions and the outcome in design.md (spec: e2e-testing › Real-app end-to-end harness) **macOS done; Windows and Linux pending (see design.md "Spike result")**
 - [x] 1.2 Add the `e2e` Cargo feature and test mode: `CLEW_DATA_DIR`, `FileSecretStore`, dialog queue, hard-disabled network extras, fixed clock (spec: e2e-testing › Isolated test mode)
 - [x] 1.3 CI check that release builds contain no test mode (feature tree + binary symbol grep) (spec: e2e-testing › Isolated test mode › Release build has no test mode)
-- [ ] 1.4 Create `e2e/` with `wdio.conf.ts`, helpers (`launchApp`, `withDataDir`, `queueDialog`, `connectionFactory`, db clients) and a hello-world journey that passes on all three OSes
+- [ ] 1.4 Create `e2e/` with `wdio.conf.ts`, helpers (`launchApp`, `withDataDir`, `queueDialog`, `connectionFactory`, db clients) and a hello-world journey that passes on all three OSes **macOS passes; Windows and Linux pending; db clients arrive with the seed in 2.x**
 - [ ] 1.5 Test-mode accessible mirror for the canvas grid and the graph view (`data-testid` rows/nodes, only in `e2e` builds)
 
 ## 2. Seed data and Docker stack

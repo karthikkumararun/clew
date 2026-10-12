@@ -148,6 +148,20 @@ pub fn e2e_dialog_next() -> Option<String> {
     next_dialog_answer()
 }
 
+/// Restart the process with the same environment (same data directory), so a journey can seed
+/// files first and then relaunch, or check what survives a restart.
+#[tauri::command]
+pub fn e2e_restart(app: tauri::AppHandle) {
+    app.restart()
+}
+
+/// Quit the process. `e2e_restart` leaves a new process that the WebDriver service does not own,
+/// so the run ends by asking it to exit.
+#[tauri::command]
+pub fn e2e_exit(app: tauri::AppHandle) {
+    app.exit(0)
+}
+
 /// The fixed clock, if the run set one.
 #[tauri::command]
 pub fn e2e_now() -> Option<String> {
