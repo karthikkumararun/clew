@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createConnection } from "node:net";
-import { join } from "node:path";
+import { resolve as resolvePath } from "node:path";
 import { buildApp, rebuildReason, runningProfiles, splitByProfiles } from "./qa-lib";
 import {
   blockingFailures,
@@ -111,7 +111,7 @@ for (const file of files) {
     console.log(`\n=== ${file}${attempt ? ` (retry ${attempt})` : ""}`);
     const r = spawnSync(
       "pnpm",
-      ["exec", "wdio", "run", "e2e/wdio.conf.ts", "--spec", join(specsDir(suite), file)],
+      ["exec", "wdio", "run", "e2e/wdio.conf.ts", "--spec", resolvePath(specsDir(suite), file)],
       {
         stdio: "inherit",
         // pnpm is a .cmd shim on Windows
