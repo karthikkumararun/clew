@@ -11,7 +11,7 @@ use clew_lib::drivers::{
     ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest, ExecSummary, ResolvedConfig,
     ResultEvent, ResultId, ServerInfo, Value,
 };
-use clew_lib::sessions::{Emit, SessionId, SessionManager};
+use clew_lib::sessions::{Emit, SessionId, SessionManager, SessionMeta, SessionStatus};
 use clew_lib::transport::hostkey::{KnownHosts, RejectUnknown};
 use clew_lib::transport::ssh::SshEnv;
 
@@ -613,4 +613,197 @@ pub async fn unknown_driver_is_unavailable(cfg: &ResolvedConfig) {
     let err = manager().connect("x", cfg).await.expect_err("must fail");
     assert_eq!(err.code, ErrorCode::DriverUnavailable);
     assert!(err.message.contains("no-such-driver"));
+}
+
+// ---- session manager: states and isolation -------------------------------------------------------
+
+fn meta(mgr: &SessionManager, sid: &SessionId) -> SessionMeta {
+    mgr.sessions_list()
+        .into_iter()
+        .find(|m| &m.id == sid)
+        .expect("session listed")
+}
+
+/// Statements run straight on a driver session (no manager), results discarded.
+async fn raw(session: &mut dyn clew_lib::drivers::Session, sql: &str) -> DriverResult<()> {
+    let (sink, mut rx) = clew_lib::drivers::ResultSink::channel(8);
+    let drain = tokio::spawn(async move { while rx.recv().await.is_some() {} });
+    let r = session
+        .execute(
+            ExecRequest {
+                sql: sql.into(),
+                page_size: 10,
+                script: false,
+                continue_on_error: false,
+            },
+            sink,
+        )
+        .await;
+    let _ = drain.await;
+    r.map(|_| ())
+}
+
+/// The driver reports idle, in transaction and (where the server has it) aborted.
+/// (spec: driver-framework › Session state and isolation level)
+pub async fn the_driver_reports_the_transaction_state(
+    s: &Suite,
+    driver: &str,
+    table: &str,
+    aborts: bool,
+) {
+    use clew_lib::drivers::TxState;
+    let registry = Registry::with_defaults();
+    let d = registry.get(driver).expect("driver");
+    let mut session = d.open(&s.cfg).await.expect("open");
+    raw(session.as_mut(), &format!("DROP TABLE IF EXISTS {table}"))
+        .await
+        .unwrap();
+    raw(
+        session.as_mut(),
+        &format!("CREATE TABLE {table} (id INTEGER PRIMARY KEY)"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        session.transaction_state().await.unwrap(),
+        Some(TxState::Idle)
+    );
+    raw(session.as_mut(), "BEGIN").await.unwrap();
+    assert_eq!(
+        session.transaction_state().await.unwrap(),
+        Some(TxState::InTransaction)
+    );
+    raw(session.as_mut(), &format!("INSERT INTO {table} VALUES (1)"))
+        .await
+        .unwrap();
+    raw(session.as_mut(), &format!("INSERT INTO {table} VALUES (1)"))
+        .await
+        .unwrap_err();
+    let after_error = session.transaction_state().await.unwrap();
+    assert_eq!(
+        after_error,
+        Some(if aborts {
+            TxState::Aborted
+        } else {
+            TxState::InTransaction
+        })
+    );
+    raw(session.as_mut(), "ROLLBACK").await.unwrap();
+    assert_eq!(
+        session.transaction_state().await.unwrap(),
+        Some(TxState::Idle)
+    );
+    raw(session.as_mut(), &format!("DROP TABLE {table}"))
+        .await
+        .unwrap();
+    session.close().await.unwrap();
+}
+
+/// idle -> in transaction -> (aborted) -> idle through the session manager, with the statement
+/// text gone once the transaction ends. (spec: session-manager › Session states);
+/// (spec: driver-framework › Aborted transaction)
+pub async fn the_session_state_follows_the_transaction(s: &Suite, table: &str, aborts: bool) {
+    let c = connect(&s.cfg).await;
+    c.must(&format!("DROP TABLE IF EXISTS {table}")).await;
+    c.must(&format!("CREATE TABLE {table} (id INTEGER PRIMARY KEY)"))
+        .await;
+
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(m.state, SessionStatus::Idle);
+    let server_id = c
+        .must(s.dialect.backend_id_sql.expect("backend id sql"))
+        .await
+        .scalar_int();
+    assert_eq!(
+        m.backend_id,
+        Some(server_id.to_string()),
+        "server identifier"
+    );
+
+    c.must("BEGIN").await;
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(m.state, SessionStatus::InTransaction);
+    assert!(m.tx_started_at.is_some());
+
+    c.must(&format!("INSERT INTO {table} VALUES (1)")).await;
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(m.tx_statement_count, 1);
+    assert_eq!(m.tx_breakdown.insert, 1);
+    assert!(m.tx_statements[0].text.contains(table));
+
+    c.run(&format!("INSERT INTO {table} VALUES (1)"))
+        .await
+        .err();
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(
+        m.state,
+        if aborts {
+            SessionStatus::Aborted
+        } else {
+            SessionStatus::InTransaction
+        }
+    );
+    assert_eq!(c.mgr.sessions_open_transactions().len(), 1);
+
+    c.mgr.session_rollback(&c.session).await.unwrap();
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(m.state, SessionStatus::Idle);
+    assert!(
+        m.tx_statements.is_empty(),
+        "statement text outlives the transaction"
+    );
+    assert_eq!(m.tx_statement_count, 0);
+    assert_eq!(
+        c.must(&format!("SELECT count(*) FROM {table}"))
+            .await
+            .scalar_int(),
+        0
+    );
+    c.must(&format!("DROP TABLE {table}")).await;
+}
+
+/// Setting a level applies to the next transaction; the connection default applies to new sessions.
+/// (spec: driver-framework › Set isolation); (spec: sql-console › Connection default)
+pub async fn isolation_applies_to_the_next_transaction(
+    s: &Suite,
+    levels: &[&str],
+    effective_sql: &str,
+) {
+    let c = connect(&s.cfg).await;
+    let m = meta(&c.mgr, &c.session);
+    assert_eq!(m.supported_isolation, levels);
+    let effective = |r: &Run| match &r.rows()[0][0] {
+        Value::Text { value, .. } => value.replace('-', " ").to_ascii_uppercase(),
+        other => panic!("not text: {other:?}"),
+    };
+
+    c.mgr
+        .set_session_isolation(&c.session, "serializable")
+        .await
+        .unwrap();
+    assert_eq!(
+        meta(&c.mgr, &c.session).isolation.as_deref(),
+        Some("SERIALIZABLE")
+    );
+    c.must("BEGIN").await;
+    assert_eq!(effective(&c.must(effective_sql).await), "SERIALIZABLE");
+    assert!(
+        c.mgr
+            .set_session_isolation(&c.session, "READ COMMITTED")
+            .await
+            .is_err(),
+        "no change inside a transaction"
+    );
+    c.must("ROLLBACK").await;
+
+    let mut with_default = s.cfg.clone();
+    with_default.isolation = Some("REPEATABLE READ".into());
+    let d = connect(&with_default).await;
+    assert_eq!(
+        meta(&d.mgr, &d.session).isolation.as_deref(),
+        Some("REPEATABLE READ")
+    );
+    d.must("BEGIN").await;
+    assert_eq!(effective(&d.must(effective_sql).await), "REPEATABLE READ");
+    d.must("ROLLBACK").await;
 }

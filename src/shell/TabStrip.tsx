@@ -3,6 +3,8 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { ENV_COLORS } from "../components/Badge";
 import { IconButton } from "../components/Button";
 import { Close, Plus } from "../components/icons";
+import { useConnections } from "../connections/connectionsStore";
+import { useSessions } from "../stores/sessionsStore";
 import { isTabDirty, useWorkspace } from "../stores/workspaceStore";
 import { runCommand } from "./registry/commands";
 import { getTabKind } from "./registry/tabKinds";
@@ -23,6 +25,8 @@ export function TabStrip() {
   const activateTab = useWorkspace((s) => s.activateTab);
   const requestClose = useWorkspace((s) => s.requestClose);
   const moveTab = useWorkspace((s) => s.moveTab);
+  const idle = useSessions((s) => s.idle);
+  const connections = useConnections((s) => s.file.connections);
 
   const refs = useRef(new Map<string, HTMLDivElement>());
   const bodies = useRef(new Map<string, HTMLDivElement>());
@@ -102,6 +106,12 @@ export function TabStrip() {
           const dirty = isTabDirty(tab);
           const title = kind?.title(tab.state) ?? tab.key;
           const selected = tab.id === activeTabId;
+          // An idle-in-transaction session marks its tab: amber, red on production.
+          const sessionId = (tab.state as { sessionId?: string } | null)?.sessionId;
+          const idleFlag = sessionId !== undefined && idle[sessionId] === true;
+          const connectionId = (tab.state as { connectionId?: string } | null)?.connectionId;
+          const idleProduction =
+            connections.find((c) => c.id === connectionId)?.environment === "production";
           // The wrapper carries the pointer handling and the stripe; the tab itself holds only
           // the label, and the close button sits beside it, not inside it (an interactive
           // control must not be nested in a tab).
@@ -147,6 +157,14 @@ export function TabStrip() {
                 {subtitle ? <span className={styles.subtitle}>{subtitle}</span> : null}
                 {dirty ? (
                   <span className={styles.dirty} role="img" aria-label="Unsaved changes" />
+                ) : null}
+                {idleFlag ? (
+                  <span
+                    className={styles.idle}
+                    data-production={idleProduction}
+                    role="img"
+                    aria-label="Transaction idle"
+                  />
                 ) : null}
               </div>
               <button

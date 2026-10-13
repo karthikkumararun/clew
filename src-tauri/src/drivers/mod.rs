@@ -243,6 +243,10 @@ pub struct ResolvedConfig {
     /// Statements to run on every new session (a saved connection's "on connect" list).
     #[serde(default)]
     pub on_connect: Vec<String>,
+    /// Default transaction isolation level for new sessions (the connection's
+    /// `advanced.isolation`), e.g. `READ COMMITTED`. Ignored when the driver does not support it.
+    #[serde(default)]
+    pub isolation: Option<String>,
 }
 
 fn default_connect_timeout() -> u64 {
@@ -572,7 +576,69 @@ pub trait Session: Send {
         true
     }
 
+    /// The identifier the server knows this session by (PostgreSQL backend PID, MySQL / MariaDB
+    /// connection id). `None` for file databases and drivers that have none.
+    fn backend_id(&self) -> Option<String> {
+        None
+    }
+
+    /// Ask the server whether the session is idle, in a transaction or in an aborted transaction.
+    /// `None` when the driver cannot tell; the session manager then relies on its own bookkeeping.
+    async fn transaction_state(&mut self) -> DriverResult<Option<TxState>> {
+        Ok(None)
+    }
+
+    /// The isolation levels the driver lets the user select, as upper-case SQL (empty = none).
+    fn supported_isolation_levels(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Why the level cannot be selected (shown in the details pane), when the list is empty.
+    fn isolation_note(&self) -> Option<String> {
+        None
+    }
+
+    /// The session's current default isolation level, upper-case (`READ COMMITTED`).
+    async fn isolation_level(&mut self) -> DriverResult<Option<String>> {
+        Ok(None)
+    }
+
+    /// Set the isolation level of the session's following transactions. `level` is one of
+    /// [`Self::supported_isolation_levels`] (any case). Must not be called inside a transaction.
+    async fn set_isolation(&mut self, _level: &str) -> DriverResult<()> {
+        Err(DriverError::unsupported("Setting the isolation level"))
+    }
+
     async fn close(self: Box<Self>) -> DriverResult<()>;
+}
+
+/// Where a session stands with respect to transactions, as the server reports it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TxState {
+    Idle,
+    InTransaction,
+    /// A statement failed inside the transaction; only a rollback clears it (PostgreSQL).
+    Aborted,
+}
+
+/// Find `level` (any case, extra spaces) in a driver's supported list and return the canonical text.
+/// This is also what keeps arbitrary text out of the `SET ... ISOLATION LEVEL` statement.
+pub fn canonical_isolation(supported: &[&'static str], level: &str) -> DriverResult<&'static str> {
+    let wanted = level
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_uppercase();
+    supported
+        .iter()
+        .copied()
+        .find(|l| *l == wanted)
+        .ok_or_else(|| {
+            DriverError::new(
+                ErrorCode::Unsupported,
+                format!("The isolation level \"{level}\" is not supported by this connection"),
+            )
+        })
 }
 
 /// What a document-family session (MongoDB) can do beyond the base [`Session`].

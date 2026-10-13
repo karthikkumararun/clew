@@ -1,6 +1,7 @@
 import { useConnections } from "../../connections/connectionsStore";
 import { registerStatusItem } from "../../shell/registry/statusItems";
 import { useStore } from "zustand";
+import { useSessions } from "../../stores/sessionsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { dialectLabel } from "./editor/dialects";
 import { getRuntime } from "./runtime";
@@ -63,6 +64,14 @@ function TxState({
   return <>{open ? `Transaction · ${pending} pending` : "Manual · no transaction"}</>;
 }
 
+/** `Waiting for console` while another tab holds the shared session this console runs on. */
+function Waiting() {
+  const tab = useActiveConsole();
+  const sessionId = (tab?.state as ConsoleState | undefined)?.sessionId;
+  const waitingFor = useSessions((s) => (sessionId ? s.sessions[sessionId]?.waitingFor : null));
+  return waitingFor ? <>{`Waiting for ${waitingFor}`}</> : null;
+}
+
 /** Status-bar items for the active console: cursor, encoding, dialect and transaction state. */
 export function registerConsoleStatusItems(): () => void {
   const disposers = [
@@ -85,6 +94,12 @@ export function registerConsoleStatusItems(): () => void {
       render: () => <Dialect />,
     }),
     registerStatusItem({ id: "console.tx", side: "right", order: 23, render: () => <Tx /> }),
+    registerStatusItem({
+      id: "console.waiting",
+      side: "left",
+      order: 6,
+      render: () => <Waiting />,
+    }),
   ];
   return () => disposers.forEach((d) => d());
 }

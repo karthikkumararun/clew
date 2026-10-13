@@ -4,6 +4,7 @@ import type { Connection } from "../../../src/lib/ipc/generated/Connection";
 import { connectionFactory } from "../../helpers/connections";
 import { createIsolatedDb } from "../../helpers/db";
 import { tablesPath } from "../../helpers/dialect";
+import { pressMod } from "../../helpers/keys";
 import { Console } from "../../pages/Console";
 import { ConnectionDialog } from "../../pages/ConnectionDialog";
 import { Exchange } from "../../pages/Exchange";
@@ -45,6 +46,14 @@ async function dialogTab(tab: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced
   await Explorer.newConnectionButton().click();
   await $('[role="dialog"]').waitForDisplayed({ timeout: 10_000 });
   await ConnectionDialog.tab(tab).click();
+}
+
+/** Open the Sessions panel unless it already is (its visibility is saved across restarts). */
+async function openSessionsPanel() {
+  const open = () =>
+    browser.execute(() => document.querySelector('[data-testid="sessions-panel"]') !== null);
+  if (!(await open())) await pressMod("s", { alt: true });
+  await browser.waitUntil(open, { timeoutMsg: "the Sessions panel should open" });
 }
 
 async function runQuery(sql: string) {
@@ -204,6 +213,33 @@ export const STATES: Record<string, StateFixture> = {
       await Grid.select(0, "status");
       await $("aria/More options").click();
       await $('[role="menuitem"]*=Value editor').click();
+    },
+  },
+  "sessions-panel": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR, '[aria-label="Session details"]', '[aria-label="Sessions by connection"]'],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await $('.//button[starts-with(normalize-space(.), "Tx:")]').click();
+      await $('[role="menuitem"]*=Manual').click();
+      await Console.setText("UPDATE orders SET status = 'paid' WHERE id = 1");
+      await Console.run();
+      await $('.//button[starts-with(normalize-space(.), "Commit")]').waitForDisplayed({
+        timeout: 10_000,
+      });
+      await openSessionsPanel();
+    },
+  },
+  "sessions-attach-menu": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR, '[aria-label="Session details"]', '[aria-label="Sessions by connection"]'],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery("SELECT 1 AS one");
+      await openSessionsPanel();
+      await $('[data-testid="sessions-panel"] [role="treeitem"][aria-level="2"]').click();
+      await $("button=Attach to…").click();
+      await $('[role="menu"]').waitForDisplayed({ timeout: 10_000 });
     },
   },
 };

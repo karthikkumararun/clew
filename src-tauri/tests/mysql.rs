@@ -49,6 +49,7 @@ fn cfg_as(f: Flavor, user: &str, password: &str) -> ResolvedConfig {
         read_only: false,
         options: Default::default(),
         on_connect: vec![],
+        isolation: None,
     }
 }
 
@@ -742,5 +743,25 @@ both! {
         let opened = mgr.open_session("t").await.expect("open");
         assert_eq!(opened.transport.as_deref(), Some("via SSH 127.0.0.1"));
         assert_eq!(run(&mgr, &opened.session_id, "SELECT 1").await.scalar_int(), 1);
+    };
+}
+
+// ---- session manager -------------------------------------------------------------------------
+
+both! {
+    session_manager:
+    transaction_state => |f| async move {
+        the_driver_reports_the_transaction_state(&suite(f), f.driver, "sm_my_state", false).await
+    };
+    session_state => |f| async move {
+        the_session_state_follows_the_transaction(&suite(f), "sm_my_tx", false).await
+    };
+    isolation => |f| async move {
+        isolation_applies_to_the_next_transaction(
+            &suite(f),
+            &["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+            if f.maria { "SELECT @@tx_isolation" } else { "SELECT @@transaction_isolation" },
+        )
+        .await
     };
 }

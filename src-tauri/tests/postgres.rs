@@ -32,6 +32,7 @@ fn cfg_for(port: u16) -> ResolvedConfig {
         read_only: false,
         options: Default::default(),
         on_connect: vec![],
+        isolation: None,
     }
 }
 
@@ -1250,4 +1251,28 @@ async fn table_meta_reports_identity_generated_and_views() {
     assert_eq!(view.is_view, Some(true));
     c.must("DROP VIEW ch_meta_v").await;
     c.must("DROP TABLE ch_meta").await;
+}
+
+// ---- session manager -------------------------------------------------------------------------
+
+/// (spec: driver-framework › Aborted transaction)
+#[tokio::test]
+async fn the_driver_reports_the_transaction_state_including_aborted() {
+    the_driver_reports_the_transaction_state(&suite(), "postgres", "sm_pg_state", true).await;
+}
+
+/// idle -> in transaction -> aborted -> idle; statement text cleared when the transaction ends.
+#[tokio::test]
+async fn the_session_state_goes_through_aborted_back_to_idle() {
+    the_session_state_follows_the_transaction(&suite(), "sm_pg_tx", true).await;
+}
+
+#[tokio::test]
+async fn isolation_level_applies_to_the_next_transaction() {
+    isolation_applies_to_the_next_transaction(
+        &suite(),
+        &["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+        "SHOW transaction_isolation",
+    )
+    .await;
 }

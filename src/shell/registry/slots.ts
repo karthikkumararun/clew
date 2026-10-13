@@ -16,14 +16,22 @@ export interface SidePanelDef {
   render: () => ReactNode;
 }
 
+export interface BottomPanelDef {
+  id: string;
+  title: string;
+  render: () => ReactNode;
+}
+
 interface SlotsState {
   slots: Record<SlotName, SlotItem[]>;
   sidePanel: SidePanelDef | null;
+  bottomPanel: BottomPanelDef | null;
 }
 
 export const useSlots = create<SlotsState>(() => ({
   slots: { toolbarLeft: [], toolbarCenter: [], toolbarRight: [], sidebar: [] },
   sidePanel: null,
+  bottomPanel: null,
 }));
 
 /** Contribute content to a shell slot (toolbar areas, sidebar body). Returns a disposer. */
@@ -46,4 +54,10 @@ export function registerSlotItem(slot: SlotName, item: SlotItem): () => void {
 export function registerSidePanel(def: SidePanelDef): () => void {
   useSlots.setState({ sidePanel: def });
   return () => useSlots.setState((s) => (s.sidePanel === def ? { sidePanel: null } : s));
+}
+
+/** Register the bottom dock (used by the Sessions panel). Returns a disposer. */
+export function registerBottomPanel(def: BottomPanelDef): () => void {
+  useSlots.setState({ bottomPanel: def });
+  return () => useSlots.setState((s) => (s.bottomPanel === def ? { bottomPanel: null } : s));
 }

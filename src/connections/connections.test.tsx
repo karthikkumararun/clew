@@ -331,9 +331,9 @@ describe("connect and disconnect", () => {
     await act(async () => useConnections.getState().requestDisconnect("c1"));
     expect(api.disconnect).not.toHaveBeenCalled();
     const dialog = within(screen.getByRole("dialog"));
-    expect(dialog.getByRole("button", { name: "Commit" })).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Commit all" })).toBeInTheDocument();
     expect(dialog.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
-    fireEvent.click(dialog.getByRole("button", { name: "Roll back" }));
+    fireEvent.click(dialog.getByRole("button", { name: "Roll back all" }));
     await waitFor(() => expect(api.disconnect).toHaveBeenCalledWith("c1", "rollback"));
     expect(useConnections.getState().connected.c1).toBeUndefined();
   });

@@ -3,6 +3,7 @@ import { Button } from "../components/Button";
 import type { SshAuthKind } from "../lib/ipc/generated/SshAuthKind";
 import type { TlsMode } from "../lib/ipc/generated/TlsMode";
 import type { Draft, Errors } from "./draft";
+import { levelsBeforeOpen } from "../features/sessions/isolation";
 import { Field } from "./Field";
 import { pickFolder } from "./files";
 import styles from "./ConnectionDialog.module.css";
@@ -253,6 +254,24 @@ export function AdvancedTab({ draft, patch }: TabProps) {
           )}
         </Field>
       </div>
+      {levelsBeforeOpen(draft.driver).length > 0 ? (
+        <Field label="Default isolation level">
+          {(p) => (
+            <Select
+              {...p}
+              value={draft.isolation}
+              onChange={(e) => patch({ isolation: e.target.value })}
+            >
+              <option value="">Server default</option>
+              {levelsBeforeOpen(draft.driver).map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      ) : null}
       <Field label="Run on connect">
         {(p) => (
           <textarea

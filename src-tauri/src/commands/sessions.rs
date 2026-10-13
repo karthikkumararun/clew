@@ -10,7 +10,7 @@ use crate::drivers::{
     SchemaSnapshot, ServerInfo, TreeNode, Value,
 };
 use crate::error::AppResult;
-use crate::sessions::Emit;
+use crate::sessions::{Emit, SessionEvent, SessionMeta, TxAction};
 use crate::state::AppState;
 
 fn emitter(channel: Channel<ResultEvent>) -> Emit {
@@ -62,12 +62,18 @@ pub struct OpenedSession {
     pub transport: Option<String>,
 }
 
+/// Open a dedicated session for an editor tab. `isolation` overrides the connection's default
+/// isolation level (`advanced.isolation`) for this session; a level the driver lacks is ignored.
 #[tauri::command]
 pub async fn session_open(
     state: State<'_, AppState>,
     connection_id: String,
+    isolation: Option<String>,
 ) -> AppResult<OpenedSession> {
-    let opened = state.sessions.open_session(&connection_id).await?;
+    let opened = state
+        .sessions
+        .open_session_with(&connection_id, isolation)
+        .await?;
     Ok(OpenedSession {
         session_id: opened.session_id,
         server: opened.server,
@@ -75,9 +81,139 @@ pub async fn session_open(
     })
 }
 
+/// Close a session for good (its tab was closed). An open transaction rolls back with it.
 #[tauri::command]
 pub async fn session_close(state: State<'_, AppState>, session_id: String) -> AppResult<()> {
     Ok(state.sessions.close_session(&session_id).await?)
+}
+
+/// Stream session changes to the Sessions panel: first `{kind:"snapshot", sessions}`, then
+/// `{kind:"upsert", session}` and `{kind:"removed", id}` as sessions change.
+#[tauri::command]
+pub fn sessions_subscribe(state: State<'_, AppState>, on_event: Channel<SessionEvent>) {
+    let (snapshot, mut rx) = state.sessions.subscribe();
+    if on_event
+        .send(SessionEvent::Snapshot { sessions: snapshot })
+        .is_err()
+    {
+        return;
+    }
+    let sessions = state.sessions.clone();
+    tauri::async_runtime::spawn(async move {
+        loop {
+            let event = match rx.recv().await {
+                Ok(event) => event,
+                // fell behind: start over from the current state
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    SessionEvent::Snapshot {
+                        sessions: sessions.sessions_list(),
+                    }
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+            };
+            if on_event.send(event).is_err() {
+                break;
+            }
+        }
+    });
+}
+
+/// Every session with its state, timing, transaction and isolation details.
+#[tauri::command]
+pub fn sessions_list(state: State<'_, AppState>) -> Vec<SessionMeta> {
+    state.sessions.sessions_list()
+}
+
+/// Sessions with an open (or aborted) transaction on any connection, for the quit dialog.
+#[tauri::command]
+pub fn sessions_open_transactions(state: State<'_, AppState>) -> Vec<SessionMeta> {
+    state.sessions.sessions_open_transactions()
+}
+
+/// Label a session with its tab's name and id (the editor owns the names).
+#[tauri::command]
+pub fn session_set_meta(
+    state: State<'_, AppState>,
+    session_id: String,
+    name: Option<String>,
+    tab_id: Option<String>,
+) -> AppResult<()> {
+    Ok(state.sessions.set_session_meta(&session_id, name, tab_id)?)
+}
+
+/// Let another tab share the session (its transaction, temporary tables and settings).
+#[tauri::command]
+pub fn session_attach(
+    state: State<'_, AppState>,
+    session_id: String,
+    tab_id: String,
+) -> AppResult<()> {
+    Ok(state.sessions.attach_tab(&session_id, &tab_id)?)
+}
+
+/// A tab stopped using the session; the session closes when no tab is left. Returns whether it
+/// closed.
+#[tauri::command]
+pub async fn session_detach(
+    state: State<'_, AppState>,
+    session_id: String,
+    tab_id: String,
+) -> AppResult<bool> {
+    Ok(state.sessions.detach_tab(&session_id, &tab_id).await?)
+}
+
+/// Commit the session's transaction (runs `COMMIT` like a typed statement).
+#[tauri::command]
+pub async fn session_commit(state: State<'_, AppState>, session_id: String) -> AppResult<()> {
+    Ok(state.sessions.session_commit(&session_id).await?)
+}
+
+/// Roll the session's transaction back; also clears a failed (aborted) transaction.
+#[tauri::command]
+pub async fn session_rollback(state: State<'_, AppState>, session_id: String) -> AppResult<()> {
+    Ok(state.sessions.session_rollback(&session_id).await?)
+}
+
+/// Close the session's connection but keep it for its tab, which reconnects on next use ("Close
+/// session" in the panel). `tx_action` settles an open transaction first; absent, it is rolled back
+/// by the server.
+#[tauri::command]
+pub async fn session_disconnect(
+    state: State<'_, AppState>,
+    session_id: String,
+    tx_action: Option<TxAction>,
+) -> AppResult<()> {
+    Ok(state
+        .sessions
+        .disconnect_session(&session_id, tx_action)
+        .await?)
+}
+
+/// Close every session of a connection ("Close all sessions"), keeping them for their tabs.
+/// `tx_action` settles open transactions first.
+#[tauri::command]
+pub async fn session_close_all(
+    state: State<'_, AppState>,
+    connection_id: String,
+    tx_action: Option<TxAction>,
+) -> AppResult<()> {
+    Ok(state
+        .sessions
+        .disconnect_sessions_of(&connection_id, tx_action)
+        .await?)
+}
+
+/// Set the isolation level of the session's next transaction. Fails while a transaction is open.
+#[tauri::command]
+pub async fn session_set_isolation(
+    state: State<'_, AppState>,
+    session_id: String,
+    level: String,
+) -> AppResult<()> {
+    Ok(state
+        .sessions
+        .set_session_isolation(&session_id, &level)
+        .await?)
 }
 
 /// Execute a statement or script. Results stream over `on_event`; the returned summary is the

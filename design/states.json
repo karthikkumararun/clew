@@ -124,7 +124,16 @@
       ]
     },
     "Sessions": {
-      "pending": "add-session-manager"
+      "states": [
+        {
+          "id": "sessions-panel",
+          "description": "Sessions panel with a session in a transaction"
+        },
+        {
+          "id": "sessions-attach-menu",
+          "description": "Attach to menu of the selected session"
+        }
+      ]
     }
   }
 }

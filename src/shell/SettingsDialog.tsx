@@ -4,6 +4,7 @@ import { Checkbox, Input, SegmentedControl } from "../components/Input";
 import { Dialog } from "../components/Dialog";
 import { Star } from "../components/icons";
 import { formatShortcut } from "../lib/platform";
+import { IDLE_MINUTES_RANGE, useSessionSettings } from "../stores/sessionSettings";
 import { FONT_SIZE_RANGE, PAGE_SIZES, useSettings } from "../stores/settingsStore";
 import { listCommands, subscribeCommands } from "./registry/commands";
 import styles from "./SettingsDialog.module.css";
@@ -12,6 +13,7 @@ export const SECTIONS = [
   "General",
   "Editor",
   "Data grid",
+  "Sessions",
   "Keymap",
   "AI assistant",
   "Updates",
@@ -145,6 +147,94 @@ function DataGrid() {
   );
 }
 
+function MinutesField({
+  id,
+  label,
+  help,
+  value,
+  onCommit,
+}: {
+  id: string;
+  label: string;
+  help: string;
+  value: number;
+  onCommit: (minutes: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  return (
+    <div className={styles.field}>
+      <label htmlFor={id} className={styles.fieldLabel}>
+        {label}
+      </label>
+      <div className={styles.row}>
+        <Input
+          id={id}
+          dialog
+          type="number"
+          min={IDLE_MINUTES_RANGE.min}
+          max={IDLE_MINUTES_RANGE.max}
+          value={draft}
+          style={{ width: 90 }}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            const n = Number(e.target.value);
+            if (
+              e.target.value.trim() !== "" &&
+              n >= IDLE_MINUTES_RANGE.min &&
+              n <= IDLE_MINUTES_RANGE.max
+            )
+              onCommit(n);
+          }}
+          onBlur={() => setDraft(String(value))}
+        />
+        <span className={styles.muted}>minutes</span>
+      </div>
+      <p className={styles.help}>{help}</p>
+    </div>
+  );
+}
+
+function Sessions() {
+  const { settings, set } = useSessionSettings();
+  return (
+    <Section
+      title="Sessions"
+      lede="A session with an open transaction and no activity is flagged as idle in transaction."
+    >
+      <div className={styles.card}>
+        <MinutesField
+          id="set-idle-default"
+          label="Idle threshold"
+          help="Staging and other connections. Default 5."
+          value={settings.idleMinutes}
+          onCommit={(n) => set({ idleMinutes: n })}
+        />
+        <MinutesField
+          id="set-idle-production"
+          label="Idle threshold on production"
+          help="Default 2."
+          value={settings.production}
+          onCommit={(n) => set({ production: n })}
+        />
+        <MinutesField
+          id="set-idle-local"
+          label="Idle threshold on local and development"
+          help="Default 15. These connections show the warning mark only, never a notification."
+          value={settings.local}
+          onCommit={(n) => set({ local: n })}
+        />
+        <Checkbox
+          label="Notify when a transaction goes idle"
+          description="One notification per transaction, with Roll back and Show. Not shown for local or development connections."
+          checked={settings.notify}
+          onChange={(e) => set({ notify: e.target.checked })}
+        />
+      </div>
+    </Section>
+  );
+}
+
 function Keymap() {
   const [, force] = useState(0);
   useEffect(() => subscribeCommands(() => force((n) => n + 1)), []);
@@ -208,6 +298,7 @@ const PANELS: Record<(typeof SECTIONS)[number], () => ReactNode> = {
   General,
   Editor,
   "Data grid": DataGrid,
+  Sessions,
   Keymap,
   "AI assistant": AiAssistant,
   Updates,

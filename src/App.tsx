@@ -5,6 +5,7 @@ import { registerConnectionCommands } from "./connections/commands";
 import { useConnections } from "./connections/connectionsStore";
 import { registerConsoleCommands } from "./features/console/commands";
 import { installQuitGuard } from "./features/console/quit";
+import { registerSessionsFeature } from "./features/sessions";
 import { registerCollectionCommands } from "./features/documents/CollectionTab";
 import { registerKeysCommands } from "./features/key-value/KeysTab";
 import { registerTableCommands } from "./features/table-editor/TableTab";
@@ -22,6 +23,7 @@ export default function App() {
     const offCollection = registerCollectionCommands();
     const offKeys2 = registerKeysCommands();
     const offQuit = installQuitGuard();
+    const offSessions = registerSessionsFeature();
     void useConnections.getState().load();
     return () => {
       offKeys();
@@ -33,6 +35,7 @@ export default function App() {
       offCollection();
       offKeys2();
       offQuit();
+      offSessions();
     };
   }, []);
   return <Workspace />;

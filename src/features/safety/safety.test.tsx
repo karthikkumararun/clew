@@ -16,6 +16,10 @@ import { registerConsoleTab } from "../console/ConsoleTab";
 import { openConsole, registerConsoleCommands, runActive } from "../console/commands";
 import { getView } from "../console/editor/views";
 import { ConsolePromptHost, clearPrompts } from "../console/prompts";
+import {
+  OpenTransactionsHost,
+  clearOpenTransactionPrompts,
+} from "../sessions/OpenTransactionsDialog";
 import { clearRuntimes, getRuntime } from "../console/runtime";
 import { TabStrip } from "../../shell/TabStrip";
 import { StatusBar } from "../../shell/StatusBar";
@@ -95,6 +99,7 @@ async function mountConsole(sql: string) {
       <ConsoleToolbar />
       <ConsoleView tab={tab as never} />
       <ConsolePromptHost />
+      <OpenTransactionsHost />
       <SafetyPromptHost />
     </>,
   );
@@ -116,6 +121,7 @@ beforeEach(() => {
   clearRuntimes();
   clearSnapshots();
   clearPrompts();
+  clearOpenTransactionPrompts();
   clearConfirms();
   setPlatformForTests("mac");
   restoreLayout = stubLayout();
@@ -408,7 +414,7 @@ describe("quitting with an open transaction (spec: production-safeguards › Qui
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("prod-postgres");
     expect(dialog).toHaveTextContent("2 statements");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Commit" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Commit all" }));
     expect(await done).toBe(true);
     expect(api.execute.mock.calls.some((c) => c[1].sql === "COMMIT")).toBe(true);
     expect(runtime.store.getState().txOpen).toBe(false);
@@ -418,7 +424,9 @@ describe("quitting with an open transaction (spec: production-safeguards › Qui
     await withOpenTransaction();
     const done = settleTransactionsBeforeQuit();
     fireEvent.click(
-      await within(await screen.findByRole("dialog")).findByRole("button", { name: "Roll back" }),
+      await within(await screen.findByRole("dialog")).findByRole("button", {
+        name: "Roll back all",
+      }),
     );
     expect(await done).toBe(true);
     expect(api.execute.mock.calls.some((c) => c[1].sql === "ROLLBACK")).toBe(true);

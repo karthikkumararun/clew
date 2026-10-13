@@ -16,4 +16,9 @@ onConnect: Array<string>,
 /**
  * Driver properties, e.g. `application_name`.
  */
-properties: { [key in string]: string }, };
+properties: { [key in string]: string }, 
+/**
+ * Default transaction isolation level of new sessions (`READ COMMITTED`, ...); absent = the
+ * server's default.
+ */
+isolation?: string, };

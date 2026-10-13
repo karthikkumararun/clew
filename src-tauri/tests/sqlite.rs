@@ -27,6 +27,7 @@ fn cfg_at(path: &std::path::Path) -> ResolvedConfig {
         read_only: false,
         options: Default::default(),
         on_connect: vec![],
+        isolation: None,
     }
 }
 
@@ -1746,4 +1747,35 @@ async fn table_meta_reports_columns_keys_indexes_and_relations() {
         ["orders"]
     );
     assert!(users.foreign_keys.is_empty());
+}
+
+// ---- session manager -------------------------------------------------------------------------
+
+#[tokio::test]
+async fn sqlite_reports_idle_and_in_transaction() {
+    let (_dir, cfg) = fresh();
+    the_driver_reports_the_transaction_state(&suite_for(cfg), "sqlite", "sm_sq_state", false).await;
+}
+
+/// (spec: driver-framework › Unsupported level)
+#[tokio::test]
+async fn sqlite_reports_its_fixed_isolation_and_offers_no_choice() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let m = c
+        .mgr
+        .sessions_list()
+        .into_iter()
+        .find(|m| m.id == c.session)
+        .unwrap();
+    assert_eq!(m.isolation.as_deref(), Some("SERIALIZABLE"));
+    assert!(m.supported_isolation.is_empty());
+    assert!(m.isolation_note.is_some());
+    assert_eq!(m.backend_id, None);
+    let err = c
+        .mgr
+        .set_session_isolation(&c.session, "SERIALIZABLE")
+        .await
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Unsupported);
 }

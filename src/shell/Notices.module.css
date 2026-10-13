@@ -32,3 +32,23 @@
 .text {
   flex: 1;
 }
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--pending-bar-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--accent-hover);
+  font-size: var(--fs-small);
+}
+
+.action:hover {
+  background: var(--bg-hover);
+}

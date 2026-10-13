@@ -26,8 +26,22 @@ use crate::drivers::split_source;
 use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
-    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
+    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, TxState,
+    Value,
 };
+
+/// What MySQL and MariaDB let a session choose.
+pub const ISOLATION_LEVELS: &[&str] = &[
+    "READ UNCOMMITTED",
+    "READ COMMITTED",
+    "REPEATABLE READ",
+    "SERIALIZABLE",
+];
+
+/// The statement that sets the isolation level of the session's following transactions.
+pub fn set_isolation_sql(level: &str) -> String {
+    format!("SET SESSION TRANSACTION ISOLATION LEVEL {level}")
+}
 
 type OpenStream = paging::OpenStream<MySqlConnection>;
 
@@ -142,6 +156,32 @@ impl MySession {
             ErrorCode::ConnectionLost,
             format!("The connection to {} was lost", self.target),
         )
+    }
+
+    /// Run a one-value query over the text protocol and return the value as text.
+    async fn query_text(&mut self, sql: &str) -> DriverResult<Option<String>> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result = sqlx::raw_sql(AssertSqlSafe(sql.to_string()))
+            .fetch_optional(&mut *conn)
+            .await;
+        match result {
+            Ok(row) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(row.and_then(|r| {
+                    r.try_get_unchecked::<Option<Vec<u8>>, _>(0)
+                        .ok()
+                        .flatten()
+                        .map(|b| String::from_utf8_lossy(&b).into_owned())
+                }))
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target, None))
+            }
+        }
     }
 
     /// End any open result stream and take the connection back.
@@ -492,6 +532,104 @@ impl Session for MySession {
 
     fn server_info(&self) -> ServerInfo {
         self.server.clone()
+    }
+
+    fn backend_id(&self) -> Option<String> {
+        Some(self.cancel.connection_id.to_string())
+    }
+
+    /// MariaDB has `@@in_transaction`; MySQL reports its open transactions in the performance
+    /// schema, which not every user may read. Without it, `SET TRANSACTION ISOLATION LEVEL` (set
+    /// to the level already in force) tells the states apart: the server refuses it with error
+    /// 1568 inside a transaction. When nothing answers, the manager's own bookkeeping stands.
+    async fn transaction_state(&mut self) -> DriverResult<Option<TxState>> {
+        let sql = if self.server.product.eq_ignore_ascii_case("MariaDB") {
+            "SELECT @@in_transaction"
+        } else {
+            "SELECT COUNT(*) FROM performance_schema.events_transactions_current \
+             WHERE STATE = 'ACTIVE' AND THREAD_ID = PS_CURRENT_THREAD_ID()"
+        };
+        match self.query_text(sql).await {
+            Ok(Some(v)) => {
+                return Ok(Some(if v.trim() == "0" {
+                    TxState::Idle
+                } else {
+                    TxState::InTransaction
+                }))
+            }
+            Err(e) if e.code == ErrorCode::ConnectionLost => return Err(e),
+            _ => {}
+        }
+        let Some(level) = self.isolation_level().await? else {
+            return Ok(None);
+        };
+        let Ok(level) = crate::drivers::canonical_isolation(ISOLATION_LEVELS, &level) else {
+            return Ok(None);
+        };
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result = sqlx::raw_sql(AssertSqlSafe(format!(
+            "SET TRANSACTION ISOLATION LEVEL {level}"
+        )))
+        .execute(&mut *conn)
+        .await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(Some(TxState::Idle))
+            }
+            Err(sqlx::Error::Database(db))
+                if db
+                    .try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>()
+                    .is_some_and(|m| m.number() == 1568) =>
+            {
+                self.conn = ConnState::Idle(conn);
+                Ok(Some(TxState::InTransaction))
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target, None))
+            }
+        }
+    }
+
+    fn supported_isolation_levels(&self) -> &'static [&'static str] {
+        ISOLATION_LEVELS
+    }
+
+    async fn isolation_level(&mut self) -> DriverResult<Option<String>> {
+        // `transaction_isolation` since MySQL 5.7.20 / MariaDB 11.1; `tx_isolation` before.
+        for var in ["@@transaction_isolation", "@@tx_isolation"] {
+            match self.query_text(&format!("SELECT {var}")).await {
+                Ok(Some(v)) => return Ok(Some(v.replace('-', " ").to_ascii_uppercase())),
+                Err(e) if e.code == ErrorCode::ConnectionLost => return Err(e),
+                _ => {}
+            }
+        }
+        Ok(None)
+    }
+
+    async fn set_isolation(&mut self, level: &str) -> DriverResult<()> {
+        let level = crate::drivers::canonical_isolation(ISOLATION_LEVELS, level)?;
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result = sqlx::raw_sql(AssertSqlSafe(set_isolation_sql(level)))
+            .execute(&mut *conn)
+            .await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target, None))
+            }
+        }
     }
 
     async fn close(mut self: Box<Self>) -> DriverResult<()> {

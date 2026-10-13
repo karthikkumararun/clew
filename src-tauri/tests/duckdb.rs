@@ -25,6 +25,7 @@ fn cfg_at(path: &str, create: bool, read_only: bool) -> ResolvedConfig {
         read_only: false,
         options: Default::default(),
         on_connect: vec![],
+        isolation: None,
     }
 }
 

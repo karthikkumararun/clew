@@ -8,6 +8,8 @@ import { registerKeysTab } from "./features/key-value/KeysTab";
 import { registerTableTab } from "./features/table-editor/TableTab";
 import { startExplorerSync, useExplorer } from "./features/explorer/explorerStore";
 import { rehydrateLayout } from "./stores/layoutStore";
+import { startSessionsSync } from "./stores/sessionsStore";
+import { useSessionSettings } from "./stores/sessionSettings";
 import { applySettingsToDocument, useSettings } from "./stores/settingsStore";
 import { restoreSession, startSessionPersistence } from "./shell/session";
 
@@ -23,6 +25,8 @@ export async function boot(): Promise<void> {
     /* start with defaults */
   }
   rehydrateLayout();
+  useSessionSettings.getState().rehydrate();
+  startSessionsSync();
   useExplorer.getState().rehydrate();
   startExplorerSync();
   startSnapshotSync();

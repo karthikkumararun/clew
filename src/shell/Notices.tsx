@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import { IconButton } from "../components/Button";
 import { Close, Warning } from "../components/icons";
 import { useNotices } from "../stores/noticesStore";
+import type { Notice } from "../stores/noticesStore";
 import styles from "./Notices.module.css";
 
 const AUTO_DISMISS_MS = 12_000;
 
-function NoticeItem({ id, message }: { id: number; message: string }) {
+function NoticeItem({ id, message, actions }: Notice) {
   const dismiss = useNotices((s) => s.dismiss);
   useEffect(() => {
     const t = setTimeout(() => dismiss(id), AUTO_DISMISS_MS);
@@ -17,7 +18,26 @@ function NoticeItem({ id, message }: { id: number; message: string }) {
       <span className={styles.icon}>
         <Warning size={14} />
       </span>
-      <span className={styles.text}>{message}</span>
+      <span className={styles.text}>
+        {message}
+        {actions?.length ? (
+          <span className={styles.actions}>
+            {actions.map((a) => (
+              <button
+                key={a.label}
+                type="button"
+                className={styles.action}
+                onClick={() => {
+                  dismiss(id);
+                  a.onClick();
+                }}
+              >
+                {a.label}
+              </button>
+            ))}
+          </span>
+        ) : null}
+      </span>
       <IconButton
         aria-label="Dismiss notice"
         onClick={() => dismiss(id)}
@@ -35,7 +55,7 @@ export function Notices() {
   return (
     <div className={styles.stack}>
       {notices.map((n) => (
-        <NoticeItem key={n.id} id={n.id} message={n.message} />
+        <NoticeItem key={n.id} {...n} />
       ))}
     </div>
   );

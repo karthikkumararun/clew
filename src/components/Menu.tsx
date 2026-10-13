@@ -7,6 +7,8 @@ export interface MenuItem {
   label: ReactNode;
   hint?: string;
   disabled?: boolean;
+  /** Draw a divider above this item. */
+  separatorBefore?: boolean;
 }
 
 export interface MenuProps {
@@ -76,7 +78,7 @@ export function Menu({ items, onSelect, onClose, style, "aria-label": ariaLabel 
           }}
           type="button"
           role="menuitem"
-          className={styles.item}
+          className={`${styles.item}${item.separatorBefore ? ` ${styles.separated}` : ""}`}
           disabled={item.disabled}
           tabIndex={enabled[active]?.id === item.id ? 0 : -1}
           onClick={() => onSelect(item.id)}

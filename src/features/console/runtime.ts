@@ -794,6 +794,19 @@ export class ConsoleRuntime {
     }
   }
 
+  /**
+   * The tab was attached to another session (Sessions panel › Attach to): from now on it runs
+   * there, sharing that session's transaction, temporary tables and settings.
+   */
+  rebind(sessionId: string, tx: { open: boolean; statements: number }): void {
+    this.store.setState({
+      sessionId,
+      txOpen: tx.open,
+      txPending: tx.open ? tx.statements : 0,
+    });
+    this.mirror(sessionId);
+  }
+
   /** The connection dropped: the session is gone, a new one opens on the next run. */
   sessionLost(): void {
     this.runId += 1; // anything still arriving belongs to a session that no longer exists

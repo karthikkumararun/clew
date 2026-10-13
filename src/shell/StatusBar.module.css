@@ -26,3 +26,14 @@
 .item:empty {
   display: none;
 }
+
+/* Left items give way first, so the right side (the version) stays inside a narrow window. */
+.item[data-side="left"] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.item[data-side="right"] {
+  flex: none;
+}
