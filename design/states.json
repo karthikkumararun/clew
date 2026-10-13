@@ -3,41 +3,128 @@
   "screens": {
     "Welcome": {
       "states": [
-        { "id": "welcome-first-run", "description": "First run: no connections" },
-        { "id": "welcome-with-connections", "description": "Saved connections, nothing open" }
+        {
+          "id": "welcome-first-run",
+          "description": "First run: no connections"
+        },
+        {
+          "id": "welcome-with-connections",
+          "description": "Saved connections, nothing open"
+        }
       ]
     },
     "Main": {
       "states": [
-        { "id": "main-console-results", "description": "Connected development console with a result grid" },
-        { "id": "main-production-readonly", "description": "Production connection: read-only badge and red stripe" }
+        {
+          "id": "main-console-results",
+          "description": "Connected development console with a result grid"
+        },
+        {
+          "id": "main-production-readonly",
+          "description": "Production connection: read-only badge and red stripe"
+        }
       ]
     },
     "DataGrid": {
       "states": [
-        { "id": "grid-pending-edit", "description": "Table editor with one edited cell and the pending bar" }
+        {
+          "id": "grid-pending-edit",
+          "description": "Table editor with one edited cell and the pending bar"
+        }
       ]
     },
     "ConnectionDialog": {
       "states": [
-        { "id": "dialog-general-network", "description": "New connection, network driver, General tab" },
-        { "id": "dialog-ssh-tab", "description": "SSH tunnel tab" },
-        { "id": "dialog-tls-tab", "description": "SSL / TLS tab" },
-        { "id": "dialog-advanced-tab", "description": "Advanced tab" },
-        { "id": "dialog-sqlite-file", "description": "File driver form (SQLite)" }
+        {
+          "id": "dialog-general-network",
+          "description": "New connection, network driver, General tab"
+        },
+        {
+          "id": "dialog-ssh-tab",
+          "description": "SSH tunnel tab"
+        },
+        {
+          "id": "dialog-tls-tab",
+          "description": "SSL / TLS tab"
+        },
+        {
+          "id": "dialog-advanced-tab",
+          "description": "Advanced tab"
+        },
+        {
+          "id": "dialog-sqlite-file",
+          "description": "File driver form (SQLite)"
+        }
       ]
     },
     "ImportExport": {
       "states": [
-        { "id": "exchange-export", "description": "Export tab" },
-        { "id": "exchange-import", "description": "Import tab, source list" }
+        {
+          "id": "exchange-export",
+          "description": "Export tab"
+        },
+        {
+          "id": "exchange-import",
+          "description": "Import tab, source list"
+        }
       ]
     },
-    "AIAssistant": { "pending": "add-ai-assistant" },
-    "AIProviders": { "pending": "add-ai-assistant" },
-    "CommandPalette": { "pending": "add-command-palette" },
-    "GraphBrowser": { "pending": "add-graph-browser" },
-    "MongoBrowser": { "pending": "needs the nosql Docker stack: the design suite adds container-backed states on Linux" },
-    "AppIcon": { "pending": "the mark appears in Welcome and the toolbar; the icon itself is checked by the app-icon spec" }
+    "AIAssistant": {
+      "pending": "add-ai-assistant"
+    },
+    "AIProviders": {
+      "pending": "add-ai-assistant"
+    },
+    "CommandPalette": {
+      "pending": "add-command-palette"
+    },
+    "GraphBrowser": {
+      "pending": "add-graph-browser"
+    },
+    "MongoBrowser": {
+      "pending": "needs the nosql Docker stack: the design suite adds container-backed states on Linux"
+    },
+    "AppIcon": {
+      "pending": "the mark appears in Welcome and the toolbar; the icon itself is checked by the app-icon spec"
+    },
+    "ResultEditing": {
+      "states": [
+        {
+          "id": "result-editing-pending",
+          "description": "Console result with an edited cell and the pending bar"
+        },
+        {
+          "id": "result-editing-options",
+          "description": "More options menu of the result toolbar"
+        },
+        {
+          "id": "result-editing-tree",
+          "description": "Result shown as a tree"
+        }
+      ]
+    },
+    "ResultEditingStates": {
+      "states": [
+        {
+          "id": "result-editing-no-key",
+          "description": "Read-only: no primary key in the result"
+        },
+        {
+          "id": "result-editing-chooser",
+          "description": "Table chooser of a joined result"
+        },
+        {
+          "id": "result-editing-local-filter",
+          "description": "Local filter bar with a filter typed"
+        },
+        {
+          "id": "result-editing-value-editor",
+          "description": "Value editor panel on a selected cell"
+        }
+      ]
+    },
+    "Sessions": {
+      "pending": "add-session-manager"
+    }
   }
 }

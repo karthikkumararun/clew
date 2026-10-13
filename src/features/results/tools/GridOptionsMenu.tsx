@@ -21,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Button } from "../../../components/Button";
 import { Dialog } from "../../../components/Dialog";
+import { useKeepInWindow } from "../../../components/useKeepInWindow";
 import type { Value } from "../../../lib/ipc/drivers";
 import type { SqlFlavor } from "../../grid/sqlLiteral";
 import {
@@ -100,6 +101,8 @@ type Entry =
 
 const colList = (c: readonly string[]) => c.join(", ");
 
+const MENU_WIDTH = 240;
+
 export function GridOptionsMenu(props: GridOptionsMenuProps) {
   const [open, setOpen] = useState(false);
   const [queryOpen, setQueryOpen] = useState(false);
@@ -108,6 +111,10 @@ export function GridOptionsMenu(props: GridOptionsMenuProps) {
   const setGoOpen = (v: boolean) => (props.onGoToOpenChange ?? setGoLocal)(v);
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  // Fixed at the button, right-aligned, and kept inside the window: the results panel clips
+  // anything absolutely positioned inside it, and sits at the bottom of the window.
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+  useKeepInWindow(list, open, anchor);
 
   const close = () => {
     setOpen(false);
@@ -283,7 +290,11 @@ export function GridOptionsMenu(props: GridOptionsMenuProps) {
         aria-label="More options"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          const r = trigger.current?.getBoundingClientRect();
+          if (r) setAnchor({ top: r.bottom + 4, left: Math.max(8, r.right - MENU_WIDTH) });
+          setOpen((o) => !o);
+        }}
       >
         <svg
           width="14"
@@ -307,6 +318,7 @@ export function GridOptionsMenu(props: GridOptionsMenuProps) {
             role="menu"
             aria-label="More options"
             className={styles.menu}
+            style={anchor ?? undefined}
             onKeyDown={onKeyDown}
           >
             {entries.map((en) => {

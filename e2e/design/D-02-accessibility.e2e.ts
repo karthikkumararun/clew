@@ -42,7 +42,11 @@ describe("D-02 accessibility", () => {
     await browser.keys("Escape");
   });
 
-  it(`shows a 2px accent focus ring on the first toolbar button ${covers("design-conformance › Visible focus")}`, async () => {
+  it(`shows a 2px accent focus ring on the first toolbar button ${covers("design-conformance › Visible focus")}`, async function () {
+    // :focus-visible only matches in a window the OS shows and has focused; a window hidden
+    // behind others (a developer's machine, a locked screen) cannot be checked.
+    const focused = await browser.execute(() => document.hasFocus());
+    if (!focused) return this.skip();
     const f = await focusFirstStop('[data-metric="toolbar"]');
     if (!f.focusVisible) throw new Error(`${f.label} is focused but does not match :focus-visible`);
     if (f.outlineWidth !== "2px" || f.outlineColor !== f.accent) {

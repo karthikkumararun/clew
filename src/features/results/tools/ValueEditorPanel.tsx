@@ -273,7 +273,12 @@ function CellEditor({
         <p className={styles.panelNote} role="status">
           The grid holds a cut-off copy of this value.{" "}
           {fetchFull ? (
-            <Button className={styles.footBtn} disabled={busy} onClick={() => void fetchWhole()}>
+            <Button
+              className={styles.footBtn}
+              data-metric="button-compact"
+              disabled={busy}
+              onClick={() => void fetchWhole()}
+            >
               Fetch full value
             </Button>
           ) : null}
@@ -309,13 +314,18 @@ function CellEditor({
         <span className={styles.count}>{count}</span>
         <span className={styles.grow} />
         {dirty ? (
-          <Button className={styles.footBtn} onClick={() => setDraft(shownText)}>
+          <Button
+            className={styles.footBtn}
+            data-metric="button-compact"
+            onClick={() => setDraft(shownText)}
+          >
             Revert
           </Button>
         ) : null}
         <Button
           variant="primary"
           className={styles.footBtn}
+          data-metric="button-compact"
           disabled={!canEdit || !dirty}
           title={offReason ?? undefined}
           onClick={stage}
@@ -325,6 +335,7 @@ function CellEditor({
         {kindEditable && column.nullable !== false && !isNull ? (
           <Button
             className={styles.footBtn}
+            data-metric="button-compact"
             disabled={!editable}
             title={offReason ?? undefined}
             onClick={() => onStage({ kind: "value", value: { kind: "null" } })}
@@ -336,13 +347,19 @@ function CellEditor({
           <>
             <Button
               className={styles.footBtn}
+              data-metric="button-compact"
               disabled={!editable || busy}
               title={offReason ?? undefined}
               onClick={() => void load()}
             >
               Load file…
             </Button>
-            <Button className={styles.footBtn} disabled={busy} onClick={() => void save()}>
+            <Button
+              className={styles.footBtn}
+              data-metric="button-compact"
+              disabled={busy}
+              onClick={() => void save()}
+            >
               Save to file…
             </Button>
           </>

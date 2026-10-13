@@ -273,12 +273,9 @@
 }
 
 .menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  position: fixed;
   z-index: 41;
   width: 240px;
-  max-width: 100%;
   padding: 4px 0;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
