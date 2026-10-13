@@ -180,7 +180,12 @@ export function SessionsPanel() {
           session={menu.session}
           tabId={menu.tabId}
           anchor={menu.anchor}
-          onClose={() => setMenu(null)}
+          onClose={() => {
+            // the menu returns focus to what opened it
+            const opener = menu.anchor;
+            setMenu(null);
+            if (opener.isConnected) opener.focus();
+          }}
         />
       ) : null}
     </div>

@@ -1,4 +1,3 @@
-import { useLayout } from "../../stores/layoutStore";
 import { useConnections } from "../../connections/connectionsStore";
 import { useSessions } from "../../stores/sessionsStore";
 import { rollBackAllIdle } from "./actions";
@@ -14,7 +13,6 @@ export function SessionsStatusItem() {
   const sessions = useSessions((s) => s.sessions);
   const idle = useSessions((s) => s.idle);
   const connections = useConnections((s) => s.file.connections);
-  const open = useLayout((s) => s.bottomPanelOpen);
   const total = Object.keys(sessions).length;
   const flagged = Object.keys(idle).filter((id) => sessions[id]);
   const production = flagged.some(
@@ -22,8 +20,6 @@ export function SessionsStatusItem() {
       connections.find((c) => c.id === sessions[id].connectionId)?.environment === "production",
   );
   const flag = flagged.length > 0;
-  // Nothing to manage and nothing to hide: stay off the status bar.
-  if (total === 0 && !open) return null;
   return (
     <>
       <button

@@ -7,7 +7,7 @@ export function StatusBar() {
     sortedItems(items, side).map((i) => {
       const node = i.render();
       return node === null || node === undefined || node === false ? null : (
-        <span key={i.id} className={styles.item} data-status-item={i.id}>
+        <span key={i.id} className={styles.item} data-status-item={i.id} data-side={side}>
           {node}
         </span>
       );

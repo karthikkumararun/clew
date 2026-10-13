@@ -142,9 +142,9 @@ describe("side panel", () => {
 });
 
 describe("status bar", () => {
-  it("shows only the app version on the right when nothing else is registered (spec: app-shell › No active connection)", () => {
+  it("shows only the Sessions item and the app version when nothing else is registered (spec: app-shell › No active connection)", () => {
     render(<App />);
     const bar = screen.getByRole("contentinfo", { name: "Status bar" });
-    expect(bar).toHaveTextContent(/^Clew v\d/);
+    expect(bar).toHaveTextContent(/^Sessions 0Clew v\d/);
   });
 });

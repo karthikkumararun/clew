@@ -10,8 +10,8 @@
 
 - [x] 2.1 Commands `session_commit`, `session_rollback`, `session_close`, `session_close_all`, `connection_deactivate` (with SSH tunnel teardown) (spec: session-manager › Session actions)
 - [x] 2.2 Per-session async mutex and queued execution for shared sessions with "Waiting for …" (spec: session-manager › Switch session)
-- [ ] 2.3 Rebinding a tab to another or a new session; closing the last tab closes the shared session (backend done: `session_attach` / `session_detach` close the session with its last tab; tab rebinding is frontend work)
-- [ ] 2.4 Test: attach shares temp tables; queued statements run in order; deactivate with open transactions asks first (backend: queued statements run in order and the waiting session names its holder, covered in `sessions/tests.rs`; the shared temp-table test and the deactivate dialog are not done)
+- [x] 2.3 Rebinding a tab to another or a new session; closing the last tab closes the shared session (the console rebinds through `session_attach` / `session_detach`; the session closes with its last tab)
+- [ ] 2.4 Test: attach shares temp tables; queued statements run in order; deactivate with open transactions asks first (backend: queued statements run in order and the waiting session names its holder, covered in `sessions/tests.rs`; the deactivate dialog is covered by unit tests; the shared temp-table case is not tested)
 
 ## 3. Sessions panel UI
 
@@ -30,12 +30,12 @@
 
 ## 5. Isolation level and quit
 
-- [x] 5.1 Isolation selector in the console Tx menu and details pane; connection default in Advanced settings; commit/rollback prompt when changing inside a transaction (spec: sql-console › Transaction isolation level) (backend done: `advanced.isolation` applied at session open, `session_set_isolation` refused inside a transaction; UI pending)
+- [x] 5.1 Isolation selector in the console Tx menu and details pane; connection default in Advanced settings; commit/rollback prompt when changing inside a transaction (spec: sql-console › Transaction isolation level) (`advanced.isolation` applied at session open; `session_set_isolation` refused inside a transaction, the UI asks Commit or Roll back first)
 - [x] 5.2 One quit/close/deactivate dialog listing all sessions in transactions (spec: session-manager › Open transactions on quit)
 - [x] 5.3 Test: level applies to the next transaction; quit dialog lists both sessions
 
 ## 6. End-to-end
 
-- [ ] 6.1 E2E: add journey J-23 in `e2e/specs/` — two consoles on one connection, one leaves a transaction open, the Sessions panel flags it as idle (with a shortened threshold), Roll back from the panel, attach a script to another session, change isolation
-- [ ] 6.2 Declare `covers(...)` for the session-manager scenarios it exercises
-- [ ] 6.3 Design suite state from `design/canvas/Sessions.dc.html`; overlay-integrity check on the switch-session menu; panel toggle reachable at 880 px
+- [x] 6.1 E2E: add journey J-23 in `e2e/specs/` — two consoles on one connection, one leaves a transaction open, the Sessions panel flags it as idle (with a shortened threshold), Roll back from the panel, attach a script to another session, change isolation (J-23 drives one console and a second database connection for checks; attach goes to a new session; the idle threshold is the 1 minute minimum)
+- [x] 6.2 Declare `covers(...)` for the session-manager scenarios it exercises
+- [x] 6.3 Design suite state from `design/canvas/Sessions.dc.html`; overlay-integrity check on the switch-session menu; panel toggle reachable at 880 px
