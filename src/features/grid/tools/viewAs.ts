@@ -297,6 +297,12 @@ export function valueToEJson(v: Value): EJson {
       return v.value as EJson;
     case "array":
       return v.value.map(valueToEJson);
+    case "node":
+      return `(${v.labels.map((l) => `:${l}`).join("")} ${v.elementId})`;
+    case "relationship":
+      return `[:${v.relType} ${v.elementId}]`;
+    case "path":
+      return `<path ${v.nodes.length} nodes>`;
   }
 }
 

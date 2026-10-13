@@ -356,7 +356,10 @@ pub async fn snapshot(meta: &Arc<Meta>, db: &str) -> DriverResult<SchemaSnapshot
             type_name: s(&r[4]),
         });
     }
-    Ok(SchemaSnapshot { schemas })
+    Ok(SchemaSnapshot {
+        schemas,
+        ..Default::default()
+    })
 }
 
 fn target(path: &NodePath) -> DriverResult<(String, String, String, NodeKind)> {

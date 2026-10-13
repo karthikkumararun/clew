@@ -47,6 +47,8 @@ export function splitDialect(driver: string): SplitDialect {
       return driver;
     case "redis":
       return "lines"; // one command per line
+    case "neo4j":
+      return "cypher"; // `//` comments; `--` is a relationship
     default:
       return null;
   }

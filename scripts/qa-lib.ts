@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { join } from "node:path";
 import { journeyId } from "./e2e-lib";
 
-export const PROFILES = ["core", "nosql", "heavy", "ai-mock"] as const;
+export const PROFILES = ["core", "nosql", "graph", "heavy", "ai-mock"] as const;
 export type Profile = (typeof PROFILES)[number];
 
 export const QA_DIR = ".qa";

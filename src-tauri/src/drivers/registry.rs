@@ -38,6 +38,7 @@ impl Registry {
         r.register(Arc::new(super::oracle::OracleDriver::new()));
         r.register(Arc::new(super::mongodb::MongoDriver::new()));
         r.register(Arc::new(super::redis::RedisDriver::new()));
+        r.register(Arc::new(super::neo4j::Neo4jDriver::new()));
         r
     }
 
@@ -189,11 +190,13 @@ mod tests {
             [
                 DriverFamily::Sql,
                 DriverFamily::Document,
-                DriverFamily::Keyvalue
+                DriverFamily::Keyvalue,
+                DriverFamily::Graph
             ]
         );
         assert_eq!(groups[1].drivers[0].id, "mongodb");
         assert_eq!(groups[2].drivers[0].id, "redis");
+        assert_eq!(groups[3].drivers[0].id, "neo4j");
     }
 
     #[test]

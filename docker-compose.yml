@@ -2,7 +2,8 @@
 #   scripts/gen-test-certs.sh   (once, creates docker/postgres-tls/certs and docker/bastion/keys)
 #   docker compose --profile core --profile nosql up -d --build --wait
 #     profiles: core (PostgreSQL, TLS variants, MySQL, MariaDB, SSH bastion), nosql (MongoDB, Redis),
-#     heavy (SQL Server, Oracle, ClickHouse). `pnpm qa:up` picks them for you.
+#     graph (Neo4j, seeded from docker/neo4j/seed.cypher), heavy (SQL Server, Oracle, ClickHouse).
+#     `pnpm qa:up` picks them for you.
 #   cargo test --features integration   (in src-tauri/)
 services:
   postgres:
@@ -91,6 +92,27 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
+
+  # Neo4j community. Bolt on 17687, HTTP on 17474. The healthcheck loads the seed (a small shop
+  # graph: User, Product, Order, Category), so `--wait` returns once the data is there.
+  neo4j:
+    profiles: [graph]
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/clewclew
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 128m
+      # what a neo4j:// client is told to connect to next (routing): the published port
+      NEO4J_server_bolt_advertised__address: localhost:17687
+    ports: ["17687:7687", "17474:7474"]
+    volumes:
+      - ./docker/neo4j:/seed:ro
+    healthcheck:
+      test: ["CMD-SHELL", "sh /seed/healthcheck.sh"]
+      interval: 3s
+      timeout: 30s
+      retries: 60
 
   clickhouse:
     profiles: [heavy]

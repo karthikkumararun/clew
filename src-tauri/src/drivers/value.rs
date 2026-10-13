@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Offset, SecondsFormat, TimeZone};
 use serde::{Deserialize, Serialize};
 
@@ -66,6 +68,27 @@ pub enum Value {
     Array {
         value: Vec<Value>,
     },
+    /// A graph node (graph family). Property values are values of this model.
+    #[serde(rename_all = "camelCase")]
+    Node {
+        element_id: String,
+        labels: Vec<String>,
+        properties: BTreeMap<String, Value>,
+    },
+    /// A relationship; `start_id` and `end_id` are the element ids of its nodes.
+    #[serde(rename_all = "camelCase")]
+    Relationship {
+        element_id: String,
+        rel_type: String,
+        start_id: String,
+        end_id: String,
+        properties: BTreeMap<String, Value>,
+    },
+    /// A path: its distinct nodes and relationships, in the order the path walks them.
+    Path {
+        nodes: Vec<crate::drivers::graph::GraphNode>,
+        relationships: Vec<crate::drivers::graph::GraphRel>,
+    },
     /// A type the driver cannot decode natively: its text form plus the type name. Read-only.
     Other {
         value: String,
@@ -98,6 +121,9 @@ pub enum ValueKind {
     Uuid,
     Json,
     Array,
+    Node,
+    Relationship,
+    Path,
     Other,
 }
 
@@ -249,7 +275,11 @@ impl Value {
     /// Plain text form, for binding as a string parameter. `None` for NULL and arrays.
     pub fn sql_text(&self) -> Option<String> {
         Some(match self {
-            Value::Null | Value::Array { .. } => return None,
+            Value::Null
+            | Value::Array { .. }
+            | Value::Node { .. }
+            | Value::Relationship { .. }
+            | Value::Path { .. } => return None,
             Value::Bool { value } => (*value as u8).to_string(),
             Value::Int { value } => value.to_string(),
             Value::Float { value } => value.to_string(),
@@ -277,6 +307,9 @@ impl Value {
         matches!(
             self,
             Value::Other { .. }
+                | Value::Node { .. }
+                | Value::Relationship { .. }
+                | Value::Path { .. }
                 | Value::Text {
                     truncated: true,
                     ..

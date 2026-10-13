@@ -18,6 +18,10 @@ pub fn approx_size(v: &Value) -> usize {
         Value::Json { value } => value.to_string().len() + 8,
         Value::Array { value } => value.iter().map(approx_size).sum::<usize>() + 8,
         Value::Other { value, type_name } => value.len() + type_name.len() + 16,
+        // graph values: a rough size from their JSON form, cheap enough for the few that show up
+        Value::Node { .. } | Value::Relationship { .. } | Value::Path { .. } => {
+            serde_json::to_string(v).map_or(64, |s| s.len())
+        }
     }
 }
 

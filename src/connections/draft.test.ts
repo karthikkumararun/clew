@@ -1,4 +1,5 @@
 import {
+  applySettings,
   buildUrl,
   draftFromConnection,
   newDraft,
@@ -171,5 +172,36 @@ describe("URL preview", () => {
     expect(buildUrl({ ...newDraft(), host: "h", user: "we@ird" })).toBe(
       "postgres://we%40ird@h:5432",
     );
+  });
+});
+
+describe("Neo4j URLs", () => {
+  it.each(["neo4j", "neo4j+s", "bolt", "bolt+s"])(
+    "fills the form from a parsed %s:// URL and builds it back",
+    (protocol) => {
+      const draft = applySettings(newDraft("neo4j"), {
+        kind: "neo4j",
+        protocol,
+        host: "graph.internal",
+        port: 7688,
+        user: "karthik",
+        database: "movies",
+        passwordMode: "keychain",
+      });
+      expect(draft).toMatchObject({
+        protocol,
+        host: "graph.internal",
+        port: "7688",
+        database: "movies",
+      });
+      expect(buildUrl(draft)).toBe(`${protocol}://karthik@graph.internal:7688/movies`);
+      expect(toConnection(draft).settings).toMatchObject({ kind: "neo4j", protocol, port: 7688 });
+    },
+  );
+
+  it("defaults to port 7687 and the neo4j protocol", () => {
+    const d = newDraft("neo4j");
+    expect(d).toMatchObject({ port: "7687", protocol: "neo4j" });
+    expect(validate({ ...d, host: "h" })).toEqual({});
   });
 });

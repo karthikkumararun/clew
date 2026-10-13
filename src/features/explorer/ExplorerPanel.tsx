@@ -12,6 +12,7 @@ import { formatShortcut } from "../../lib/platform";
 import { runCommand } from "../../shell/registry/commands";
 import { useExplorer } from "./explorerStore";
 import { connectionMenu, nodeMenu } from "./menus";
+import { graphTargetOf } from "../graph/explorerTarget";
 import { isTableLike } from "./names";
 import { TreeRow, depthOf } from "./TreeRow";
 import { flatten, rowLabel, typeAheadIndex } from "./tree";
@@ -44,6 +45,15 @@ function activate(row: Row) {
       "redis"
   ) {
     // Redis databases have no tree below them: they open in the key browser
+    void runCommand("explorer.openData", row.id);
+  } else if (
+    row.type === "node" &&
+    useConnections.getState().file.connections.find((c) => c.id === row.entry.connId)?.driver ===
+      "neo4j" &&
+    graphTargetOf(row.entry.path, row.entry.kind)?.kind !== undefined &&
+    graphTargetOf(row.entry.path, row.entry.kind)?.kind !== "database"
+  ) {
+    // Neo4j labels and relationship types open the graph console with their query run
     void runCommand("explorer.openData", row.id);
   } else if (row.type === "node" && row.entry.kind === "script") {
     void runCommand("explorer.openScript", row.id);

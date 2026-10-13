@@ -5,10 +5,12 @@ pub mod batch;
 pub mod clickhouse;
 pub mod duckdb;
 pub mod error;
+pub mod graph;
 pub mod introspect;
 pub mod mongodb;
 pub mod mssql;
 pub mod mysql;
+pub mod neo4j;
 pub mod nosql;
 pub mod oracle;
 pub mod paging;
@@ -516,6 +518,21 @@ pub trait Driver: Send + Sync {
     async fn count_rows(&self, _pool: &MetaPool, _path: &NodePath) -> DriverResult<i64> {
         Err(DriverError::unsupported("counting rows"))
     }
+
+    /// Graph family: node labels and relationship types with counts, property keys, indexes and
+    /// constraints of `database` (the connection's default when `None`).
+    async fn graph_schema(
+        &self,
+        _pool: &MetaPool,
+        _database: Option<&str>,
+    ) -> DriverResult<graph::GraphSchema> {
+        Err(DriverError::unsupported("showing the graph schema"))
+    }
+
+    /// Graph family: the databases the user can query.
+    async fn graph_databases(&self, _pool: &MetaPool) -> DriverResult<Vec<String>> {
+        Err(DriverError::unsupported("listing databases"))
+    }
 }
 
 #[async_trait]
@@ -567,6 +584,11 @@ pub trait Session: Send {
 
     /// The key-value operations of this session, when it has them.
     fn as_keyvalue(&mut self) -> Option<&mut dyn KeyValueSession> {
+        None
+    }
+
+    /// The graph-family operations of this session, when it has them.
+    fn as_graph(&mut self) -> Option<&mut dyn GraphSession> {
         None
     }
 
@@ -657,4 +679,27 @@ pub trait DocumentSession: Send {
 #[async_trait]
 pub trait KeyValueSession: Send {
     async fn call(&mut self, request: nosql::KvRequest) -> DriverResult<nosql::KvReply>;
+}
+
+/// What a graph-family session (Neo4j) can do beyond the base [`Session`].
+#[async_trait]
+pub trait GraphSession: Send {
+    /// Run one Cypher statement with parameters in a READ or WRITE transaction and return the
+    /// first batch of records (`fetch_size`); the rest is pulled with [`Self::fetch_more`].
+    async fn query(&mut self, request: graph::GraphRequest) -> DriverResult<graph::GraphResult>;
+
+    /// The next batch of an open result.
+    async fn fetch_more(&mut self, cursor_id: &str) -> DriverResult<graph::GraphResult>;
+
+    /// The relationships of the node (up to `limit`) with their other ends, in a READ transaction.
+    async fn expand(&mut self, element_id: &str, limit: u32) -> DriverResult<graph::GraphResult>;
+
+    /// `SET <element> += $props` for one node or relationship (`kind` is `node` or
+    /// `relationship`), parameterised.
+    async fn update_properties(
+        &mut self,
+        element_id: &str,
+        kind: &str,
+        properties: serde_json::Map<String, serde_json::Value>,
+    ) -> DriverResult<graph::GraphResult>;
 }

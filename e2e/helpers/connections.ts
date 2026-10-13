@@ -32,6 +32,21 @@ export const connectionFactory = {
       settings: { kind: "file", path, createIfMissing: true },
     };
   },
+  /** The Neo4j service of the `graph` Compose profile (see helpers/neo4j.ts). */
+  neo4j(name: string, o: { port: number; user: string; environment?: Env }): Connection {
+    return {
+      ...base(`e2e-${name}`, name, "neo4j", o.environment ?? "local"),
+      settings: {
+        kind: "neo4j",
+        protocol: "bolt",
+        host: "127.0.0.1",
+        port: o.port,
+        user: o.user,
+        database: "neo4j",
+        passwordMode: "keychain",
+      },
+    };
+  },
   network(
     driver: "postgres" | "mysql" | "mariadb",
     name: string,

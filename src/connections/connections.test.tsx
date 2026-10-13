@@ -209,6 +209,36 @@ describe("pasted URL", () => {
     });
   });
 
+  it.each(["neo4j", "neo4j+s", "bolt", "bolt+s"])(
+    "opens the dialog prefilled from a %s:// URL (spec: driver-framework › Neo4j driver)",
+    async (protocol) => {
+      api.parseUrl.mockResolvedValue({
+        driver: "neo4j",
+        settings: {
+          kind: "neo4j",
+          protocol,
+          host: "graph.internal",
+          port: 7687,
+          user: "neo4j",
+          database: "movies",
+          passwordMode: "keychain",
+        },
+        tls: { mode: protocol.endsWith("+s") ? "require" : "disable" },
+        password: "pw",
+        suggestedName: "movies@graph.internal",
+      });
+      expect(await openFromUrl(`${protocol}://neo4j:pw@graph.internal:7687/movies`)).toBe(true);
+      expect(useConnections.getState().dialog!.initial).toMatchObject({
+        driver: "neo4j",
+        protocol,
+        host: "graph.internal",
+        port: "7687",
+        database: "movies",
+        password: "pw",
+      });
+    },
+  );
+
   it("keeps the dialog closed and shows the error for an unknown scheme (spec: connection-management › Unrecognised URL)", async () => {
     api.parseUrl.mockRejectedValue({
       code: "unknown_url_scheme",

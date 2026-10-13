@@ -86,3 +86,16 @@ export const Star = makeIcon(
   <path d="M8 1.5l1.6 4.2 4.4.3-3.4 2.8 1.1 4.3L8 10.7l-3.7 2.4 1.1-4.3L2 6l4.4-.3z" />,
   { strokeWidth: 1.4 },
 );
+export const Minus = makeIcon(<path d="M3 8h10" />, { strokeWidth: 1.6 });
+export const Fit = makeIcon(<path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />, {
+  strokeWidth: 1.4,
+});
+export const Graph = makeIcon(
+  <>
+    <circle cx="4" cy="4.5" r="1.8" />
+    <circle cx="12" cy="5.5" r="1.8" />
+    <circle cx="7.5" cy="12" r="1.8" />
+    <path d="M5.7 4.7l4.5.6M5 6.2l2 4M11 7.2l-2.4 3.4" />
+  </>,
+  { strokeWidth: 1.3 },
+);

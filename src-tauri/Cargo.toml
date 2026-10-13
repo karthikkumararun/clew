@@ -57,6 +57,7 @@ redis = { version = "1.7.1", default-features = false, features = ["tokio-comp",
 
 tauri-plugin-wdio = { version = "1.5", optional = true }
 tauri-plugin-wdio-webdriver = { version = "1.5", optional = true }
+chrono-tz = "0.10"
 
 [profile.release]
 codegen-units = 1

@@ -5,6 +5,7 @@ import { introspectDdl } from "../../lib/ipc/drivers";
 import { useNotices } from "../../stores/noticesStore";
 import { explorerCountRows, scriptsNew, scriptsReveal } from "./api";
 import { useExplorer } from "./explorerStore";
+import { graphTargetOf } from "../graph/explorerTarget";
 import { isTableLike, namespaceOf, qualifiedName } from "./names";
 import { connOfId, scriptsNodeId } from "./tree";
 
@@ -105,6 +106,16 @@ export function registerExplorerCommands(): () => void {
             database: namespaceOf(t.entry.path).database,
             collection: t.entry.name,
           });
+        } else if (t?.entry && t.conn.driver === "neo4j") {
+          const g = graphTargetOf(t.entry.path, t.entry.kind);
+          if (g) {
+            await delegate("graph.open", {
+              connectionId: t.conn.id,
+              database: g.database,
+              cypher: g.cypher,
+              run: g.cypher !== undefined,
+            });
+          }
         } else if (t?.entry && t.conn.driver === "redis" && t.entry.kind === "database") {
           await delegate("keys.open", {
             connectionId: t.conn.id,
