@@ -29,6 +29,7 @@ Implement one change at a time, in this order (each depends on the earlier ones)
 15. `add-command-palette`
 16. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
 17. `add-release-packaging`
+18. `add-homebrew-packaging`  (brew install via the karthikkumararun tap; cask clears quarantine for the unsigned app; depends on release packaging)
 
 ## Workflow per change
 

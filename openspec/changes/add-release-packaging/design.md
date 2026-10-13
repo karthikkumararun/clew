@@ -21,4 +21,6 @@ The CI workflow from `add-app-shell` builds debug bundles. This change adds a re
 
 ## Open Questions
 
+- Homebrew installation is specified separately in `add-homebrew-packaging`. It needs this change to publish `Clew_<version>_universal.dmg`, `SHA256SUMS.txt` and a `signed_macos` workflow output, to keep Apple Silicon builds launchable without a Developer ID (ad-hoc signature), and to leave in-app update installation to Homebrew for Homebrew installs.
+
 - Copyright holder line for LICENSE: "ADK" or your full name?
