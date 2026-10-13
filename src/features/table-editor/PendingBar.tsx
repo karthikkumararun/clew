@@ -11,6 +11,14 @@ export interface PendingBarProps {
   onRevert: () => void;
   onSubmit: () => void;
   onReload: () => void;
+  /** Console results in Manual transaction mode: Submit and commit, and what was sent. */
+  manual?: {
+    sent: string | null;
+    commitShortcut: string;
+    onSubmitCommit: () => void;
+    onCommit: () => void;
+    onRollback: () => void;
+  };
 }
 
 export function breakdown(c: Counts): string {
@@ -26,7 +34,23 @@ export function breakdown(c: Counts): string {
 /** Shown while edits are staged: what will change, and the way to write or drop it. */
 export function PendingBar(p: PendingBarProps) {
   const { total } = p.counts;
-  if (total === 0) return null;
+  if (total === 0 && !p.manual?.sent) return null;
+  if (total === 0 && p.manual?.sent) {
+    return (
+      <div className={styles.pendingBar} role="region" aria-label="Pending changes">
+        <span className={styles.pendingText} role="status">
+          {p.manual.sent}
+        </span>
+        <div className={styles.grow} />
+        <Button variant="default" onClick={p.manual.onRollback}>
+          Roll back
+        </Button>
+        <Button variant="primary" onClick={p.manual.onCommit}>
+          Commit
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className={styles.pendingBar} role="region" aria-label="Pending changes">
       <strong>
@@ -56,6 +80,16 @@ export function PendingBar(p: PendingBarProps) {
       <Button variant="primary" onClick={p.onSubmit} disabled={p.submitting}>
         {p.submitting ? "Submitting…" : `Submit ${p.submitShortcut}`}
       </Button>
+      {p.manual ? (
+        <Button
+          variant="primary"
+          onClick={p.manual.onSubmitCommit}
+          disabled={p.submitting}
+          title={p.manual.commitShortcut}
+        >
+          Submit and commit
+        </Button>
+      ) : null}
     </div>
   );
 }

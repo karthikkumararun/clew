@@ -1,4 +1,5 @@
 import { registerShortcut } from "../../shell/registry/shortcuts";
+import { registerEditTarget } from "../grid/editTarget";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { askChoice } from "../console/prompts";
 import { breakdown } from "./PendingBar";
@@ -56,15 +57,6 @@ export async function confirmPending(runtime: TableRuntime): Promise<boolean> {
   return false;
 }
 
-const typing = () => {
-  const el = document.activeElement;
-  return (
-    el instanceof HTMLInputElement ||
-    el instanceof HTMLTextAreaElement ||
-    el instanceof HTMLSelectElement
-  );
-};
-
 function activeTable() {
   const { activeTabId, tabs } = useWorkspace.getState();
   const tab = tabs.find((t) => t.id === activeTabId);
@@ -82,39 +74,45 @@ function activeEditable(): TableRuntime | undefined {
   return r && r.editable ? r : undefined;
 }
 
-/** Keyboard shortcuts for the table editor's staged changes. Returns a disposer. */
+/**
+ * The table editor as an editing surface: the shared grid shortcuts (`editShortcuts.ts`) act on
+ * the table tab on screen through this provider, plus the table's own Mod+Shift+R record panel.
+ */
 export function registerTableShortcuts(): () => void {
-  const grid = (id: string, keys: string, run: (r: TableRuntime) => void, canType = false) =>
-    registerShortcut({
-      id,
-      keys,
-      scope: "grid",
-      when: () => (canType || !typing()) && activeEditable() !== undefined,
-      run: () => run(activeEditable()!),
-    });
-  const offs = [
-    grid("table.addRow", "Mod+N", (r) => void r.changes.addRow()),
-    grid("table.deleteRows", "Mod+Backspace", (r) => {
-      const rows = r.selectedRows;
-      if (rows.length > 0) r.changes.deleteRows(rows);
-    }),
-    grid("table.undo", "Mod+Z", (r) => void r.changes.undo()),
-    grid("table.redo", "Mod+Shift+Z", (r) => void r.changes.redo()),
-    grid("table.submit", "Mod+S", (r) => void submitChanges(r), true),
-    registerShortcut({
-      id: "table.record",
-      keys: "Mod+Shift+R",
-      scope: "grid",
-      when: () => activeTable() !== undefined,
-      run: () => {
-        const tab = activeTable();
-        if (tab) {
-          useWorkspace
-            .getState()
-            .updateTabState<{ record: boolean }>(tab.id, { record: !tab.state.record });
-        }
+  const offTarget = registerEditTarget(() => {
+    const r = activeEditable();
+    if (!r) return undefined;
+    return {
+      submitsWithEnter: false,
+      addRow: () => void r.changes.addRow(),
+      cloneRows: () => {},
+      deleteRows: () => {
+        if (r.selectedRows.length > 0) r.changes.deleteRows(r.selectedRows);
       },
-    }),
-  ];
-  return () => offs.forEach((o) => o());
+      undo: () => void r.changes.undo(),
+      redo: () => void r.changes.redo(),
+      revertSelection: () => {},
+      setNull: () => {},
+      setDefault: () => {},
+      submit: () => void submitChanges(r),
+    };
+  });
+  const offRecord = registerShortcut({
+    id: "table.record",
+    keys: "Mod+Shift+R",
+    scope: "grid",
+    when: () => activeTable() !== undefined,
+    run: () => {
+      const tab = activeTable();
+      if (tab) {
+        useWorkspace
+          .getState()
+          .updateTabState<{ record: boolean }>(tab.id, { record: !tab.state.record });
+      }
+    },
+  });
+  return () => {
+    offTarget();
+    offRecord();
+  };
 }

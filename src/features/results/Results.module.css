@@ -1,0 +1,95 @@
+.chipWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--h-button);
+  padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--grid-edited-cell);
+  color: var(--accent-hover);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.editChip:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.chipKey {
+  color: var(--text-muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.readOnlyChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 460px;
+  height: var(--h-button);
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-panel-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  overflow: hidden;
+}
+
+.chipLabel {
+  flex: none;
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chipReason {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMuted {
+  color: var(--text-dim);
+  font-size: var(--fs-small);
+}
+
+.menuScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.chipMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+}
+
+.cellMenuHost {
+  position: fixed;
+  z-index: 20;
+}
+
+.sharedNotice {
+  flex: none;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}

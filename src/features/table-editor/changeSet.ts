@@ -141,6 +141,23 @@ export class ChangeSet implements GridSource {
     return this.snap.edits.has(row) ? "edited" : undefined;
   }
 
+  /** The staged cells of a loaded row: column → new value. */
+  editsOf(row: number): Map<number, NewValue> {
+    return new Map(this.snap.edits.get(row) ?? []);
+  }
+
+  /** Drop the staged edits of a row and of every row that shows the same table row. */
+  revertRow(row: number): void {
+    const next = copy(this.snap);
+    for (const r of this.sharedRows(row)) next.edits.delete(r);
+    this.commit(next);
+  }
+
+  /** Whether the row has a staged edit (any cell). */
+  isRowEdited(row: number): boolean {
+    return this.snap.edits.has(row);
+  }
+
   isEdited(col: number, row: number): boolean {
     return this.snap.edits.get(row)?.has(col) === true;
   }
@@ -281,11 +298,33 @@ export class ChangeSet implements GridSource {
     return [...this.snap.deletes].sort((a, b) => a - b);
   }
 
+  /** One row per table row: result rows that share a key are one statement. */
+  private firstOfKey(rows: number[]): number[] {
+    const seen = new Set<string>();
+    return rows.filter((r) => {
+      const k = this.keyString(r);
+      if (k === null) return true;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
+
+  /** Store rows with a pending edit, an insert or a delete (for "pending change in a hidden row"). */
+  pendingRows(): number[] {
+    const n = this.base.rowCount;
+    return [
+      ...this.snap.edits.keys(),
+      ...this.snap.deletes,
+      ...this.snap.inserts.map((_, i) => n + i),
+    ];
+  }
+
   /** The display row a failed statement came from. */
   rowOfTarget(kind: "update" | "insert" | "delete", index: number): number | null {
     if (kind === "insert")
       return index < this.snap.inserts.length ? this.base.rowCount + index : null;
-    const rows = kind === "update" ? this.editedRows() : this.deletedRows();
+    const rows = this.firstOfKey(kind === "update" ? this.editedRows() : this.deletedRows());
     return rows[index] ?? null;
   }
 
@@ -301,16 +340,7 @@ export class ChangeSet implements GridSource {
       : keyColumns.map((k) => cols.findIndex((c) => c.name === k));
     const keyOf = (row: number) => keyIdx.map((i) => this.base.get(i, row));
     // One statement per table row: result rows that share a key are one change.
-    const firstOfKey = (rows: number[]) => {
-      const seen = new Set<string>();
-      return rows.filter((r) => {
-        const k = this.keyString(r);
-        if (k === null) return true;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      });
-    };
+    const firstOfKey = (rows: number[]) => this.firstOfKey(rows);
     const seenCols = new Set<string>();
     const columns: { name: string; type_name: string }[] = [];
     cols.forEach((c, i) => {

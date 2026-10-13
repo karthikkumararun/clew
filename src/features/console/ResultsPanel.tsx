@@ -9,11 +9,14 @@ import { CopyAsMenu, ColumnsMenu } from "../grid/GridMenus";
 import { ResultGrid } from "../grid/ResultGrid";
 import type { GridHandle } from "../grid/ResultGrid";
 import { RowsSource } from "../grid/source";
+import type { GridSource } from "../grid/source";
 import { useGridView } from "../grid/useGridView";
 import { quoteIdent, flavorOf } from "../grid/sqlLiteral";
 import { ExportDialog } from "../grid/ExportDialog";
 import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
+import { displayRowOf } from "../grid/tools/visibleRows";
+import { useEditingUi, useEditorFor } from "../results/useResultEditing";
 import { DocViewSwitch, DocumentsResult } from "../documents/DocResult";
 import type { DocResultView } from "../documents/DocResult";
 import { askChoice } from "./prompts";
@@ -91,16 +94,41 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [active?.key],
   );
-  if (active) base.update(active.columns, active.rows, active.rowCount);
+  // `revision` moves when rows were changed in place (a submitted edit)
+  if (active)
+    base.update(active.columns, active.rows, active.rowCount + (active.revision ?? 0) * 1_000_003);
   const grid = useRef<GridHandle>(null);
-  const gv = useGridView(base, { filter, transposed, resetKey: active?.key ?? "" });
   const driver =
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.driver ??
     "";
-  const matches = gv.view.rowCount;
+  // An editable result is shown through its change set: staged edits over the loaded rows.
+  const editor = useEditorFor(runtime, active, base, driver);
+  const editSource: GridSource = editor?.changes ?? base;
+  const gv = useGridView(editSource, {
+    filter,
+    transposed,
+    resetKey: active?.key ?? "",
+    loadedRows: editor?.changes ? base.rowCount : undefined,
+    // sorting and filters follow the loaded rows, not each keystroke of an edit
+    indexKey: editor?.changes
+      ? `${base.rowCount}:${active?.revision ?? 0}:${editSource.rowCount}`
+      : undefined,
+  });
   const connectionName =
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.name ??
     "this connection";
+  const toDisplayRow = (storeRow: number) => displayRowOf(gv.visible, storeRow);
+  const ui = useEditingUi({
+    runtime,
+    editor,
+    toStoreRow: gv.toStoreRow,
+    toDisplayRow,
+    grid,
+    driver,
+    connectionName,
+    source: editSource,
+  });
+  const matches = gv.view.rowCount;
 
   const fetchMore = useCallback(() => void runtime.fetchMore(active?.key), [runtime, active?.key]);
 
@@ -165,7 +193,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
       : null;
 
   return (
-    <section className={styles.results} aria-label="Query results">
+    <section className={styles.results} aria-label="Query results" data-shortcut-scope="grid">
       <div className={styles.resultsHeader}>
         <div role="tablist" aria-label="Result views" className={styles.resultTabs}>
           {TABS.map((t) => (
@@ -190,6 +218,12 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </button>
           ))}
         </div>
+        {tab === "result" && active && !transposed ? (
+          <>
+            {ui.chip}
+            {ui.rowOps}
+          </>
+        ) : null}
         <div className={styles.grow} />
         {tab === "result" && active ? (
           <>
@@ -308,7 +342,13 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
                 widths={gv.widths}
                 onWidthsChange={gv.setWidths}
                 onNearEnd={fetchMore}
+                decorations={transposed ? undefined : ui.decorations}
+                onActivate={transposed ? undefined : ui.onActivate}
+                onCellContext={transposed ? undefined : ui.onCellContext}
+                keyColumns={transposed ? undefined : ui.keyColumns}
+                headerDetail={transposed ? undefined : ui.headerDetail}
               />
+              {transposed ? null : ui.footer}
             </>
           ) : (
             <p className={styles.emptyPane}>
@@ -336,6 +376,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)
           : null}
       </div>
+      {ui.dialogs}
       {exporting && exportSource() ? (
         <ExportDialog source={exportSource()!} onClose={() => setExporting(false)} />
       ) : null}

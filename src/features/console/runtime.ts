@@ -302,6 +302,7 @@ export class ConsoleRuntime {
    */
   async run(req: RunRequest): Promise<void> {
     if (this.busy) return;
+    if (this.beforeRun && !(await this.beforeRun())) return;
     const runId = ++this.runId;
     this.store.setState({
       busy: true,
@@ -726,6 +727,47 @@ export class ConsoleRuntime {
   /** The editor's current text (the tab state mirrors it). */
   private docText(): string {
     return this.tabState()?.text ?? "";
+  }
+
+  /**
+   * Asked before a statement runs or the rows change under the result on screen: false cancels.
+   * Set by the results panel while the result holds staged changes.
+   */
+  beforeRun: (() => Promise<boolean>) | null = null;
+
+  /** Run the last statement again (the Re-run button, and after a submit that added rows). */
+  async rerun(): Promise<void> {
+    const last = this.store.getState().lastRun;
+    if (last) await this.run(last);
+  }
+
+  /** The console's transaction mode (Auto-commit or Manual). */
+  get txMode(): "auto" | "manual" {
+    return this.tabState()?.txMode === "manual" ? "manual" : "auto";
+  }
+
+  /**
+   * A result's staged changes were submitted from this console: log it, and follow the
+   * transaction (the statements stay in an open manual transaction, or were committed).
+   */
+  recordSubmit(info: {
+    applied: number;
+    transactionOpen: boolean;
+    committed: boolean;
+    summary: string;
+    statement: string;
+  }): void {
+    if (this.txMode === "manual") {
+      this.store.setState((s) => ({
+        txOpen: info.transactionOpen && !info.committed,
+        txPending: info.committed || !info.transactionOpen ? 0 : s.txPending + info.applied,
+      }));
+    }
+    this.log({
+      kind: "ok",
+      statement: info.statement,
+      message: info.summary,
+    });
   }
 
   private tabState(): ConsoleState | undefined {

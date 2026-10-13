@@ -48,7 +48,7 @@ export interface GridDecorations {
   /** Row tint token and marker for an inserted / deleted / edited row. */
   row?: (row: number) => { bg?: string; marker?: "+" | "−"; strike?: boolean } | undefined;
   /** Cells to ring as edited, or flag as failed. */
-  cell?: (col: number, row: number) => "edited" | "error" | undefined;
+  cell?: (col: number, row: number) => "edited" | "error" | "stale" | undefined;
 }
 
 export interface GridHandle {
@@ -355,8 +355,12 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
       const cellState = deco?.cell?.(sc, row);
       if (cellState) {
         ctx.save();
-        ctx.strokeStyle = token(cellState === "error" ? "danger" : "accent");
-        ctx.lineWidth = 1.5;
+        // a computed value that an edit made out of date: dashed, until the statement re-runs
+        if (cellState === "stale") ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = token(
+          cellState === "error" ? "danger" : cellState === "stale" ? "text-dim" : "accent",
+        );
+        ctx.lineWidth = cellState === "stale" ? 1 : 1.5;
         ctx.strokeRect(rect.x + 1.5, rect.y + 1.5, rect.width - 3, rect.height - 3);
         ctx.restore();
       }
