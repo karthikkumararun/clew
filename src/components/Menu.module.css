@@ -38,3 +38,19 @@
   color: var(--text-dim);
   font: 500 11px/1 var(--font-mono);
 }
+
+.separated {
+  position: relative;
+  margin-top: 5px;
+  overflow: visible;
+}
+
+.separated::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -3px;
+  height: 1px;
+  background: var(--border);
+}

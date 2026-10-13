@@ -27,8 +27,12 @@ use crate::drivers::split_source;
 use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
-    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
+    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, TxState,
+    Value,
 };
+
+/// SQLite has a single, fixed behaviour: transactions are serializable.
+pub const FIXED_ISOLATION: &str = "SERIALIZABLE";
 
 type OpenStream = paging::OpenStream<SqliteConnection>;
 
@@ -485,6 +489,43 @@ impl Session for SqliteSession {
 
     fn server_info(&self) -> ServerInfo {
         self.server.clone()
+    }
+
+    /// A deferred `BEGIN` only works outside a transaction (SQLite refuses a nested one), so the
+    /// statement tells the two states apart; it is rolled back right away.
+    async fn transaction_state(&mut self) -> DriverResult<Option<TxState>> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let state = match conn.execute("BEGIN").await {
+            Ok(_) => {
+                if let Err(e) = conn.execute("ROLLBACK").await {
+                    if !is_connection_error(&e) {
+                        self.conn = ConnState::Idle(conn);
+                    }
+                    return Err(map_error(e, &self.path, None));
+                }
+                TxState::Idle
+            }
+            Err(sqlx::Error::Database(db)) if db.message().contains("within a transaction") => {
+                TxState::InTransaction
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                return Err(map_error(e, &self.path, None));
+            }
+        };
+        self.conn = ConnState::Idle(conn);
+        Ok(Some(state))
+    }
+
+    fn isolation_note(&self) -> Option<String> {
+        Some("SQLite transactions are always serializable; the level cannot be changed.".into())
+    }
+
+    async fn isolation_level(&mut self) -> DriverResult<Option<String>> {
+        Ok(Some(FIXED_ISOLATION.to_string()))
     }
 
     async fn close(mut self: Box<Self>) -> DriverResult<()> {

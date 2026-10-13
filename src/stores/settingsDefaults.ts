@@ -27,3 +27,25 @@ export const DEFAULT_SETTINGS: Settings = {
   resultPageSize: 500,
   resultAutoRerun: false,
 };
+
+/**
+ * Idle-in-transaction warnings (spec: session-manager › Idle-in-transaction warnings). Minutes
+ * without activity in an open transaction before the session is flagged. Kept apart from
+ * `Settings` because they persist in the UI-state store (see `sessionSettings.ts`).
+ */
+export interface SessionSettings {
+  /** Staging and any environment not listed below. */
+  idleMinutes: number;
+  production: number;
+  /** Local and development: the badge only, never a notification. */
+  local: number;
+  /** Show a notification (with Roll back and Show) when a session is flagged. */
+  notify: boolean;
+}
+
+export const DEFAULT_SESSION_SETTINGS: SessionSettings = {
+  idleMinutes: 5,
+  production: 2,
+  local: 15,
+  notify: true,
+};

@@ -3,7 +3,9 @@ import type { FormEvent } from "react";
 import { Button } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Input } from "../components/Input";
+import { rowsOf } from "../features/sessions/OpenTransactionsDialog";
 import { isTauri } from "../lib/ipc";
+import { useSessions } from "../stores/sessionsStore";
 import type { HostKeyPrompt } from "../lib/ipc/generated/HostKeyPrompt";
 import { hostKeyAnswer } from "../lib/ipc/drivers";
 import { onHostKeyPromptEvent, onPasswordPrompt, passwordAnswer } from "./api";
@@ -81,6 +83,22 @@ function Confirm({
   );
 }
 
+/** The sessions of a connection that hold a transaction (session, duration, statements). */
+function OpenSessionsList({ connectionId }: { connectionId: string }) {
+  const sessions = useSessions((s) => s.sessions);
+  const rows = rowsOf(Object.values(sessions).filter((x) => x.connectionId === connectionId));
+  if (rows.length === 0) return null;
+  return (
+    <ul aria-label="Sessions in a transaction">
+      {rows.map((r) => (
+        <li key={r.id}>
+          {r.name} · open {r.duration} · {r.statements}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Confirmations and name prompts raised from the connection list. */
 export function ConnectionModals() {
   const { modal, file, setModal } = useConnections();
@@ -112,16 +130,19 @@ export function ConnectionModals() {
         <Confirm
           title="Uncommitted transaction"
           body={
-            <p>
-              <strong>{conn.name}</strong> has {modal.sessions === 1 ? "a console" : "consoles"}{" "}
-              with an open transaction. Commit or roll it back before disconnecting?
-            </p>
+            <>
+              <p>
+                <strong>{conn.name}</strong> has {modal.sessions === 1 ? "a console" : "consoles"}{" "}
+                with an open transaction. Commit or roll back before disconnecting?
+              </p>
+              <OpenSessionsList connectionId={conn.id} />
+            </>
           }
           actions={[
             cancel,
-            { label: "Roll back", onClick: () => void s.disconnect(conn.id, "rollback") },
+            { label: "Roll back all", onClick: () => void s.disconnect(conn.id, "rollback") },
             {
-              label: "Commit",
+              label: "Commit all",
               variant: "primary",
               onClick: () => void s.disconnect(conn.id, "commit"),
             },

@@ -10,11 +10,11 @@ use tokio::sync::Mutex;
 use crate::drivers::nosql::{DocReply, DocRequest, KvReply, KvRequest};
 use crate::drivers::registry::Registry;
 use crate::drivers::split::split;
-use crate::drivers::Dialect;
+use crate::drivers::{canonical_isolation, Dialect};
 use crate::drivers::{
     CancelHandle, Driver, DriverError, DriverResult, ErrorCode, ExecRequest, ExecSummary,
     FullValueRequest, MetaPool, NodePath, ResolvedConfig, ResultEvent, ResultId, ResultSink,
-    SchemaSnapshot, ServerInfo, Session, Target, TreeNode, Value,
+    SchemaSnapshot, ServerInfo, Session, Target, TreeNode, TxState, Value,
 };
 use crate::history::{HistorySink, NewEntry, Outcome};
 use crate::safety::classify::{classify, StatementClass, StatementInfo};
@@ -22,7 +22,30 @@ use crate::safety::guard::{bound_text, decide, Decision, Policy, Tokens, READ_ON
 use crate::transport::ssh::{SshEnv, SshTunnel};
 use crate::transport::tls;
 
+mod meta;
+pub use meta::{
+    statement_kind, MetaCell, SessionEvent, SessionMeta, SessionState as SessionStatus,
+    TxBreakdown, TxStatement,
+};
+
 pub type SessionId = String;
+
+/// How to settle open transactions when sessions are closed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TxAction {
+    Commit,
+    Rollback,
+}
+
+impl TxAction {
+    fn sql(self) -> &'static str {
+        match self {
+            TxAction::Commit => "COMMIT",
+            TxAction::Rollback => "ROLLBACK",
+        }
+    }
+}
 
 /// Result of opening a session.
 #[derive(Debug, Clone)]
@@ -52,6 +75,10 @@ struct ConnectionEntry {
 struct SessionState {
     /// `None` after the connection was lost; the next execute reconnects.
     session: Option<Box<dyn Session>>,
+    /// The connection was closed on purpose (Close session): reconnect without the "lost" notice.
+    closed_on_purpose: bool,
+    /// The isolation level for the session's transactions, re-applied after a reconnect.
+    isolation: Option<String>,
     in_transaction: bool,
     /// Writes are refused. Starts as the connection's "read-only by default"; the user can switch
     /// it for this session only.
@@ -66,6 +93,48 @@ struct SessionEntry {
     cancel: StdMutex<CancelHandle>,
     server: StdMutex<ServerInfo>,
     last_used: StdMutex<Instant>,
+    /// What the Sessions panel shows; every change is broadcast.
+    meta: StdMutex<MetaCell>,
+    events: tokio::sync::broadcast::Sender<SessionEvent>,
+    /// Statements queued behind the running one.
+    waiters: AtomicU64,
+}
+
+impl SessionEntry {
+    /// Change the meta and tell subscribers. The event is sent under the lock so subscribers see
+    /// updates in order.
+    fn update<R>(&self, f: impl FnOnce(&mut MetaCell) -> R) -> R {
+        let mut cell = self.meta.lock().unwrap();
+        let r = f(&mut cell);
+        let _ = self.events.send(SessionEvent::Upsert {
+            session: cell.meta.clone(),
+        });
+        r
+    }
+
+    fn meta(&self) -> SessionMeta {
+        self.meta.lock().unwrap().meta.clone()
+    }
+}
+
+/// Counts a statement as waiting for the session while alive; the waiting mark clears with the
+/// last waiter, also when the waiting future is dropped.
+struct WaitGuard<'a>(&'a SessionEntry);
+
+impl<'a> WaitGuard<'a> {
+    fn new(entry: &'a SessionEntry) -> Self {
+        entry.waiters.fetch_add(1, Ordering::SeqCst);
+        entry.update(|c| c.meta.waiting_for = Some(c.meta.name.clone()));
+        Self(entry)
+    }
+}
+
+impl Drop for WaitGuard<'_> {
+    fn drop(&mut self) {
+        if self.0.waiters.fetch_sub(1, Ordering::SeqCst) == 1 {
+            self.0.update(|c| c.meta.waiting_for = None);
+        }
+    }
 }
 
 #[derive(Default)]
@@ -85,6 +154,8 @@ pub struct SessionManager {
     policies: StdMutex<HashMap<ConnectionId, Policy>>,
     /// One-time write confirmations.
     tokens: StdMutex<Tokens>,
+    /// Session meta changes for the Sessions panel.
+    events: tokio::sync::broadcast::Sender<SessionEvent>,
 }
 
 impl std::fmt::Debug for SessionManager {
@@ -282,6 +353,7 @@ impl SessionManager {
             tokens: StdMutex::new(Tokens::default()),
             inner: StdMutex::new(Inner::default()),
             next_id: AtomicU64::new(1),
+            events: tokio::sync::broadcast::channel(512).0,
         }
     }
 
@@ -523,8 +595,20 @@ impl SessionManager {
         }
     }
 
-    /// Open a dedicated session (one physical connection) for an editor tab.
+    /// Open a dedicated session (one physical connection) for an editor tab, with the
+    /// connection's default isolation level.
     pub async fn open_session(&self, connection_id: &str) -> DriverResult<SessionOpened> {
+        self.open_session_with(connection_id, None).await
+    }
+
+    /// Like [`Self::open_session`] with an explicit starting isolation level (`None` = the
+    /// connection's default from its Advanced settings). A level the driver does not offer is
+    /// ignored.
+    pub async fn open_session_with(
+        &self,
+        connection_id: &str,
+        isolation: Option<String>,
+    ) -> DriverResult<SessionOpened> {
         let connection = self.connection(connection_id)?;
         let mut session =
             with_connect_timeout(&connection.cfg, connection.driver.open(&connection.cfg)).await?;
@@ -533,17 +617,58 @@ impl SessionManager {
             return Err(e);
         }
         let server = session.server_info();
+        let supported = session.supported_isolation_levels();
+        let wanted = isolation.or_else(|| connection.cfg.isolation.clone());
+        let mut level = None;
+        if let Some(w) = wanted {
+            if let Ok(canonical) = canonical_isolation(supported, &w) {
+                if session.set_isolation(canonical).await.is_ok() {
+                    level = Some(canonical.to_string());
+                }
+            }
+        }
+        if level.is_none() {
+            level = session.isolation_level().await.ok().flatten();
+        }
         let id = self.new_id("session");
+        let now = now_ms();
+        let meta = SessionMeta {
+            id: id.clone(),
+            connection_id: connection_id.to_string(),
+            tab_id: None,
+            name: format!("Session {}", id.trim_start_matches("session-")),
+            state: SessionStatus::Idle,
+            started_at: now,
+            last_activity_at: now,
+            running_since: None,
+            running_statement: None,
+            tx_started_at: None,
+            tx_statement_count: 0,
+            tx_breakdown: TxBreakdown::default(),
+            tx_statements: Vec::new(),
+            isolation: level.clone(),
+            supported_isolation: supported.iter().map(|l| l.to_string()).collect(),
+            isolation_note: session.isolation_note(),
+            backend_id: session.backend_id(),
+            read_only: connection.cfg.read_only,
+            shared_with: Vec::new(),
+            waiting_for: None,
+        };
         let entry = Arc::new(SessionEntry {
             connection_id: connection_id.to_string(),
             cancel: StdMutex::new(session.cancel_handle()),
             server: StdMutex::new(server.clone()),
             state: Mutex::new(SessionState {
                 session: Some(session),
+                closed_on_purpose: false,
+                isolation: level,
                 in_transaction: false,
                 read_only: connection.cfg.read_only,
             }),
             last_used: StdMutex::new(Instant::now()),
+            meta: StdMutex::new(MetaCell::new(meta.clone())),
+            events: self.events.clone(),
+            waiters: AtomicU64::new(0),
             connection,
         });
         let transport = entry
@@ -556,6 +681,7 @@ impl SessionManager {
             .unwrap()
             .sessions
             .insert(id.clone(), entry);
+        let _ = self.events.send(SessionEvent::Upsert { session: meta });
         Ok(SessionOpened {
             session_id: id,
             server,
@@ -563,9 +689,14 @@ impl SessionManager {
         })
     }
 
+    /// Close a session for good (its last tab went away). An open transaction is rolled back by
+    /// the server when the connection closes.
     pub async fn close_session(&self, session_id: &str) -> DriverResult<()> {
         let entry = self.inner.lock().unwrap().sessions.remove(session_id);
         let Some(entry) = entry else { return Ok(()) };
+        let _ = self.events.send(SessionEvent::Removed {
+            id: session_id.to_string(),
+        });
         // Cancel anything running so we can take the lock promptly.
         let handle = entry.cancel.lock().unwrap().clone();
         let _ = handle.cancel().await;
@@ -605,6 +736,49 @@ impl SessionManager {
         *entry.last_used.lock().unwrap() = Instant::now();
     }
 
+    /// Take the session's lock. Tabs sharing a session queue here; while one waits, the session's
+    /// meta says who it waits for.
+    async fn lock_session(entry: &SessionEntry) -> tokio::sync::MutexGuard<'_, SessionState> {
+        if let Ok(guard) = entry.state.try_lock() {
+            return guard;
+        }
+        let _waiting = WaitGuard::new(entry);
+        entry.state.lock().await
+    }
+
+    /// Record a failed statement in the session's meta. PostgreSQL aborts the whole transaction
+    /// on any error unless a savepoint is open; other servers are asked whether the transaction
+    /// survived (a deadlock victim loses it).
+    async fn statement_failed(
+        entry: &SessionEntry,
+        st: &mut SessionState,
+        dialect: Option<Dialect>,
+        error: &DriverError,
+    ) {
+        let lost = error.code == ErrorCode::ConnectionLost;
+        let pg = dialect == Some(Dialect::Postgresql);
+        let aborts = pg
+            && st.in_transaction
+            && (error.message.contains("current transaction is aborted")
+                || (!entry.meta.lock().unwrap().has_savepoint()
+                    && matches!(
+                        error.code,
+                        ErrorCode::QueryFailed | ErrorCode::Cancelled | ErrorCode::Timeout
+                    )));
+        entry.update(|c| c.statement_failed(aborts, lost, now_ms()));
+        if lost || pg || !st.in_transaction || error.code != ErrorCode::QueryFailed {
+            return;
+        }
+        if let Some(session) = st.session.as_mut() {
+            if let Ok(Some(state)) = session.transaction_state().await {
+                if state == TxState::Idle {
+                    st.in_transaction = false;
+                }
+                entry.update(|c| c.server_says(state, now_ms()));
+            }
+        }
+    }
+
     /// Re-open a lost session. Reports a rolled-back transaction.
     async fn reconnect(
         entry: &SessionEntry,
@@ -624,18 +798,32 @@ impl SessionManager {
                 return Err(e);
             }
         }
+        if let Some(level) = st.isolation.clone() {
+            // best effort: the level was valid when it was chosen
+            let _ = session.set_isolation(&level).await;
+        }
         *entry.cancel.lock().unwrap() = session.cancel_handle();
         *entry.server.lock().unwrap() = session.server_info();
+        let backend_id = session.backend_id();
         st.session = Some(session);
         let message = if st.in_transaction {
-            "The connection was lost and has been re-established. The open transaction was rolled back."
+            Some("The connection was lost and has been re-established. The open transaction was rolled back.")
+        } else if st.closed_on_purpose {
+            None
         } else {
-            "The connection was lost and has been re-established."
+            Some("The connection was lost and has been re-established.")
         };
         st.in_transaction = false;
-        emit(ResultEvent::Notice {
-            message: message.to_string(),
+        st.closed_on_purpose = false;
+        entry.update(|c| {
+            c.set_reconnected();
+            c.meta.backend_id = backend_id;
         });
+        if let Some(message) = message {
+            emit(ResultEvent::Notice {
+                message: message.to_string(),
+            });
+        }
         Ok(())
     }
 
@@ -688,10 +876,11 @@ impl SessionManager {
             None
         };
         let entry = self.session(session_id)?;
-        let mut st = entry.state.lock().await;
+        let mut st = Self::lock_session(&entry).await;
         Self::touch(&entry);
 
         let dialect = entry.connection.driver.meta().dialect;
+        let driver_id = entry.connection.driver.meta().id;
         // The guard has the last word, whatever the UI did before calling.
         if let Err(e) = self.enforce(
             session_id,
@@ -743,6 +932,8 @@ impl SessionManager {
                 }
             }
 
+            let hidden = crate::safety::nosql::is_sensitive(driver_id, &sql);
+            entry.update(|c| c.statement_started(&sql, hidden, now_ms()));
             let cancel = entry.cancel.lock().unwrap().clone();
             let (result_sink, rx) = ResultSink::channel(32);
             // Count the rows a statement streams, for its history entry.
@@ -803,12 +994,15 @@ impl SessionManager {
 
             match result {
                 Ok(summary) => {
-                    if let Some(open) = transaction_effect_for(dialect, &sql) {
+                    let effect = transaction_effect_for(dialect, &sql);
+                    if let Some(open) = effect {
                         st.in_transaction = open;
                     }
+                    entry.update(|c| c.statement_ok(&sql, hidden, record, effect, now_ms()));
                     last = Some(summary);
                 }
                 Err(error) => {
+                    Self::statement_failed(&entry, &mut st, dialect, &error).await;
                     match error.code {
                         ErrorCode::Cancelled => {
                             emit(ResultEvent::Cancelled { result_id: None });
@@ -1016,7 +1210,7 @@ impl SessionManager {
         options: crate::changes::ApplyOptions,
     ) -> DriverResult<crate::changes::ApplyOutcome> {
         let entry = self.session(session_id)?;
-        let mut st = entry.state.lock().await;
+        let mut st = Self::lock_session(&entry).await;
         Self::touch(&entry);
         self.enforce(
             session_id,
@@ -1028,15 +1222,32 @@ impl SessionManager {
         )?;
         let in_txn = st.in_transaction;
         let driver = entry.connection.driver.meta().id.to_string();
-        let session = st.session.as_mut().ok_or_else(|| {
-            DriverError::new(
+        entry.update(|c| c.statement_started("Applying table edits", false, now_ms()));
+        let Some(session) = st.session.as_mut() else {
+            entry.update(|c| c.settle());
+            return Err(DriverError::new(
                 ErrorCode::ConnectionLost,
                 "The connection was lost. Run the query again to reconnect, then retry.",
-            )
-        })?;
+            ));
+        };
         let outcome =
-            crate::changes::apply(session.as_mut(), &driver, in_txn, options, statements).await?;
+            match crate::changes::apply(session.as_mut(), &driver, in_txn, options, statements)
+                .await
+            {
+                Ok(o) => o,
+                Err(e) => {
+                    let dialect = entry.connection.driver.meta().dialect;
+                    Self::statement_failed(&entry, &mut st, dialect, &e).await;
+                    return Err(e);
+                }
+            };
         st.in_transaction = outcome.transaction_open;
+        let applied: Vec<(String, String)> = statements
+            .iter()
+            .take(outcome.applied)
+            .map(|s| (statement_kind(&s.display).to_string(), s.display.clone()))
+            .collect();
+        entry.update(|c| c.changes_applied(&applied, outcome.transaction_open, now_ms()));
         Ok(outcome)
     }
 
@@ -1164,6 +1375,8 @@ mod dialect_tests {
         assert_eq!(transaction_effect_for(None, "ROLLBACK"), Some(false));
     }
 }
+
+mod manage;
 
 #[cfg(test)]
 mod tests;
@@ -1334,6 +1547,7 @@ impl SessionManager {
         }
         // With no live session the next reconnect applies the new state (see `reconnect`).
         st.read_only = read_only;
+        entry.update(|c| c.meta.read_only = read_only);
         Ok(())
     }
 

@@ -694,6 +694,11 @@ impl ConnectionService {
             read_only: c.safeguards.read_only_by_default,
             options,
             on_connect: c.advanced.on_connect.clone(),
+            isolation: c
+                .advanced
+                .isolation
+                .clone()
+                .filter(|l| !l.trim().is_empty()),
         })
     }
 }

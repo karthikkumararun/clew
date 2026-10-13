@@ -265,6 +265,11 @@ pub struct Advanced {
     /// Driver properties, e.g. `application_name`.
     #[serde(default)]
     pub properties: BTreeMap<String, String>,
+    /// Default transaction isolation level of new sessions (`READ COMMITTED`, ...); absent = the
+    /// server's default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub isolation: Option<String>,
 }
 
 fn default_connect_timeout() -> u64 {
@@ -278,6 +283,7 @@ impl Default for Advanced {
             query_timeout_sec: 0,
             keep_alive_sec: 0,
             on_connect: vec![],
+            isolation: None,
             properties: BTreeMap::new(),
         }
     }

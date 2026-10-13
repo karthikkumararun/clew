@@ -190,6 +190,27 @@ pub async fn connections_disconnect(
     Ok(())
 }
 
+/// Deactivate a connection: settle open transactions (`tx_action`; absent, the server rolls them
+/// back), close every session and the SSH tunnel. The saved connection stays, shown as
+/// disconnected.
+#[tauri::command]
+pub async fn connection_deactivate(
+    state: State<'_, AppState>,
+    connection_id: String,
+    tx_action: Option<crate::sessions::TxAction>,
+) -> AppResult<()> {
+    state.editability.forget(&connection_id);
+    if let Some(action) = tx_action {
+        state
+            .sessions
+            .end_transactions(&connection_id, action == crate::sessions::TxAction::Commit)
+            .await?;
+    }
+    state.sessions.disconnect(&connection_id).await;
+    state.connections.forget_session_secrets(&connection_id);
+    Ok(())
+}
+
 /// Counts and warnings for the Export tab; writes nothing.
 #[tauri::command]
 pub fn connections_export_summary(

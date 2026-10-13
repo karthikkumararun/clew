@@ -24,8 +24,18 @@ use crate::drivers::introspect::NodeKind;
 use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
-    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, Value,
+    ExecSummary, FullValueRequest, ResultEvent, ResultId, ResultSink, ServerInfo, Session, TxState,
+    Value,
 };
+
+/// What PostgreSQL lets a session choose (READ UNCOMMITTED is accepted but behaves as READ COMMITTED,
+/// so it is not offered).
+pub const ISOLATION_LEVELS: &[&str] = &["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"];
+
+/// The statement that sets the default isolation level of the session's following transactions.
+pub fn set_isolation_sql(level: &str) -> String {
+    format!("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL {level}")
+}
 
 type OpenStream = paging::OpenStream<PgConnection>;
 
@@ -532,6 +542,92 @@ impl Session for PgSession {
 
     fn server_info(&self) -> ServerInfo {
         self.server.clone()
+    }
+
+    fn backend_id(&self) -> Option<String> {
+        Some(self.cancel.pid.to_string())
+    }
+
+    /// `SAVEPOINT` tells the three states apart: it fails with 25P01 outside a transaction block,
+    /// with 25P02 inside an aborted one, and works inside a healthy one. Outside a transaction the
+    /// failed statement leaves nothing behind.
+    async fn transaction_state(&mut self) -> DriverResult<Option<TxState>> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result = conn.execute("SAVEPOINT clew_state_probe").await;
+        let state = match result {
+            Ok(_) => {
+                let released = conn.execute("RELEASE SAVEPOINT clew_state_probe").await;
+                if let Err(e) = released {
+                    if !is_connection_error(&e) {
+                        self.conn = ConnState::Idle(conn);
+                    }
+                    return Err(map_error(e, &self.target));
+                }
+                TxState::InTransaction
+            }
+            Err(sqlx::Error::Database(db)) => match db.code().as_deref() {
+                Some("25P01") => TxState::Idle,
+                Some("25P02") => TxState::Aborted,
+                _ => {
+                    self.conn = ConnState::Idle(conn);
+                    return Err(map_error(sqlx::Error::Database(db), &self.target));
+                }
+            },
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                return Err(map_error(e, &self.target));
+            }
+        };
+        self.conn = ConnState::Idle(conn);
+        Ok(Some(state))
+    }
+
+    fn supported_isolation_levels(&self) -> &'static [&'static str] {
+        ISOLATION_LEVELS
+    }
+
+    async fn isolation_level(&mut self) -> DriverResult<Option<String>> {
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result: Result<String, sqlx::Error> =
+            sqlx::query_scalar("SELECT current_setting('default_transaction_isolation')")
+                .persistent(false)
+                .fetch_one(&mut *conn)
+                .await;
+        match result {
+            Ok(level) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(Some(level.to_ascii_uppercase()))
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target))
+            }
+        }
+    }
+
+    async fn set_isolation(&mut self, level: &str) -> DriverResult<()> {
+        let level = crate::drivers::canonical_isolation(ISOLATION_LEVELS, level)?;
+        self.reclaim().await?;
+        let mut conn = self.take_idle()?;
+        let result = conn.execute(AssertSqlSafe(set_isolation_sql(level))).await;
+        match result {
+            Ok(_) => {
+                self.conn = ConnState::Idle(conn);
+                Ok(())
+            }
+            Err(e) => {
+                if !is_connection_error(&e) {
+                    self.conn = ConnState::Idle(conn);
+                }
+                Err(map_error(e, &self.target))
+            }
+        }
     }
 
     async fn close(mut self: Box<Self>) -> DriverResult<()> {

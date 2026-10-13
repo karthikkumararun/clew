@@ -4,6 +4,9 @@ import { Menu } from "../../components/Menu";
 import { ChevronDown, Lines, Play } from "../../components/icons";
 import { formatShortcut } from "../../lib/platform";
 import { useConnections } from "../../connections/connectionsStore";
+import { changeIsolation } from "../sessions/actions";
+import { defaultIsolationOf, levelsBeforeOpen } from "../sessions/isolation";
+import { useSessions } from "../../stores/sessionsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { ReadOnlyBadge } from "../safety/ReadOnlyBadge";
 import { isNoSql, supportsTransactions } from "./editor/dialects";
@@ -46,6 +49,21 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
   );
   const transactional = supportsTransactions(driverId);
   const connection = useConnections((s) => s.file.connections.find((c) => c.id === connectionId));
+  // Isolation: the session's own levels once it exists, the driver's before that.
+  const sessionId = useStore(runtime.store, (s) => s.sessionId);
+  const meta = useSessions((s) => (sessionId ? s.sessions[sessionId] : undefined));
+  const levels = meta ? meta.supportedIsolation : levelsBeforeOpen(driverId);
+  const level = levels.length
+    ? (meta?.isolation ?? (defaultIsolationOf(connection) || null))
+    : null;
+  const chooseLevel = async (next: string) => {
+    try {
+      const id = sessionId ?? (await runtime.ensureSession());
+      await changeIsolation({ id, name: meta?.name ?? "This console" }, txOpen, next);
+    } catch {
+      /* the connection isn't available: nothing to change */
+    }
+  };
   return (
     <>
       {connection ? (
@@ -130,7 +148,9 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
             aria-expanded={txMenu}
             onClick={() => setTxMenu((o) => !o)}
           >
-            Tx: {txMode === "manual" ? "Manual" : "Auto-commit"}
+            {`Tx: ${txMode === "manual" ? "Manual" : "Auto-commit"}${
+              txMode === "manual" && level ? ` · ${level}` : ""
+            }`}
             <ChevronDown size={12} />
           </button>
           {txMenu ? (
@@ -146,11 +166,18 @@ function Controls({ tabId, connectionId }: { tabId: string; connectionId: string
                   items={[
                     { id: "auto", label: `${txMode === "auto" ? "✓ " : ""}Auto-commit` },
                     { id: "manual", label: `${txMode === "manual" ? "✓ " : ""}Manual` },
+                    ...levels.map((l, i) => ({
+                      id: `level:${l}`,
+                      label: l,
+                      hint: l === level ? "✓" : undefined,
+                      separatorBefore: i === 0,
+                    })),
                   ]}
                   onClose={() => setTxMenu(false)}
                   onSelect={(id) => {
                     setTxMenu(false);
-                    void setTxMode(tabId, id as "auto" | "manual");
+                    if (id.startsWith("level:")) void chooseLevel(id.slice(6));
+                    else void setTxMode(tabId, id as "auto" | "manual");
                   }}
                 />
               </div>

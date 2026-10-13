@@ -66,6 +66,8 @@ export interface Draft {
   connectTimeout: string;
   queryTimeout: string;
   keepAlive: string;
+  /** Default transaction isolation level of new sessions; empty = the server's default. */
+  isolation: string;
   onConnect: string;
   properties: { key: string; value: string }[];
 
@@ -135,6 +137,7 @@ export function newDraft(driver = "postgres", environment: Environment = "local"
     connectTimeout: "10",
     queryTimeout: "0",
     keepAlive: "0",
+    isolation: "",
     onConnect: "",
     properties: [],
     scriptsDir: "",
@@ -252,6 +255,7 @@ export function toConnection(draft: Draft): Connection {
       connectTimeoutSec: Math.max(1, Number(draft.connectTimeout) || 10),
       queryTimeoutSec: Math.max(0, Number(draft.queryTimeout) || 0),
       keepAliveSec: Math.max(0, Number(draft.keepAlive) || 0),
+      ...(draft.isolation ? { isolation: draft.isolation } : {}),
       onConnect: draft.onConnect
         .split("\n")
         .map((l) => l.trim())
@@ -294,6 +298,7 @@ export function draftFromConnection(c: Connection): Draft {
     connectTimeout: String(c.advanced.connectTimeoutSec),
     queryTimeout: String(c.advanced.queryTimeoutSec),
     keepAlive: String(c.advanced.keepAliveSec),
+    isolation: (c.advanced as { isolation?: string | null }).isolation ?? "",
     onConnect: c.advanced.onConnect.join("\n"),
     properties: Object.entries(c.advanced.properties).map(([key, value]) => ({ key, value })),
     scriptsDir: c.scriptsDir ?? "",

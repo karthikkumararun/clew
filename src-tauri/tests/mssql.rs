@@ -28,6 +28,7 @@ fn cfg() -> ResolvedConfig {
         read_only: false,
         options: Default::default(),
         on_connect: vec![],
+        isolation: None,
     }
 }
 

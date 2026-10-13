@@ -24,4 +24,9 @@ options: { [key in string]: string },
 /**
  * Statements to run on every new session (a saved connection's "on connect" list).
  */
-on_connect: Array<string>, };
+on_connect: Array<string>, 
+/**
+ * Default transaction isolation level for new sessions (the connection's
+ * `advanced.isolation`), e.g. `READ COMMITTED`. Ignored when the driver does not support it.
+ */
+isolation: string | null, };

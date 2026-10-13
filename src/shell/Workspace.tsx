@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { NARROW_BREAKPOINT, useLayout } from "../stores/layoutStore";
+import { BottomDock } from "./BottomDock";
 import { EditorArea } from "./EditorArea";
 import { Notices } from "./Notices";
 import { ImportExportDialog } from "../connections/exchange/ImportExportDialog";
@@ -8,6 +9,7 @@ import { ConnectionPromptHost } from "../connections/ConnectionPrompts";
 import { ConnectionDialogHost } from "../connections/ConnectionDialog";
 import { ConnectionPickerHost } from "../features/console/ConnectionPicker";
 import { ConsolePromptHost } from "../features/console/prompts";
+import { OpenTransactionsHost } from "../features/sessions/OpenTransactionsDialog";
 import { SafetyPromptHost } from "../features/safety/confirm";
 import { AboutDialog } from "./AboutDialog";
 import { SettingsDialog } from "./SettingsDialog";
@@ -32,7 +34,10 @@ export function Workspace() {
       <Toolbar />
       <div className={styles.body}>
         <Sidebar />
-        <EditorArea />
+        <div className={styles.center}>
+          <EditorArea />
+          <BottomDock />
+        </div>
         <SidePanel />
       </div>
       <StatusBar />
@@ -44,6 +49,7 @@ export function Workspace() {
       <ConnectionPickerHost />
       <ConsolePromptHost />
       <SafetyPromptHost />
+      <OpenTransactionsHost />
       <ImportExportDialog />
       <Notices />
     </div>

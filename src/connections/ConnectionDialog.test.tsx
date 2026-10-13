@@ -151,6 +151,27 @@ describe("ConnectionDialog", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("saves a default isolation level from Advanced settings, only where the driver has levels (spec: sql-console › Connection default)", async () => {
+    open();
+    fireEvent.change(screen.getByLabelText("Host"), { target: { value: "db" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
+    fireEvent.change(screen.getByLabelText("Default isolation level"), {
+      target: { value: "REPEATABLE READ" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Save & connect/ }));
+    await waitFor(() => expect(api.save).toHaveBeenCalled());
+    expect(
+      (api.save.mock.calls[0][0] as SaveRequest).connection.advanced as { isolation?: string },
+    ).toMatchObject({ isolation: "REPEATABLE READ" });
+  });
+
+  it("does not offer a default isolation level for SQLite", () => {
+    open();
+    fireEvent.click(screen.getByRole("button", { name: /SQLite/ }));
+    fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
+    expect(screen.queryByLabelText("Default isolation level")).toBeNull();
+  });
+
   it("closes on Escape and saves on Mod+Enter", async () => {
     const first = open();
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
