@@ -27,4 +27,6 @@ pub struct AppState {
     pub files: crate::files::FileAccess,
     /// Running exports, by id, so the UI can cancel them.
     pub exports: Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>,
+    /// Table structure behind result-editing resolution.
+    pub editability: crate::editability::Cache,
 }

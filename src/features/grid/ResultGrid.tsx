@@ -1,5 +1,6 @@
 import { CompactSelection, DataEditor, GridCellKind } from "@glideapps/glide-data-grid";
 import type {
+  DataEditorRef,
   DrawCellCallback,
   DrawHeaderCallback,
   GridCell,
@@ -9,6 +10,7 @@ import type {
   Theme,
 } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
+import type { ClipboardEvent as ReactClipboardEvent } from "react";
 import {
   forwardRef,
   useCallback,
@@ -23,6 +25,8 @@ import { CellViewer } from "./CellViewer";
 import { lookOf } from "./cellStyle";
 import type { CellLook } from "./cellStyle";
 import { format } from "./copyFormats";
+import { buildCopy } from "./paste/clipboard";
+import { copyEventData, writeCopy } from "./paste/clipboardIo";
 import type { CopyData, CopyFormat } from "./copyFormats";
 import { EMPTY_SELECTION, selectedCells } from "./selection";
 import type { SelectedCells } from "./selection";
@@ -48,7 +52,7 @@ export interface GridDecorations {
   /** Row tint token and marker for an inserted / deleted / edited row. */
   row?: (row: number) => { bg?: string; marker?: "+" | "−"; strike?: boolean } | undefined;
   /** Cells to ring as edited, or flag as failed. */
-  cell?: (col: number, row: number) => "edited" | "error" | undefined;
+  cell?: (col: number, row: number) => "edited" | "error" | "stale" | undefined;
 }
 
 export interface GridHandle {
@@ -58,6 +62,10 @@ export interface GridHandle {
   selectedData(): CopyData | null;
   /** Copy the selection in a format to the clipboard; resolves with the number of rows copied. */
   copyAs(as: CopyFormat): Promise<number>;
+  /** Source column index of each displayed column, in display order (paste maps through it). */
+  sourceColumns?(): number[];
+  /** Select a cell (source column, displayed row) and scroll it into view (find, Go to row). */
+  select(col: number, row: number): void;
   /** Show the value viewer for a displayed cell. */
   openViewer(col: number, row: number): void;
   /** Make the grid take keyboard focus. */
@@ -95,6 +103,14 @@ export interface ResultGridProps {
   headerDetail?: (column: number) => string | undefined;
   /** Right-click on a data cell, in display coordinates with the pointer position. */
   onCellContext?: (col: number, row: number, x: number, y: number) => void;
+  /**
+   * Cells to highlight (find matches): `has(displayRow, sourceColumn)`, with the current match
+   * drawn stronger. Pass a new object when the matches change (it repaints the canvas).
+   */
+  highlight?: {
+    has: (row: number, col: number) => boolean;
+    current?: { row: number; col: number } | null;
+  };
 }
 
 /** Width that fits the header and the first rows of a column. */
@@ -133,6 +149,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
     onCellContext,
   } = props;
 
+  const editorRef = useRef<DataEditorRef>(null);
   const [selection, setSelection] = useState<GridSelection>(EMPTY_SELECTION);
   const [viewer, setViewer] = useState<{ col: number; row: number } | null>(null);
   const [autoWidths, setAutoWidths] = useState<Record<number, number>>({});
@@ -249,14 +266,33 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
         const data = dataOf(selectionCells());
         if (!data) return 0;
         const table = props.tableName ?? quoteIdent(flavor, "table_name");
-        await navigator.clipboard.writeText(format(data, as, { flavor, table }));
+        if (as === "tsv") {
+          // Excel-style TSV plus the typed private payload, so a paste inside Clew keeps types.
+          const withHeaders = buildCopy(data.columns, data.rows, { headers: true });
+          await writeCopy(withHeaders.text, withHeaders.typed);
+        } else await navigator.clipboard.writeText(format(data, as, { flavor, table }));
         return data.rows.length;
+      },
+      sourceColumns: () => [...visible],
+      select: (col, row) => {
+        const at = visible.indexOf(col);
+        if (at < 0) return;
+        setSelection({
+          columns: CompactSelection.empty(),
+          rows: CompactSelection.empty(),
+          current: {
+            cell: [at, row],
+            range: { x: at, y: row, width: 1, height: 1 },
+            rangeStack: [],
+          },
+        });
+        editorRef.current?.scrollTo(at, row, "both", 0, 0, { hAlign: "center", vAlign: "center" });
       },
       openViewer: (col, row) => setViewer({ col, row }),
       focus: () =>
         document.querySelector<HTMLCanvasElement>("[data-testid='data-grid-canvas']")?.focus(),
     }),
-    [selectionCells, dataOf, flavor, props.tableName],
+    [selectionCells, dataOf, flavor, props.tableName, visible],
   );
 
   const drawHeader = useCallback<DrawHeaderCallback>(
@@ -352,16 +388,29 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
         ctx.fillText(rowDeco.marker, rect.x - 14, rect.y + rect.height / 2);
         ctx.restore();
       }
+      const hl = props.highlight;
+      if (hl?.has(row, sc)) {
+        const now = hl.current?.row === row && hl.current?.col === sc;
+        ctx.save();
+        ctx.fillStyle = token("accent");
+        ctx.globalAlpha = now ? 0.45 : 0.22;
+        ctx.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+        ctx.restore();
+      }
       const cellState = deco?.cell?.(sc, row);
       if (cellState) {
         ctx.save();
-        ctx.strokeStyle = token(cellState === "error" ? "danger" : "accent");
-        ctx.lineWidth = 1.5;
+        // a computed value that an edit made out of date: dashed, until the statement re-runs
+        if (cellState === "stale") ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = token(
+          cellState === "error" ? "danger" : cellState === "stale" ? "text-dim" : "accent",
+        );
+        ctx.lineWidth = cellState === "stale" ? 1 : 1.5;
         ctx.strokeRect(rect.x + 1.5, rect.y + 1.5, rect.width - 3, rect.height - 3);
         ctx.restore();
       }
     },
-    [visible, source, fkColumns, deco],
+    [visible, source, fkColumns, deco, props.highlight],
   );
 
   const getRowThemeOverride = useCallback(
@@ -374,9 +423,22 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
 
   const open = (col: number, row: number) => setViewer({ col, row });
 
+  // Mod+C writes TSV plus the typed payload (NULL vs '' and exact decimals survive a paste in
+  // Clew). Capture phase, so the grid's own text-only copy doesn't run after it.
+  const onCopyCapture = (e: ReactClipboardEvent) => {
+    const data = dataOf(selectionCells());
+    if (!data) return;
+    const { text, typed } = buildCopy(data.columns, data.rows);
+    if (copyEventData(e.nativeEvent, text, typed)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   return (
-    <div className={styles.grid} data-testid="result-grid">
+    <div className={styles.grid} data-testid="result-grid" onCopyCapture={onCopyCapture}>
       <DataEditor
+        ref={editorRef}
         columns={columns}
         rows={source.rowCount}
         getCellContent={getCellContent}

@@ -39,6 +39,13 @@ export function normalize(raw: Partial<Settings>): Settings {
     checkForUpdates: Boolean(merged.checkForUpdates),
     oracleClientDir:
       typeof merged.oracleClientDir === "string" ? merged.oracleClientDir.trim() : "",
+    resultBrowse: merged.resultBrowse === "pages" ? "pages" : "scroll",
+    resultPageSize: clamp(
+      Math.round(Number(merged.resultPageSize) || DEFAULT_SETTINGS.resultPageSize),
+      10,
+      100_000,
+    ),
+    resultAutoRerun: Boolean(merged.resultAutoRerun),
   };
 }
 

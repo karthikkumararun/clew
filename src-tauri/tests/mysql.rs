@@ -163,6 +163,7 @@ both! {
         assert_eq!(c.must("SELECT 1").await.scalar_int(), 1);
     };
 
+    // (spec: driver-framework › Aliases keep provenance); (spec: driver-framework › Expressions have no source)
     source_table_and_column => |f| async move {
         let c = connect(&cfg(f)).await;
         c.must("DROP TABLE IF EXISTS conf_my_src").await;
@@ -174,8 +175,56 @@ both! {
         assert_eq!(cols[0].source_column.as_deref(), Some("id"), "the original name, not the alias");
         assert_eq!(cols[1].source_column.as_deref(), Some("label"));
         assert_eq!(cols[2].source_table, None, "computed columns have no source");
+        assert!(cols[0].source_schema.is_some(), "{:?}", cols[0]);
+        assert_eq!(cols[0].source_updatable, Some(true));
+        assert_eq!(cols[2].source_updatable, Some(false));
         assert_eq!(cols[0].kind, ValueKind::Bigint);
         c.must("DROP TABLE conf_my_src").await;
+    };
+
+    // (spec: result-editing › Failure keeps the transaction)
+    failed_manual_submit_rolls_back_to_the_savepoint => |f| async move {
+        let c = connect(&root(f)).await;
+        c.must("DROP DATABASE IF EXISTS conf_man").await;
+        c.must("CREATE DATABASE conf_man").await;
+        c.must("CREATE TABLE conf_man.t (id BIGINT PRIMARY KEY, name VARCHAR(40) NOT NULL)").await;
+        c.must("INSERT INTO conf_man.t VALUES (1, 'old'), (2, 'gone')").await;
+        let path = NodePath::root()
+            .child(NodeKind::Database, "conf_man")
+            .child(NodeKind::Group, "tables")
+            .child(NodeKind::Table, "t");
+        let request: clew_lib::changes::ChangeRequest = serde_json::from_value(serde_json::json!({
+            "path": path,
+            "columns": [
+                {"name": "id", "type_name": "BIGINT"},
+                {"name": "name", "type_name": "VARCHAR"},
+            ],
+            "keyColumns": ["id"],
+            "edits": [{
+                "key": [{"kind": "int", "value": 1}],
+                "changes": [{
+                    "column": "name",
+                    "old": {"kind": "text", "value": "old", "truncated": false},
+                    "new": {"kind": "value", "value": {"kind": "text", "value": "new", "truncated": false}},
+                }],
+            }],
+            "inserts": [{"values": [
+                {"column": "id", "value": {"kind": "value", "value": {"kind": "int", "value": 3}}},
+                {"column": "name", "value": {"kind": "value", "value": {"kind": "null"}}},
+            ]}],
+            "manual": true,
+        })).unwrap();
+        c.must("BEGIN").await;
+        c.must("INSERT INTO conf_man.t VALUES (10, 'earlier')").await;
+        let statements = clew_lib::changes::build(f.driver, &request).unwrap();
+        let out = c.mgr.apply_changes_with(&c.session, &statements, None, request.options()).await.expect("apply");
+        assert!(out.failure.is_some());
+        assert!(out.transaction_open);
+        let rows = run(&c.mgr, &c.session, "SELECT id, name FROM conf_man.t ORDER BY id").await.rows();
+        assert_eq!(rows.len(), 3, "1, 2 and the earlier 10");
+        assert_eq!(rows[0][1], Value::Text { value: "old".into(), truncated: false });
+        c.must("ROLLBACK").await;
+        c.must("DROP DATABASE conf_man").await;
     };
 
     type_decoding => |f| async move {

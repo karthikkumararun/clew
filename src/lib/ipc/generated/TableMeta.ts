@@ -8,4 +8,9 @@ export type TableMeta = { columns: Array<ColumnDetail>, indexes: Array<IndexDeta
 /**
  * From the server's statistics; none when it has none (or for a view).
  */
-estimatedRows: number | null, };
+estimatedRows: number | null, 
+/**
+ * The object is a view (or materialized view), which results never edit. `None` when the
+ * driver does not say.
+ */
+isView?: boolean, };

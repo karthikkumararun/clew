@@ -402,6 +402,7 @@ pub async fn table_meta(meta: &Arc<Meta>, path: &NodePath) -> DriverResult<Table
             nullable: s(r, 2) == "Y",
             default: opt(r, 3).map(|d| d.trim().to_string()),
             comment: opt(r, 4),
+            generated: None,
         })
         .collect();
 
@@ -489,5 +490,6 @@ pub async fn table_meta(meta: &Arc<Meta>, path: &NodePath) -> DriverResult<Table
         foreign_keys,
         referenced_by,
         estimated_rows,
+        is_view: None,
     })
 }

@@ -5,4 +5,13 @@ import type { RowDelete } from "./RowDelete";
 import type { RowEdit } from "./RowEdit";
 import type { RowInsert } from "./RowInsert";
 
-export type ChangeRequest = { path: NodePath, columns: Array<ChangeColumn>, keyColumns: Array<string>, edits: Array<RowEdit>, inserts: Array<RowInsert>, deletes: Array<RowDelete>, };
+export type ChangeRequest = { path: NodePath, columns: Array<ChangeColumn>, keyColumns: Array<string>, edits: Array<RowEdit>, inserts: Array<RowInsert>, deletes: Array<RowDelete>, 
+/**
+ * Submitting from a console in Manual transaction mode (see [`ApplyOptions::manual`]). The
+ * table editor leaves this off.
+ */
+manual?: boolean, 
+/**
+ * Commit the open transaction after a successful submit ("Submit and commit").
+ */
+commitAfter?: boolean, };

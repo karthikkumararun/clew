@@ -2,17 +2,53 @@
   "description": "Expected sizes of the main UI regions, from design/README.md and tokens.css. Regions carry a data-metric attribute; e2e/design/metrics.e2e.ts measures the real app against this file (1px tolerance) and scripts/check-design-metrics.ts checks it against tokens.css.",
   "tolerancePx": 1,
   "regions": {
-    "toolbar": { "height": 44, "token": "--h-titlebar" },
-    "tab-strip": { "height": 36, "token": "--h-tabstrip" },
-    "status-bar": { "height": 26, "token": "--h-statusbar" },
-    "sidebar": { "width": 272, "min": 240, "max": 420, "token": "--w-sidebar" },
-    "side-panel": { "width": 380, "min": 320, "max": 560 },
-    "tree-row": { "height": 24, "token": "--h-tree-row" },
-    "button": { "height": 28, "token": "--h-button" },
-    "dialog-button": { "height": 34 },
-    "dialog": { "radius": 12, "token": "--radius-lg" }
+    "toolbar": {
+      "height": 44,
+      "token": "--h-titlebar"
+    },
+    "tab-strip": {
+      "height": 36,
+      "token": "--h-tabstrip"
+    },
+    "status-bar": {
+      "height": 26,
+      "token": "--h-statusbar"
+    },
+    "sidebar": {
+      "width": 272,
+      "min": 240,
+      "max": 420,
+      "token": "--w-sidebar"
+    },
+    "side-panel": {
+      "width": 380,
+      "min": 320,
+      "max": 560
+    },
+    "tree-row": {
+      "height": 24,
+      "token": "--h-tree-row"
+    },
+    "button": {
+      "height": 28,
+      "token": "--h-button"
+    },
+    "dialog-button": {
+      "height": 34
+    },
+    "dialog": {
+      "radius": 12,
+      "token": "--radius-lg"
+    },
+    "button-compact": {
+      "height": 24
+    }
   },
   "notRendered": {
-    "grid-row": { "height": 26, "token": "--h-grid-row", "note": "the grid is a canvas; its row height is read from the test-mode mirror" }
+    "grid-row": {
+      "height": 26,
+      "token": "--h-grid-row",
+      "note": "the grid is a canvas; its row height is read from the test-mode mirror"
+    }
   }
 }

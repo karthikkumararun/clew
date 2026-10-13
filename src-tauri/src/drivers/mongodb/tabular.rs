@@ -91,6 +91,8 @@ pub fn columns(names: &[String], docs: &[Document]) -> Vec<ColumnMeta> {
                 nullable: Some(true),
                 source_table: None,
                 source_column: None,
+                source_schema: None,
+                source_updatable: None,
             }
         })
         .collect()

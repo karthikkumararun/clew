@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { IconButton } from "../../components/Button";
-import { Download, Filter, Refresh } from "../../components/icons";
+import { Download, Lines, Refresh } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
@@ -9,11 +9,18 @@ import { CopyAsMenu, ColumnsMenu } from "../grid/GridMenus";
 import { ResultGrid } from "../grid/ResultGrid";
 import type { GridHandle } from "../grid/ResultGrid";
 import { RowsSource } from "../grid/source";
+import type { GridSource } from "../grid/source";
 import { useGridView } from "../grid/useGridView";
 import { quoteIdent, flavorOf } from "../grid/sqlLiteral";
 import { ExportDialog } from "../grid/ExportDialog";
 import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
+import { displayRowOf } from "../grid/tools/visibleRows";
+import { dispatchShortcut } from "../../shell/registry/shortcuts";
+import { useEditingUi, useEditorFor } from "../results/useResultEditing";
+import { AutoRefreshMenu } from "./AutoRefreshMenu";
+import { usePaging } from "./usePaging";
+import { useResultTools } from "./useResultTools";
 import { DocViewSwitch, DocumentsResult } from "../documents/DocResult";
 import type { DocResultView } from "../documents/DocResult";
 import { askChoice } from "./prompts";
@@ -91,16 +98,66 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [active?.key],
   );
-  if (active) base.update(active.columns, active.rows, active.rowCount);
+  // `revision` moves when rows were changed in place (a submitted edit)
+  if (active)
+    base.update(active.columns, active.rows, active.rowCount + (active.revision ?? 0) * 1_000_003);
   const grid = useRef<GridHandle>(null);
-  const gv = useGridView(base, { filter, transposed, resetKey: active?.key ?? "" });
   const driver =
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.driver ??
     "";
-  const matches = gv.view.rowCount;
+  // An editable result is shown through its change set: staged edits over the loaded rows.
+  const editor = useEditorFor(runtime, active, base, driver);
+  const editSource: GridSource = editor?.changes ?? base;
+  const gv = useGridView(editSource, {
+    filter,
+    transposed,
+    resetKey: active?.key ?? "",
+    loadedRows: editor?.changes ? base.rowCount : undefined,
+    // sorting and filters follow the loaded rows, not each keystroke of an edit
+    indexKey: editor?.changes
+      ? `${base.rowCount}:${active?.revision ?? 0}:${editSource.rowCount}`
+      : undefined,
+  });
   const connectionName =
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.name ??
     "this connection";
+  // Pages mode shows a window over the rows; the window's row r is the view's row offset + r.
+  const paging = usePaging({ runtime, active, view: gv.view, resetKey: active?.key ?? "" });
+  const toStoreRow = (displayRow: number) => gv.toStoreRow(displayRow + paging.offset);
+  const toDisplayRow = (storeRow: number) => displayRowOf(gv.visible, storeRow) - paging.offset;
+  const ui = useEditingUi({
+    runtime,
+    editor,
+    toStoreRow,
+    toDisplayRow,
+    grid,
+    driver,
+    connectionName,
+    source: editSource,
+  });
+  const tools = useResultTools({
+    runtime,
+    active,
+    editor,
+    grid,
+    view: gv.view,
+    shown: paging.source,
+    values: editSource,
+    loadedRows: base.rowCount,
+    toStoreRow,
+    visible: gv.visible,
+    columnFilters: gv.columnFilters,
+    setColumnFilters: gv.setColumnFilters,
+    resetView: gv.resetView,
+    hidden: gv.hidden,
+    statement: active ? resultSql[active.key] : undefined,
+    driver,
+    tableName: active ? sourceTable(active.columns, driver) : undefined,
+    transposed,
+    setTransposed,
+    pageOffset: paging.offset,
+  });
+  const matches = gv.view.rowCount;
 
   const fetchMore = useCallback(() => void runtime.fetchMore(active?.key), [runtime, active?.key]);
 
@@ -165,7 +222,16 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
       : null;
 
   return (
-    <section className={styles.results} aria-label="Query results">
+    <section
+      className={styles.results}
+      aria-label="Query results"
+      data-shortcut-scope="grid"
+      // The grid handles Enter (and its modified forms) itself and marks the event handled, so a
+      // window listener would never see Mod+Enter: take the grid shortcuts on the way down.
+      onKeyDownCapture={(e) => {
+        if (dispatchShortcut(e.nativeEvent)) e.stopPropagation();
+      }}
+    >
       <div className={styles.resultsHeader}>
         <div role="tablist" aria-label="Result views" className={styles.resultTabs}>
           {TABS.map((t) => (
@@ -190,31 +256,35 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </button>
           ))}
         </div>
+        {tab === "result" && active && !transposed ? (
+          <>
+            {ui.chip}
+            {ui.rowOps}
+            {ui.pasteNotice}
+          </>
+        ) : null}
         <div className={styles.grow} />
         {tab === "result" && active ? (
           <>
             {active.docs ? <DocViewSwitch value={docView} onChange={setDocView} /> : null}
+            {paging.toolbar}
             <span className={styles.range}>{range}</span>
+            <AutoRefreshMenu runtime={runtime} />
             <IconButton aria-label="Re-run query" disabled={!lastRun || busy} onClick={onRerun}>
               <Refresh size={14} />
             </IconButton>
             <IconButton
               aria-label="Filter results"
+              title="Quick text filter over the loaded rows"
               aria-pressed={filterOpen}
               onClick={() => {
                 setFilterOpen((o) => !o);
                 if (filterOpen) setFilter("");
               }}
             >
-              <Filter size={14} />
+              <Lines size={14} />
             </IconButton>
-            <IconButton
-              aria-label="Transpose"
-              aria-pressed={transposed}
-              onClick={() => setTransposed((t) => !t)}
-            >
-              <TransposeIcon />
-            </IconButton>
+            {tools.toolbar}
             <ColumnsMenu
               columns={active.columns}
               hidden={gv.hidden}
@@ -230,6 +300,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
               <Download size={13} />
               Export…
             </button>
+            {tools.options}
           </>
         ) : null}
       </div>
@@ -283,32 +354,49 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </div>
           ) : active ? (
             <>
-              {gv.sort && active.hasMore && !transposed ? (
-                <div className={styles.sortNotice} role="status">
-                  Sorted {active.rowCount.toLocaleString()} loaded rows —{" "}
-                  <button
-                    type="button"
-                    className={styles.link}
-                    onClick={() => void reorderInDatabase()}
-                  >
-                    Re-run with ORDER BY
-                  </button>
+              {tools.bars}
+              <div className={styles.gridRow}>
+                <div className={styles.gridCol}>
+                  {gv.sort && active.hasMore && !transposed ? (
+                    <div className={styles.sortNotice} role="status">
+                      Sorted {active.rowCount.toLocaleString()} loaded rows —{" "}
+                      <button
+                        type="button"
+                        className={styles.link}
+                        onClick={() => void reorderInDatabase()}
+                      >
+                        Re-run with ORDER BY
+                      </button>
+                    </div>
+                  ) : null}
+                  {tools.alt ?? (
+                    <ResultGrid
+                      ref={grid}
+                      source={paging.source}
+                      driver={driver}
+                      tableName={sourceTable(active.columns, driver)}
+                      sort={gv.sort}
+                      onSort={gv.onSort}
+                      hidden={gv.hidden}
+                      order={gv.order}
+                      onOrderChange={gv.setOrder}
+                      widths={gv.widths}
+                      onWidthsChange={gv.setWidths}
+                      onNearEnd={fetchMore}
+                      onSelectionChange={tools.onSelectionChange}
+                      highlight={tools.highlight}
+                      decorations={transposed ? undefined : ui.decorations}
+                      onActivate={transposed ? undefined : ui.onActivate}
+                      onCellContext={transposed ? undefined : ui.onCellContext}
+                      keyColumns={transposed ? undefined : ui.keyColumns}
+                      headerDetail={transposed ? undefined : ui.headerDetail}
+                    />
+                  )}
+                  {tools.strip}
+                  {transposed || tools.alt ? null : ui.footer}
                 </div>
-              ) : null}
-              <ResultGrid
-                ref={grid}
-                source={gv.view}
-                driver={driver}
-                tableName={sourceTable(active.columns, driver)}
-                sort={gv.sort}
-                onSort={gv.onSort}
-                hidden={gv.hidden}
-                order={gv.order}
-                onOrderChange={gv.setOrder}
-                widths={gv.widths}
-                onWidthsChange={gv.setWidths}
-                onNearEnd={fetchMore}
-              />
+                {tools.side}
+              </div>
             </>
           ) : (
             <p className={styles.emptyPane}>
@@ -323,6 +411,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         {tab === "output" ? (
           <OutputLog
             entries={output}
+            onClear={() => runtime.clearOutput()}
             onAction={() => {
               void confirmSwitchToReadWrite(connectionName).then((yes) => {
                 if (yes) void runtime.setReadOnly(false);
@@ -335,6 +424,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           ? (history ?? <p className={styles.emptyPane}>No history yet.</p>)
           : null}
       </div>
+      {ui.dialogs}
       {exporting && exportSource() ? (
         <ExportDialog source={exportSource()!} onClose={() => setExporting(false)} />
       ) : null}
@@ -351,20 +441,4 @@ function sourceTable(columns: { source_table?: string }[], driver: string): stri
     .split(".")
     .map((part) => quoteIdent(flavor, part))
     .join(".");
-}
-
-function TransposeIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      aria-hidden="true"
-    >
-      <path d="M3 3h4v10H3zM9 3h4v4H9z" />
-    </svg>
-  );
 }

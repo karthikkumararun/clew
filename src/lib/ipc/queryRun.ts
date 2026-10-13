@@ -27,6 +27,8 @@ export interface ResultView {
   summary?: ExecSummary;
   error?: DriverError;
   cancelled: boolean;
+  /** Bumped when rows are changed in place (a submitted edit), so views repaint. */
+  revision?: number;
 }
 
 export interface QueryRunSnapshot {
@@ -173,6 +175,19 @@ export class QueryRunStore {
         this.notices.push(event.message);
         break;
     }
+    this.changed();
+  }
+
+  /**
+   * Change the rows of a result in place (a submitted edit, read back from the database).
+   * `fn` may edit cells, remove rows or add rows; views repaint afterwards.
+   */
+  patchRows(key: string, fn: (rows: Value[][]) => void): void {
+    const r = this.byKey.get(key);
+    if (!r) return;
+    fn(r.rows);
+    r.rowCount = r.rows.length;
+    r.revision = (r.revision ?? 0) + 1;
     this.changed();
   }
 

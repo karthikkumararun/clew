@@ -107,12 +107,14 @@
 }
 
 .resultsHeader {
-  height: 36px;
+  /* wraps onto a second line rather than clipping its tools (spec: result-editing toolbar) */
+  min-height: 40px;
   flex: none;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
+  gap: 4px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
 }
@@ -715,4 +717,190 @@
 
 .outputAction:hover {
   color: var(--accent-hover);
+}
+
+.planBody {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.planBody > .planList {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.planNode[data-selected="true"] {
+  background: var(--bg-segment-active);
+}
+
+.costBar {
+  display: inline-block;
+  width: 64px;
+  height: 6px;
+  margin-left: 8px;
+  border-radius: 3px;
+  background: var(--bg-panel-sunken);
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.costBar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.planDetails {
+  flex: none;
+  width: 280px;
+  padding: 12px 16px;
+  border-left: 1px solid var(--border);
+  overflow: auto;
+  background: var(--bg-panel);
+}
+
+.planDetails h3 {
+  margin: 0 0 8px;
+  font-size: var(--fs-base);
+}
+
+.planDetails dt {
+  color: var(--text-muted);
+  font-size: var(--fs-label);
+}
+
+.planDetails dd {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  word-break: break-word;
+}
+
+.planCopied {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.outputPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.outputTools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.outputTools button[aria-pressed="true"] {
+  background: var(--bg-segment-active);
+  color: var(--text);
+}
+
+.output[data-wrap="false"] .outputSql,
+.output[data-wrap="false"] .outputMessage {
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.output[data-wrap="true"] .outputSql,
+.output[data-wrap="true"] .outputMessage {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.outputTx {
+  color: var(--text-dim);
+}
+
+.outputMenuHost {
+  position: fixed;
+  z-index: 41; /* above .menuScrim (40) */
+}
+
+.diff {
+  margin: 0;
+  padding: 12px;
+  max-height: 60vh;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.diff [data-kind="added"] {
+  background: var(--grid-inserted-row);
+}
+
+.diff [data-kind="removed"] {
+  background: var(--grid-deleted-row);
+}
+
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pageLabel {
+  min-width: 96px;
+  padding: 0 6px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageSize {
+  position: relative;
+  margin-left: 4px;
+}
+
+.pageSizeMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 41; /* above .menuScrim (40) */
+}
+
+.refreshWrap {
+  position: relative;
+}
+
+.refreshMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 41; /* above .menuScrim (40) */
+}
+
+.customInterval {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.gridRow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.gridCol {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }

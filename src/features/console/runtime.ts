@@ -26,8 +26,10 @@ import { splitDialect } from "./editor/dialects";
 import { errorRange } from "./editor/diagnostics";
 import type { ErrorMark } from "./editor/diagnostics";
 import { splitStatements } from "./editor/statements";
-import { ExplainUnsupported, explainStatement, isWrite, parsePlan } from "./explain";
-import type { Plan } from "./explain";
+import { ExplainUnsupported, explainStatement, isWrite, originalPlan, parsePlan } from "./explain";
+import type { OriginalPlan, Plan } from "./explain";
+import { canAutoRefresh, pauseReason } from "./autoRefresh";
+import type { PauseReason } from "./autoRefresh";
 import type { ConsoleState } from "./state";
 
 /** One line of the Output tab. */
@@ -44,6 +46,8 @@ export interface OutputEntry {
   detail?: string;
   /** A button offered with the entry. */
   action?: "switch-read-write";
+  /** The console's transaction mode when it ran. */
+  tx?: "auto" | "manual";
 }
 
 export type ResultTab = "result" | "output" | "explain" | "history";
@@ -65,6 +69,8 @@ export interface ExplainState {
   plan?: Plan;
   /** When the plan isn't recognised, the rows as the server returned them. */
   raw?: { columns: ColumnMeta[]; rows: Value[][] };
+  /** The plan in the database's own format, for Copy original plan. */
+  original?: OriginalPlan;
   error?: string;
 }
 
@@ -96,6 +102,8 @@ export interface RuntimeState {
   txPending: number;
   /** The session refuses writes (switchable per session; see the toolbar badge). */
   readOnly: boolean;
+  /** Auto-refresh of the last statement: the interval (0 = off) and why a due refresh was skipped. */
+  autoRefresh: { ms: number; paused: PauseReason | null };
 }
 
 const INITIAL: RuntimeState = {
@@ -115,6 +123,7 @@ const INITIAL: RuntimeState = {
   txOpen: false,
   txPending: 0,
   readOnly: false,
+  autoRefresh: { ms: 0, paused: null },
 };
 
 /** Keep the Output log from growing without bound. */
@@ -213,7 +222,12 @@ export class ConsoleRuntime {
   }
 
   private log(entry: Omit<OutputEntry, "id" | "at">): void {
-    const full: OutputEntry = { ...entry, id: this.nextOutputId++, at: Date.now() };
+    const full: OutputEntry = {
+      tx: this.tabState()?.txMode,
+      ...entry,
+      id: this.nextOutputId++,
+      at: Date.now(),
+    };
     this.store.setState((s) => ({ output: [...s.output, full].slice(-MAX_OUTPUT) }));
   }
 
@@ -229,12 +243,66 @@ export class ConsoleRuntime {
     this.store.setState({ output: [] });
   }
 
+  // --- auto-refresh ----------------------------------------------------------------------------
+
+  /** How many staged changes the result on screen holds; set by the results panel (editing). */
+  pendingChanges: () => number = () => 0;
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * Re-run the last statement every `ms` milliseconds (0 turns it off). Refused for statements
+   * that are not reads. Returns the reason when it cannot be turned on.
+   */
+  setAutoRefresh(ms: number): string | null {
+    this.stopRefreshTimer();
+    if (ms <= 0) {
+      this.store.setState({ autoRefresh: { ms: 0, paused: null } });
+      return null;
+    }
+    const last = this.store.getState().lastRun;
+    const can = last ? canAutoRefresh(last.sql) : ({ ok: true } as const);
+    if (!can.ok) return can.reason;
+    this.store.setState({ autoRefresh: { ms, paused: null } });
+    this.refreshTimer = setInterval(() => void this.refreshTick(), ms);
+    return null;
+  }
+
+  private stopRefreshTimer(): void {
+    if (this.refreshTimer !== null) clearInterval(this.refreshTimer);
+    this.refreshTimer = null;
+  }
+
+  private async refreshTick(): Promise<void> {
+    const state = this.store.getState();
+    const last = state.lastRun;
+    if (!last || state.autoRefresh.ms === 0 || this.busy) return;
+    const paused = pauseReason({
+      pendingChanges: this.pendingChanges(),
+      tabVisible: useWorkspace.getState().activeTabId === this.tabId,
+      windowFocused: typeof document === "undefined" || (!document.hidden && document.hasFocus()),
+    });
+    if (paused !== state.autoRefresh.paused) {
+      this.store.setState({ autoRefresh: { ms: state.autoRefresh.ms, paused } });
+    }
+    if (paused) return;
+    await this.run(last);
+    // An error stops the refreshing, and the Output tab shows it (spec: sql-console › Auto-refresh).
+    if (
+      this.results.getSnapshot().results.some((r) => r.error) ||
+      this.results.getSnapshot().error
+    ) {
+      this.stopRefreshTimer();
+      this.store.setState({ autoRefresh: { ms: 0, paused: null }, tab: "output" });
+    }
+  }
+
   /**
    * Run a statement or script. Resolves when the run has ended and been logged. Callers check
    * `busy` first and ask the user to cancel; a second run while busy is refused.
    */
   async run(req: RunRequest): Promise<void> {
     if (this.busy) return;
+    if (this.beforeRun && !(await this.beforeRun())) return;
     const runId = ++this.runId;
     this.store.setState({
       busy: true,
@@ -514,6 +582,7 @@ export class ConsoleRuntime {
         sql: req.sql,
         plan: plan ?? undefined,
         raw: plan ? undefined : { columns: result.columns, rows: result.rows },
+        original: originalPlan(result.rows),
       },
     });
   }
@@ -559,6 +628,18 @@ export class ConsoleRuntime {
   async setReadOnly(readOnly: boolean): Promise<void> {
     try {
       const sessionId = await this.ensureSession();
+      // A transaction opened while the session was read-only stays read-only on the server (on
+      // PostgreSQL it cannot become read-write after a query). A read-only session ran only
+      // reads, so ending it loses nothing: roll it back so the next statement can write.
+      const { txOpen, readOnly: wasReadOnly } = this.store.getState();
+      if (!readOnly && wasReadOnly && txOpen) {
+        if (!(await this.endTransaction(false))) return;
+        this.log({
+          kind: "info",
+          statement: "",
+          message: "The open transaction was rolled back so this session can write.",
+        });
+      }
       await setSessionReadOnly(sessionId, readOnly);
       this.store.setState({ readOnly });
     } catch (e) {
@@ -660,6 +741,47 @@ export class ConsoleRuntime {
     return this.tabState()?.text ?? "";
   }
 
+  /**
+   * Asked before a statement runs or the rows change under the result on screen: false cancels.
+   * Set by the results panel while the result holds staged changes.
+   */
+  beforeRun: (() => Promise<boolean>) | null = null;
+
+  /** Run the last statement again (the Re-run button, and after a submit that added rows). */
+  async rerun(): Promise<void> {
+    const last = this.store.getState().lastRun;
+    if (last) await this.run(last);
+  }
+
+  /** The console's transaction mode (Auto-commit or Manual). */
+  get txMode(): "auto" | "manual" {
+    return this.tabState()?.txMode === "manual" ? "manual" : "auto";
+  }
+
+  /**
+   * A result's staged changes were submitted from this console: log it, and follow the
+   * transaction (the statements stay in an open manual transaction, or were committed).
+   */
+  recordSubmit(info: {
+    applied: number;
+    transactionOpen: boolean;
+    committed: boolean;
+    summary: string;
+    statement: string;
+  }): void {
+    if (this.txMode === "manual") {
+      this.store.setState((s) => ({
+        txOpen: info.transactionOpen && !info.committed,
+        txPending: info.committed || !info.transactionOpen ? 0 : s.txPending + info.applied,
+      }));
+    }
+    this.log({
+      kind: "ok",
+      statement: info.statement,
+      message: info.summary,
+    });
+  }
+
   private tabState(): ConsoleState | undefined {
     return useWorkspace.getState().tabs.find((t) => t.id === this.tabId)?.state as
       ConsoleState | undefined;
@@ -690,6 +812,7 @@ export class ConsoleRuntime {
 
   /** Close the tab's session (the tab was closed). */
   close(): void {
+    this.stopRefreshTimer();
     this.closed = true;
     this.runId += 1;
     const id = this.sessionId;

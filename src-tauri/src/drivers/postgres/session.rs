@@ -74,7 +74,11 @@ impl CancelFn for PgCancel {
 #[derive(Default)]
 struct NameCache {
     tables: HashMap<u32, String>,
+    /// The schema of each relation in `tables`.
+    schemas: HashMap<u32, String>,
     attributes: HashMap<(u32, i16), String>,
+    /// Columns the database always fills (`GENERATED ALWAYS` identity or stored generated).
+    always_generated: std::collections::HashSet<(u32, i16)>,
 }
 
 pub struct PgSession {
@@ -187,15 +191,20 @@ impl PgSession {
                 self.names
                     .tables
                     .insert(oid as u32, format!("{schema}.{name}"));
+                self.names.schemas.insert(oid as u32, schema);
             }
-            let attrs: Vec<(i64, i16, String)> = sqlx::query_as(
-                "SELECT attrelid::int8, attnum, attname FROM pg_attribute WHERE attrelid::int8 = ANY($1) AND attnum > 0",
+            let attrs: Vec<(i64, i16, String, bool)> = sqlx::query_as(
+                "SELECT attrelid::int8, attnum, attname, (attidentity = 'a' OR attgenerated <> '') \
+                 FROM pg_attribute WHERE attrelid::int8 = ANY($1) AND attnum > 0",
             )
             .bind(&missing_tables)
             .fetch_all(&mut *conn)
             .await?;
-            for (oid, num, name) in attrs {
+            for (oid, num, name, always) in attrs {
                 self.names.attributes.insert((oid as u32, num), name);
+                if always {
+                    self.names.always_generated.insert((oid as u32, num));
+                }
             }
         }
         Ok(())
@@ -355,13 +364,23 @@ impl Session for PgSession {
         let metas: Vec<ColumnMeta> = columns
             .iter()
             .map(|c| {
-                let (table, column) = match (c.relation_id(), c.relation_attribute_no()) {
-                    (Some(rel), Some(num)) => (
-                        self.names.tables.get(&rel.0).cloned(),
-                        self.names.attributes.get(&(rel.0, num)).cloned(),
-                    ),
-                    _ => (None, None),
-                };
+                let (table, column, schema, updatable) =
+                    match (c.relation_id(), c.relation_attribute_no()) {
+                        (Some(rel), Some(num)) => {
+                            let column = self.names.attributes.get(&(rel.0, num)).cloned();
+                            let updatable = column
+                                .is_some()
+                                .then(|| !self.names.always_generated.contains(&(rel.0, num)));
+                            (
+                                self.names.tables.get(&rel.0).cloned(),
+                                column,
+                                self.names.schemas.get(&rel.0).cloned(),
+                                updatable,
+                            )
+                        }
+                        // No relation: an expression, an aggregate or a literal.
+                        _ => (None, None, None, Some(false)),
+                    };
                 ColumnMeta {
                     name: c.name().to_string(),
                     type_name: c.type_info().name().to_string(),
@@ -369,6 +388,8 @@ impl Session for PgSession {
                     nullable: None,
                     source_table: table,
                     source_column: column,
+                    source_schema: schema,
+                    source_updatable: updatable,
                 }
             })
             .collect();

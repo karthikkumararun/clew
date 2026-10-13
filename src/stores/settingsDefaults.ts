@@ -9,6 +9,12 @@ export interface Settings {
   checkForUpdates: boolean;
   /** Folder of the Oracle Instant Client, when it isn't in a place Clew looks. */
   oracleClientDir: string;
+  /** How console results are browsed: rows load on scroll, or page by page. */
+  resultBrowse: "scroll" | "pages";
+  /** Rows per page in page mode. */
+  resultPageSize: number;
+  /** Run a result's statement again after a submit when it has at most 1,000 rows. */
+  resultAutoRerun: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,4 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   confirmCloseUnsaved: true,
   checkForUpdates: false,
   oracleClientDir: "",
+  resultBrowse: "scroll",
+  resultPageSize: 500,
+  resultAutoRerun: false,
 };

@@ -227,6 +227,8 @@ fn run_statement(
             nullable: None,
             source_table: None,
             source_column: None,
+            source_schema: None,
+            source_updatable: None,
         })
         .collect();
     if head.send(Head::Columns(metas)).is_err() {

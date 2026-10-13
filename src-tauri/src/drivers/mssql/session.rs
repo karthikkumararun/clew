@@ -196,6 +196,8 @@ async fn run_batch(
                             nullable: None,
                             source_table: None,
                             source_column: None,
+                            source_schema: None,
+                            source_updatable: None,
                         })
                         .collect();
                     money = meta

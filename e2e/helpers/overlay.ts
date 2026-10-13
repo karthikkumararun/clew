@@ -19,6 +19,7 @@ export async function overlayProblems(selector: string): Promise<string[]> {
         `box ${Math.round(r.left)},${Math.round(r.top)} to ${Math.round(r.right)},${Math.round(r.bottom)} leaves the ${W}x${H} window`,
       );
     }
+    const fixed = getComputedStyle(el).position === "fixed";
     const inset = 4;
     const points: [string, number, number][] = [
       ["centre", r.left + r.width / 2, r.top + r.height / 2],
@@ -41,6 +42,10 @@ export async function overlayProblems(selector: string): Promise<string[]> {
     ) {
       const cs = getComputedStyle(p);
       if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      // A fixed-position overlay escapes an ancestor's overflow unless that ancestor makes
+      // itself the containing block (transform, filter, contain, will-change).
+      if (fixed && cs.transform === "none" && cs.filter === "none" && cs.contain === "none")
+        continue;
       const pr = p.getBoundingClientRect();
       if (
         r.left < pr.left - 1 ||

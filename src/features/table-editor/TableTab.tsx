@@ -6,6 +6,7 @@ import { registerTabKind } from "../../shell/registry/tabKinds";
 import type { TabKind } from "../../shell/registry/tabKinds";
 import { useWorkspace } from "../../stores/workspaceStore";
 import type { NodePath } from "../../lib/ipc/drivers";
+import { registerGridEditShortcuts } from "../grid/editShortcuts";
 import { confirmPending, registerTableShortcuts } from "./actions";
 import { TableEditor } from "./TableEditor";
 import { disposeTableRuntime, peekTableRuntime } from "./runtime";
@@ -99,6 +100,6 @@ export function registerTableCommands(): () => void {
       },
     }),
   ];
-  disposers.push(registerTableShortcuts());
+  disposers.push(registerTableShortcuts(), registerGridEditShortcuts());
   return () => disposers.forEach((d) => d());
 }

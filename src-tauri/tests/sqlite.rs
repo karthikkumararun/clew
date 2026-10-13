@@ -268,6 +268,8 @@ async fn expressions_and_computed_columns_decode_too() {
     assert_eq!(row[5], Value::text("integer"));
 }
 
+/// (spec: driver-framework › Result column provenance); (spec: driver-framework › Aliases keep
+/// provenance); (spec: driver-framework › Expressions have no source)
 #[tokio::test]
 async fn source_table_and_column_are_reported_for_editing() {
     let (_dir, cfg) = fresh();
@@ -287,6 +289,61 @@ async fn source_table_and_column_are_reported_for_editing() {
     );
     assert_eq!(cols[1].source_column.as_deref(), Some("label"));
     assert_eq!(cols[2].source_table, None);
+    assert_eq!(cols[0].name, "pk");
+    assert_eq!(cols[0].source_schema.as_deref(), Some("main"));
+    assert_eq!(cols[0].source_updatable, Some(true));
+    assert_eq!(cols[1].source_updatable, Some(true));
+    assert_eq!(cols[2].source_schema, None);
+    assert_eq!(
+        cols[2].source_updatable,
+        Some(false),
+        "an expression is not updatable"
+    );
+}
+
+/// (spec: driver-framework › Result column provenance)
+#[tokio::test]
+async fn an_attached_database_is_the_source_schema() {
+    let (dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    let other = dir.path().join("other.db");
+    c.must(&format!("ATTACH DATABASE '{}' AS extra", other.display()))
+        .await;
+    c.must("CREATE TABLE extra.t2 (id INTEGER PRIMARY KEY, v TEXT)")
+        .await;
+    c.must("INSERT INTO extra.t2 VALUES (1, 'x')").await;
+    let r = c.must("SELECT id, v FROM extra.t2").await;
+    let cols = r.columns();
+    assert_eq!(cols[0].source_schema.as_deref(), Some("extra"));
+    assert_eq!(cols[0].source_table.as_deref(), Some("extra.t2"));
+    assert_eq!(cols[1].source_column.as_deref(), Some("v"));
+}
+
+/// Table structure for result editing: generated columns and views are told apart.
+#[tokio::test]
+async fn table_meta_reports_generated_columns_and_views() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must(
+        "CREATE TABLE g (id INTEGER PRIMARY KEY, a INT, b INT GENERATED ALWAYS AS (a * 2) STORED)",
+    )
+    .await;
+    c.must("CREATE VIEW gv AS SELECT id, a FROM g").await;
+    let path = |name: &str| {
+        NodePath::root()
+            .child(NodeKind::Database, "main")
+            .child(NodeKind::Table, name)
+    };
+    let table = c.mgr.table_meta("conf", &path("g")).await.unwrap();
+    assert_eq!(table.is_view, Some(false));
+    let generated: Vec<_> = table
+        .columns
+        .iter()
+        .map(|c| c.generated.is_some())
+        .collect();
+    assert_eq!(generated, [false, false, true]);
+    let view = c.mgr.table_meta("conf", &path("gv")).await.unwrap();
+    assert_eq!(view.is_view, Some(true));
 }
 
 #[tokio::test]
@@ -852,6 +909,208 @@ async fn changes_inside_a_user_transaction_use_a_savepoint() {
         },
         "the user can still roll the edits back"
     );
+}
+
+/// (spec: result-editing › Manual mode submit)
+#[tokio::test]
+async fn a_manual_submit_begins_a_transaction_and_stays_in_it_until_rolled_back() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    assert!(c.mgr.sessions_in_transaction("conf").is_empty());
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let options = clew_lib::changes::ApplyOptions {
+        manual: true,
+        commit_after: false,
+    };
+    let out = c
+        .mgr
+        .apply_changes_with(&c.session, &statements, None, options)
+        .await
+        .unwrap();
+    assert_eq!(
+        out.applied, 3,
+        "the counter grows by the statements submitted"
+    );
+    assert!(out.transaction_open);
+    assert_eq!(
+        c.mgr.sessions_in_transaction("conf"),
+        vec![c.session.clone()],
+        "the submit began the transaction"
+    );
+    c.must("ROLLBACK").await;
+    let rows = rows_of(&c, &c.session, "SELECT id, name FROM t ORDER BY id").await;
+    assert_eq!(rows.len(), 2, "nothing was saved");
+    assert_eq!(rows[0][1], Value::text("old"));
+}
+
+/// (spec: result-editing › Failure keeps the transaction)
+#[tokio::test]
+async fn a_failed_manual_submit_leaves_earlier_statements_of_the_transaction_intact() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    c.must("BEGIN").await;
+    c.must("INSERT INTO t VALUES (10, 'earlier')").await;
+
+    // The submit's INSERT puts NULL into a NOT NULL column.
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let options = clew_lib::changes::ApplyOptions {
+        manual: true,
+        commit_after: false,
+    };
+    let out = c
+        .mgr
+        .apply_changes_with(&c.session, &statements, None, options)
+        .await
+        .unwrap();
+    let failure = out.failure.expect("the NOT NULL violation is reported");
+    assert!(!failure.conflict);
+    assert_eq!(
+        failure.target.kind,
+        clew_lib::changes::StatementKind::Insert
+    );
+    assert_eq!(out.applied, 0);
+    assert!(out.transaction_open, "the user's transaction is still open");
+
+    let rows = rows_of(&c, &c.session, "SELECT id, name FROM t ORDER BY id").await;
+    let ids: Vec<_> = rows.iter().map(|r| r[0].clone()).collect();
+    assert_eq!(
+        ids,
+        [1, 2, 10].map(|n| Value::Int { value: n }),
+        "the earlier statement stays, nothing of the submit remains"
+    );
+    assert_eq!(
+        rows[0][1],
+        Value::text("old"),
+        "the submit's UPDATE was undone"
+    );
+    c.must("COMMIT").await;
+}
+
+/// (spec: result-editing › Failure keeps the transaction)
+#[tokio::test]
+async fn a_failed_manual_submit_that_began_the_transaction_leaves_none_open() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let options = clew_lib::changes::ApplyOptions {
+        manual: true,
+        commit_after: false,
+    };
+    let out = c
+        .mgr
+        .apply_changes_with(&c.session, &statements, None, options)
+        .await
+        .unwrap();
+    assert!(out.failure.is_some());
+    assert!(!out.transaction_open);
+    assert!(c.mgr.sessions_in_transaction("conf").is_empty());
+}
+
+/// (spec: result-editing › Submit and commit)
+#[tokio::test]
+async fn submit_and_commit_commits_the_open_transaction() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'old'), (2, 'gone')").await;
+    c.must("BEGIN").await;
+    c.must("INSERT INTO t VALUES (10, 'earlier')").await;
+
+    let statements = clew_lib::changes::build("sqlite", &change_request("old")).unwrap();
+    let options = clew_lib::changes::ApplyOptions {
+        manual: true,
+        commit_after: true,
+    };
+    let out = c
+        .mgr
+        .apply_changes_with(&c.session, &statements, None, options)
+        .await
+        .unwrap();
+    assert_eq!(out.applied, 3);
+    assert!(!out.transaction_open);
+    assert!(c.mgr.sessions_in_transaction("conf").is_empty());
+    // A second connection sees everything: the whole transaction was committed.
+    let other = connect(&cfg).await;
+    let ids = rows_of(&other, &other.session, "SELECT id FROM t ORDER BY id").await;
+    assert_eq!(ids.len(), 3, "1, 3 (inserted) and 10 (earlier)");
+}
+
+/// (spec: result-editing › Generated key appears)
+#[tokio::test]
+async fn rows_are_read_back_by_key_in_the_order_asked_for() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT, n INT)")
+        .await;
+    c.must("INSERT INTO t VALUES (1, 'one', 10), (2, 'it''s two', 20), (3, NULL, 30)")
+        .await;
+    let target = clew_lib::editability::TableRef {
+        schema: Some("main".into()),
+        table: "t".into(),
+    };
+    let key = |n: i64| vec![Value::Int { value: n }];
+    let rows = clew_lib::changes::refetch(
+        &c.mgr,
+        "sqlite",
+        &c.session,
+        &target,
+        &["name".into(), "n".into()],
+        &["id".into()],
+        &[key(3), key(99), key(2), key(1)],
+    )
+    .await
+    .unwrap();
+    assert_eq!(rows.len(), 4);
+    assert_eq!(rows[0], vec![Value::Null, Value::Int { value: 30 }]);
+    assert!(rows[1].is_empty(), "a row that no longer exists");
+    assert_eq!(rows[2][0], Value::text("it's two"));
+    assert_eq!(rows[3][0], Value::text("one"));
+}
+
+/// (spec: result-editing › Generated key appears)
+#[tokio::test]
+async fn read_back_sees_uncommitted_changes_of_the_session_and_composite_keys() {
+    let (_dir, cfg) = fresh();
+    let c = connect(&cfg).await;
+    c.must("CREATE TABLE k (a INT, b TEXT, v TEXT, PRIMARY KEY (a, b))")
+        .await;
+    c.must("BEGIN").await;
+    c.must("INSERT INTO k VALUES (1, 'x', 'new'), (2, 'y', 'other')")
+        .await;
+    let target = clew_lib::editability::TableRef {
+        schema: None,
+        table: "k".into(),
+    };
+    let rows = clew_lib::changes::refetch(
+        &c.mgr,
+        "sqlite",
+        &c.session,
+        &target,
+        &["v".into()],
+        &["a".into(), "b".into()],
+        &[
+            vec![Value::Int { value: 2 }, Value::text("y")],
+            vec![Value::Int { value: 1 }, Value::text("x")],
+        ],
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        rows,
+        vec![vec![Value::text("other")], vec![Value::text("new")]]
+    );
+    c.must("ROLLBACK").await;
 }
 
 // ---- production safeguards --------------------------------------------------------------------

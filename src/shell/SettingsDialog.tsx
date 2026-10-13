@@ -97,7 +97,10 @@ function Editor() {
 function DataGrid() {
   const { settings, set } = useSettings();
   return (
-    <Section title="Data grid" lede="How many rows the grid loads at a time.">
+    <Section
+      title="Data grid"
+      lede="How the grid loads and shows rows, and how console results behave."
+    >
       <div className={styles.card}>
         <div className={styles.field}>
           <span className={styles.fieldLabel} id="set-page-size">
@@ -110,6 +113,33 @@ function DataGrid() {
             onChange={(n) => set({ gridPageSize: n })}
           />
         </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>Console results</span>
+          <SegmentedControl
+            aria-label="Browse console results"
+            value={settings.resultBrowse}
+            options={[
+              { value: "scroll", label: "Scroll" },
+              { value: "pages", label: "Pages" },
+            ]}
+            onChange={(v) => set({ resultBrowse: v })}
+          />
+        </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>Page size</span>
+          <SegmentedControl
+            aria-label="Result page size"
+            value={settings.resultPageSize}
+            options={[100, 500, 1000].map((n) => ({ value: n, label: String(n) }))}
+            onChange={(n) => set({ resultPageSize: n })}
+          />
+        </div>
+        <Checkbox
+          label="Re-run a result after submitting changes"
+          description="Only for results of at most 1,000 rows; shows computed columns up to date."
+          checked={settings.resultAutoRerun}
+          onChange={(e) => set({ resultAutoRerun: e.target.checked })}
+        />
       </div>
     </Section>
   );

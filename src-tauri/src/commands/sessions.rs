@@ -47,6 +47,7 @@ pub async fn connection_disconnect(
     connection_id: String,
 ) -> AppResult<()> {
     state.sessions.disconnect(&connection_id).await;
+    state.editability.forget(&connection_id);
     Ok(())
 }
 
@@ -357,6 +358,11 @@ pub async fn changes_apply(
     let statements = crate::changes::build(&driver, &request)?;
     Ok(state
         .sessions
-        .apply_changes_confirmed(&session_id, &statements, confirmation_token)
+        .apply_changes_with(
+            &session_id,
+            &statements,
+            confirmation_token,
+            request.options(),
+        )
         .await?)
 }

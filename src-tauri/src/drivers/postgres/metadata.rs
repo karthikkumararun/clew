@@ -3,14 +3,23 @@
 use super::introspect::PgMeta;
 use crate::drivers::introspect::{NodeKind, NodePath};
 use crate::drivers::table_meta::{
-    pg_action, ColumnDetail, ForeignKeyDetail, IndexDetail, ReferencedBy, TableMeta,
+    pg_action, ColumnDetail, ForeignKeyDetail, Generation, IndexDetail, ReferencedBy, TableMeta,
 };
 use crate::drivers::{DriverError, DriverResult};
 
 const REL: &str = "(SELECT c.oid FROM pg_class c WHERE c.relname = $2 AND c.relnamespace = \
                    (SELECT oid FROM pg_namespace WHERE nspname = $1))";
 
-type ColumnRow = (String, String, bool, Option<String>, bool, Option<String>);
+type ColumnRow = (
+    String,
+    String,
+    bool,
+    Option<String>,
+    bool,
+    Option<String>,
+    String,
+    String,
+);
 type IndexRow = (String, bool, bool, String, Option<i64>, Vec<String>);
 type KeyRow = (
     String,
@@ -39,7 +48,8 @@ pub async fn table_meta(meta: &PgMeta, path: &NodePath) -> DriverResult<TableMet
         "SELECT a.attname::text, format_type(a.atttypid, a.atttypmod), NOT a.attnotnull, \
                 pg_get_expr(d.adbin, d.adrelid), \
                 COALESCE(a.attnum = ANY (pk.indkey::int2[]), false), \
-                col_description(a.attrelid, a.attnum) \
+                col_description(a.attrelid, a.attnum), \
+                a.attidentity::text, a.attgenerated::text \
          FROM pg_attribute a \
          LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum \
          LEFT JOIN pg_index pk ON pk.indrelid = a.attrelid AND pk.indisprimary \
@@ -108,6 +118,15 @@ pub async fn table_meta(meta: &PgMeta, path: &NodePath) -> DriverResult<TableMet
     .await
     .map_err(|e| meta.err(e))?;
 
+    let relkind: Option<String> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+        "SELECT c.relkind::text FROM pg_class c WHERE c.oid = {REL}"
+    )))
+    .bind(schema)
+    .bind(table)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| meta.err(e))?;
+
     let estimate: Option<i64> = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
         "SELECT CASE WHEN c.relkind IN ('r', 'p', 'm') AND c.reltuples >= 0 \
                      THEN c.reltuples::bigint END FROM pg_class c WHERE c.oid = {REL}"
@@ -123,13 +142,29 @@ pub async fn table_meta(meta: &PgMeta, path: &NodePath) -> DriverResult<TableMet
         columns: columns
             .into_iter()
             .map(
-                |(name, type_name, nullable, default, primary_key, comment)| ColumnDetail {
+                |(
                     name,
                     type_name,
                     nullable,
                     default,
                     primary_key,
                     comment,
+                    identity,
+                    generated,
+                )| {
+                    ColumnDetail {
+                        name,
+                        type_name,
+                        nullable,
+                        default,
+                        primary_key,
+                        comment,
+                        generated: match (identity.as_str(), generated.as_str()) {
+                            ("a", _) | (_, "s" | "v") => Some(Generation::Always),
+                            ("d", _) => Some(Generation::ByDefault),
+                            _ => None,
+                        },
+                    }
                 },
             )
             .collect(),
@@ -171,5 +206,6 @@ pub async fn table_meta(meta: &PgMeta, path: &NodePath) -> DriverResult<TableMet
             })
             .collect(),
         estimated_rows: estimate,
+        is_view: relkind.map(|k| matches!(k.as_str(), "v" | "m")),
     })
 }

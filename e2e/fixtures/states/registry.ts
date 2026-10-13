@@ -47,6 +47,19 @@ async function dialogTab(tab: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced
   await ConnectionDialog.tab(tab).click();
 }
 
+async function runQuery(sql: string) {
+  await Console.setText(sql);
+  await Console.run();
+  await browser.waitUntil(async () => (await Grid.rowCount()) > 0, { timeoutMsg: "rows expected" });
+}
+
+const ORDERS = "SELECT id, user_id, status, total FROM orders ORDER BY id LIMIT 20";
+
+/** A development SQLite console with the orders query run (the result-editing states start here). */
+async function ordersConsole(dir: string) {
+  return [await shopConnection(dir, "dev-sqlite", "development")];
+}
+
 export const STATES: Record<string, StateFixture> = {
   "welcome-first-run": {
     steps: async () => {
@@ -111,4 +124,86 @@ export const STATES: Record<string, StateFixture> = {
   },
   "exchange-export": { steps: () => Exchange.open("export") },
   "exchange-import": { steps: () => Exchange.open("import") },
+  "result-editing-pending": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(ORDERS);
+      await $('.//button[starts-with(@aria-label, "Editing ")]').waitForDisplayed({
+        timeout: 20_000,
+      });
+      await TableEditor.editCell(0, "status", "shipped");
+      await TableEditor.pendingBar().waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "result-editing-options": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(ORDERS);
+      await $("aria/More options").click();
+      await $('[role="menu"], [role="menu"] *')
+        .waitForDisplayed({ timeout: 5_000 })
+        .catch(() => {});
+    },
+  },
+  "result-editing-tree": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(ORDERS);
+      await $(
+        './/*[@role="radiogroup"][@aria-label="View as"]//*[@role="radio"][normalize-space()="Tree"]',
+      ).click();
+    },
+  },
+  "result-editing-no-key": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery("SELECT status, total FROM orders ORDER BY total LIMIT 20");
+      await $('[role="status"]*=No primary key').waitForDisplayed({ timeout: 20_000 });
+    },
+  },
+  "result-editing-chooser": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(
+        "SELECT o.id AS oid, o.status, u.id AS uid, u.name FROM orders o JOIN users u ON u.id = o.user_id ORDER BY o.id LIMIT 10",
+      );
+      const chip = $('.//button[starts-with(@aria-label, "Editing ")]');
+      await chip.waitForDisplayed({ timeout: 20_000 });
+      await chip.click();
+      await $('[role="menu"]').waitForDisplayed({ timeout: 5_000 });
+    },
+  },
+  "result-editing-local-filter": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(ORDERS);
+      await $('.//button[@aria-label="Local filter"][@aria-pressed]').click();
+      const field = $("aria/Filter status");
+      await field.waitForDisplayed({ timeout: 5_000 });
+      await field.setValue("paid");
+    },
+  },
+  "result-editing-value-editor": {
+    connections: ordersConsole,
+    masks: [STATUS_BAR],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await runQuery(ORDERS);
+      await Grid.select(0, "status");
+      await $("aria/More options").click();
+      await $('[role="menuitem"]*=Value editor').click();
+    },
+  },
 };

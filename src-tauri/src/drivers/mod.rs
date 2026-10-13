@@ -297,12 +297,33 @@ pub struct ColumnMeta {
     pub type_name: String,
     pub kind: ValueKind,
     pub nullable: Option<bool>,
+    /// The table the column was read from. Drivers that can name the schema write it qualified
+    /// (`public.orders`); `source_schema` then repeats the schema on its own.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub source_table: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub source_column: Option<String>,
+    /// The schema (PostgreSQL), database (MySQL, MariaDB) or attached database (SQLite) of
+    /// `source_table`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub source_schema: Option<String>,
+    /// Whether the column can be written through its source: `false` for expressions,
+    /// aggregates and generated-always columns, `true` when it maps straight to a source column,
+    /// `None` when the driver cannot tell.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub source_updatable: Option<bool>,
+}
+
+/// Split `schema.table` as the drivers write `ColumnMeta::source_table`.
+pub fn split_source(qualified: &str) -> (Option<&str>, &str) {
+    match qualified.split_once('.') {
+        Some((schema, table)) => (Some(schema), table),
+        None => (None, qualified),
+    }
 }
 
 #[derive(ts_rs::TS)]

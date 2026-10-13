@@ -5,7 +5,7 @@ use sqlx::Row;
 use super::introspect::{q, SqliteMeta};
 use crate::drivers::introspect::{NodeKind, NodePath};
 use crate::drivers::table_meta::{
-    ColumnDetail, ForeignKeyDetail, IndexDetail, ReferencedBy, TableMeta,
+    ColumnDetail, ForeignKeyDetail, Generation, IndexDetail, ReferencedBy, TableMeta,
 };
 use crate::drivers::{DriverError, DriverResult};
 
@@ -22,11 +22,16 @@ pub async fn table_meta(meta: &SqliteMeta, path: &NodePath) -> DriverResult<Tabl
         .as_str();
     let db = path.find(NodeKind::Database).unwrap_or("main");
 
+    // `table_xinfo` also reports generated columns (hidden = 2 virtual, 3 stored).
     let mut columns = Vec::new();
     for r in meta
-        .rows(format!("PRAGMA {}.table_info({})", q(db), lit(table)))
+        .rows(format!("PRAGMA {}.table_xinfo({})", q(db), lit(table)))
         .await?
     {
+        let hidden: i64 = r.try_get("hidden").unwrap_or(0);
+        if hidden == 1 {
+            continue; // a virtual-table hidden column, not part of the table's own shape
+        }
         let pk: i64 = r.try_get("pk").unwrap_or(0);
         let notnull: i64 = r.try_get("notnull").unwrap_or(0);
         columns.push(ColumnDetail {
@@ -37,6 +42,7 @@ pub async fn table_meta(meta: &SqliteMeta, path: &NodePath) -> DriverResult<Tabl
             default: r.try_get::<Option<String>, _>("dflt_value").ok().flatten(),
             primary_key: pk > 0,
             comment: None,
+            generated: matches!(hidden, 2 | 3).then_some(Generation::Always),
         });
     }
 
@@ -137,11 +143,22 @@ pub async fn table_meta(meta: &SqliteMeta, path: &NodePath) -> DriverResult<Tabl
         }
     }
 
+    let object_type: Option<String> = meta
+        .rows(format!(
+            "SELECT type FROM {}.sqlite_master WHERE name = {} COLLATE NOCASE",
+            q(db),
+            lit(table)
+        ))
+        .await?
+        .first()
+        .and_then(|r| r.try_get("type").ok());
+
     Ok(TableMeta {
         columns,
         indexes,
         foreign_keys,
         referenced_by,
         estimated_rows: None,
+        is_view: object_type.map(|t| t == "view"),
     })
 }

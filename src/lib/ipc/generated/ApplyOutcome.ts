@@ -2,6 +2,14 @@
 import type { ChangeFailure } from "./ChangeFailure";
 
 /**
- * Everything ran and was committed, or nothing changed and `failure` says why.
+ * Everything ran, or nothing changed and `failure` says why.
  */
-export type ApplyOutcome = { applied: number, failure: ChangeFailure | null, };
+export type ApplyOutcome = { 
+/**
+ * Statements applied: the amount to add to the console's transaction statement counter.
+ */
+applied: number, failure: ChangeFailure | null, 
+/**
+ * The session is inside a transaction after the call (a manual-mode submit leaves it open).
+ */
+transactionOpen: boolean, };

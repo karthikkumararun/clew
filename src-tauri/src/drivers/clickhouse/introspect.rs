@@ -241,6 +241,7 @@ pub async fn table_meta(client: &Arc<Client>, path: &NodePath) -> DriverResult<T
             default: Some(s(&r[2])).filter(|d| !d.is_empty()),
             primary_key: false,
             comment: Some(s(&r[3])).filter(|c| !c.is_empty()),
+            generated: None,
         })
         .collect();
 
@@ -313,5 +314,6 @@ pub async fn table_meta(client: &Arc<Client>, path: &NodePath) -> DriverResult<T
         foreign_keys: vec![],
         referenced_by: vec![],
         estimated_rows,
+        is_view: None,
     })
 }

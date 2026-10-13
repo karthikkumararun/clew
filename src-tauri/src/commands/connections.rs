@@ -169,6 +169,7 @@ pub async fn connections_disconnect(
     connection_id: String,
     end_transactions: Option<String>,
 ) -> AppResult<()> {
+    state.editability.forget(&connection_id);
     match end_transactions.as_deref() {
         Some("commit") => {
             state
