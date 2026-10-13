@@ -9,7 +9,7 @@ import { Grid } from "../pages/Grid";
 import { TableEditor } from "../pages/TableEditor";
 
 // J-22 editing the result of a query in the console: chip, cell edit, add and delete rows, preview,
-// submit, read-back, and the table chooser of a join (spec: result-editing).
+// submit, read-back, and the table chooser of a join.
 describe("J-22 result editing", () => {
   const data = withDataDir();
   let db: IsolatedDb;

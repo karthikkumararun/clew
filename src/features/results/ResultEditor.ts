@@ -302,8 +302,6 @@ export class ResultEditor {
     if (!cs || res?.kind !== "editable") return false;
     if (this.store.getState().submitting || cs.counts().total === 0) return true;
     this.store.setState({ submitting: true, submitError: null });
-    let summary = "";
-    let statementText = "";
     try {
       const sessionId = await this.runtime.ensureSession();
       const request = this.request(opts);
@@ -343,8 +341,8 @@ export class ResultEditor {
         }
         return false;
       }
-      summary = describeSubmit(request, this.runtime.txMode === "manual" && !opts.commit);
-      statementText = (await changesPreview(this.runtime.connectionId, request))
+      const summary = describeSubmit(request, this.runtime.txMode === "manual" && !opts.commit);
+      const statementText = (await changesPreview(this.runtime.connectionId, request))
         .map((s) => s.sql)
         .join("; ");
       this.runtime.recordSubmit({
@@ -355,6 +353,9 @@ export class ResultEditor {
         statement: statementText,
       });
       await this.afterSubmit(sessionId, request, res);
+      const manualOpen = this.runtime.txMode === "manual" && !opts.commit;
+      this.store.setState({ submitting: false, sent: manualOpen ? summary : null });
+      return true;
     } catch (e) {
       this.store.setState({
         submitting: false,
@@ -362,9 +363,6 @@ export class ResultEditor {
       });
       return false;
     }
-    const manualOpen = this.runtime.txMode === "manual" && !opts.commit;
-    this.store.setState({ submitting: false, sent: manualOpen ? summary : null });
-    return true;
   }
 
   /** The row's current values in the database, as table columns (null when it is gone). */
