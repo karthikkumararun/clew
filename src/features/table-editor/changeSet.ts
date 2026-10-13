@@ -192,8 +192,20 @@ export class ChangeSet implements GridSource {
 
   // --- changes -------------------------------------------------------------------------------
 
+  /** Set while `group` runs: the undo depth it started at, so later commits add no snapshots. */
+  private groupStart: number | null = null;
+
+  /** The snapshot to edit: inside a group, after its first commit, the group's own copy. */
+  private working(): Snap {
+    return this.groupStart !== null && this.past.length > this.groupStart
+      ? this.snap
+      : copy(this.snap);
+  }
+
   private commit(next: Snap) {
-    this.past.push(this.snap);
+    // Inside a group only the first commit records the "before" snapshot (a 10,000 cell paste
+    // would otherwise keep 10,000 snapshots alive until the group ends).
+    if (this.groupStart === null || this.past.length === this.groupStart) this.past.push(this.snap);
     this.future = [];
     this.snap = next;
     this.changed();
@@ -202,7 +214,7 @@ export class ChangeSet implements GridSource {
   /** Set a cell. Writing back the loaded value removes the edit. */
   setCell(row: number, col: number, value: NewValue): void {
     const n = this.base.rowCount;
-    const next = copy(this.snap);
+    const next = this.working();
     if (row >= n) {
       const ins = next.inserts[row - n];
       if (!ins) return;
@@ -223,7 +235,7 @@ export class ChangeSet implements GridSource {
 
   /** Append an empty new row; returns its row index. */
   addRow(): number {
-    const next = copy(this.snap);
+    const next = this.working();
     next.inserts.push(new Map());
     this.commit(next);
     return this.rowCount - 1;
@@ -250,9 +262,15 @@ export class ChangeSet implements GridSource {
    */
   group<T>(fn: () => T): T {
     const start = this.past.length;
-    const out = fn();
-    if (this.past.length - start > 1) this.past.splice(start + 1);
-    return out;
+    const outer = this.groupStart;
+    this.groupStart = outer ?? start;
+    try {
+      const out = fn();
+      if (this.past.length - start > 1) this.past.splice(start + 1);
+      return out;
+    } finally {
+      this.groupStart = outer;
+    }
   }
 
   /** How many undo steps are recorded (for callers that undo what they just staged). */

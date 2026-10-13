@@ -1,3 +1,4 @@
+import { confirmConsolePending, pendingInConsole } from "../results/useResultEditing";
 import { Terminal } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { BADGE_ENV } from "../../connections/display";
@@ -37,6 +38,10 @@ const consoleKind: TabKind<ConsoleState> = {
   save: (tab) => saveConsole(tab.id),
   confirmClose: async (tab) => {
     const runtime = peekRuntime(tab.id);
+    // staged changes of a result are lost with the tab: Submit, Discard or Cancel first
+    if (runtime && pendingInConsole(runtime) > 0 && !(await confirmConsolePending(runtime))) {
+      return false;
+    }
     const { txOpen, txPending } = runtime?.store.getState() ?? { txOpen: false, txPending: 0 };
     if (!runtime || !txOpen) return true;
     const answer = await askChoice({

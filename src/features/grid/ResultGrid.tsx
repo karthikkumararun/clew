@@ -1,5 +1,6 @@
 import { CompactSelection, DataEditor, GridCellKind } from "@glideapps/glide-data-grid";
 import type {
+  DataEditorRef,
   DrawCellCallback,
   DrawHeaderCallback,
   GridCell,
@@ -63,6 +64,8 @@ export interface GridHandle {
   copyAs(as: CopyFormat): Promise<number>;
   /** Source column index of each displayed column, in display order (paste maps through it). */
   sourceColumns?(): number[];
+  /** Select a cell (source column, displayed row) and scroll it into view (find, Go to row). */
+  select(col: number, row: number): void;
   /** Show the value viewer for a displayed cell. */
   openViewer(col: number, row: number): void;
   /** Make the grid take keyboard focus. */
@@ -100,6 +103,14 @@ export interface ResultGridProps {
   headerDetail?: (column: number) => string | undefined;
   /** Right-click on a data cell, in display coordinates with the pointer position. */
   onCellContext?: (col: number, row: number, x: number, y: number) => void;
+  /**
+   * Cells to highlight (find matches): `has(displayRow, sourceColumn)`, with the current match
+   * drawn stronger. Pass a new object when the matches change (it repaints the canvas).
+   */
+  highlight?: {
+    has: (row: number, col: number) => boolean;
+    current?: { row: number; col: number } | null;
+  };
 }
 
 /** Width that fits the header and the first rows of a column. */
@@ -138,6 +149,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
     onCellContext,
   } = props;
 
+  const editorRef = useRef<DataEditorRef>(null);
   const [selection, setSelection] = useState<GridSelection>(EMPTY_SELECTION);
   const [viewer, setViewer] = useState<{ col: number; row: number } | null>(null);
   const [autoWidths, setAutoWidths] = useState<Record<number, number>>({});
@@ -262,6 +274,20 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
         return data.rows.length;
       },
       sourceColumns: () => [...visible],
+      select: (col, row) => {
+        const at = visible.indexOf(col);
+        if (at < 0) return;
+        setSelection({
+          columns: CompactSelection.empty(),
+          rows: CompactSelection.empty(),
+          current: {
+            cell: [at, row],
+            range: { x: at, y: row, width: 1, height: 1 },
+            rangeStack: [],
+          },
+        });
+        editorRef.current?.scrollTo(at, row, "both", 0, 0, { hAlign: "center", vAlign: "center" });
+      },
       openViewer: (col, row) => setViewer({ col, row }),
       focus: () =>
         document.querySelector<HTMLCanvasElement>("[data-testid='data-grid-canvas']")?.focus(),
@@ -362,6 +388,15 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
         ctx.fillText(rowDeco.marker, rect.x - 14, rect.y + rect.height / 2);
         ctx.restore();
       }
+      const hl = props.highlight;
+      if (hl?.has(row, sc)) {
+        const now = hl.current?.row === row && hl.current?.col === sc;
+        ctx.save();
+        ctx.fillStyle = token("accent");
+        ctx.globalAlpha = now ? 0.45 : 0.22;
+        ctx.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2);
+        ctx.restore();
+      }
       const cellState = deco?.cell?.(sc, row);
       if (cellState) {
         ctx.save();
@@ -375,7 +410,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
         ctx.restore();
       }
     },
-    [visible, source, fkColumns, deco],
+    [visible, source, fkColumns, deco, props.highlight],
   );
 
   const getRowThemeOverride = useCallback(
@@ -403,6 +438,7 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
   return (
     <div className={styles.grid} data-testid="result-grid" onCopyCapture={onCopyCapture}>
       <DataEditor
+        ref={editorRef}
         columns={columns}
         rows={source.rowCount}
         getCellContent={getCellContent}

@@ -36,6 +36,7 @@ export const FakeResultGrid = forwardRef<GridHandle, ResultGridProps>(function F
       selectedData: () => null,
       copyAs: async () => 0,
       openViewer: () => {},
+      select: () => {},
       focus: () => {},
     }),
     [],

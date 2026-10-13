@@ -9,6 +9,7 @@ import type { StoreApi } from "zustand/vanilla";
 import { useConnections } from "../../connections/connectionsStore";
 import type { Value } from "../../lib/ipc/drivers";
 import type { ColumnMeta } from "../../lib/ipc/drivers";
+import { useSettings } from "../../stores/settingsStore";
 import { confirmGuarded } from "../safety/confirm";
 import { safetyCheckChanges } from "../safety/ipc";
 import type { ConsoleRuntime } from "../console/runtime";
@@ -40,6 +41,9 @@ export interface EditorState {
   /** A resolve failure that is not a read-only reason (IPC error). */
   error: string | null;
 }
+
+/** Results up to this many rows are re-run automatically after a submit when the setting is on. */
+const AUTO_RERUN_ROWS = 1_000;
 
 const DEFAULT_NV: NewValue = { kind: "default" };
 const NULL_NV: NewValue = { kind: "value", value: { kind: "null" } };
@@ -473,8 +477,11 @@ export class ResultEditor {
     this.editedRowsSeen = new Set([...this.editedRowsSeen, ...editedRows]);
     cs.clear();
     this.store.setState({ stale: hadEdits && res.columnMap.some((c) => c === null) });
-    // New rows have keys only the database knows: read the result again to show them.
-    if (inserted) await this.runtime.rerun();
+    // New rows have keys only the database knows: read the result again to show them. The
+    // setting re-runs small results after any submit so computed columns are current too.
+    const auto =
+      useSettings.getState().settings.resultAutoRerun && this.base.rowCount <= AUTO_RERUN_ROWS;
+    if (inserted || (auto && this.store.getState().stale)) await this.runtime.rerun();
   }
 }
 

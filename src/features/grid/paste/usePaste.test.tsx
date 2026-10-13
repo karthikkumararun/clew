@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
 import type { ColumnMeta, Value } from "../../../lib/ipc/drivers";
 import type { ResultEditor } from "../../results/ResultEditor";
 import { ChangeSet } from "../../table-editor/changeSet";
@@ -30,7 +31,7 @@ function makeRows(n: number): Value[][] {
 interface Fixture {
   cs: ChangeSet;
   editor: ResultEditor;
-  notify: ReturnType<typeof vi.fn>;
+  notify: Mock<(message: string) => void>;
 }
 
 function fixture(rows = 4, opts: { canAdd?: boolean; readOnly?: boolean } = {}): Fixture {
@@ -54,7 +55,7 @@ function fixture(rows = 4, opts: { canAdd?: boolean; readOnly?: boolean } = {}):
       return { editable: true };
     },
   } as unknown as ResultEditor;
-  return { cs, editor, notify: vi.fn() };
+  return { cs, editor, notify: vi.fn<(message: string) => void>() };
 }
 
 function Harness(p: { f: Fixture; rows: number[]; cols: number[] }) {
@@ -222,23 +223,26 @@ describe("usePaste", () => {
   it("redoes the paste with Interpret as (spec: data-grid › Wrong detection)", async () => {
     const f = fixture();
     clip("id;status;total\n1;x;5\n2;y;6");
-    render(<Harness f={f} rows={[0]} cols={[0]} />);
+    render(<Harness f={f} rows={[0]} cols={[1]} />);
     await pasteBtn();
     expect(screen.getByRole("status")).toHaveTextContent("CSV semicolon");
+    expect(f.cs.get(1, 0)).toEqual(t("x"));
+    expect(f.cs.get(2, 1)).toEqual(i(6));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Interpret as" }));
     });
     await act(async () => {
       fireEvent.click(screen.getByRole("menuitem", { name: "One value" }));
     });
-    // One value: the whole text lands in the anchor cell (id is a key column: skipped).
+    // One value: the whole text lands in the anchor cell.
+    expect(f.cs.get(1, 0)).toEqual(t("id;status;total\n1;x;5\n2;y;6"));
     expect(screen.getByRole("status")).toHaveTextContent("One value");
     expect(f.cs.undoDepth).toBeLessThanOrEqual(1);
   });
 
   it("replaces earlier staged values when interpreted differently (spec: data-grid › Wrong detection)", async () => {
     const f = fixture();
-    clip("x,y\nz,w");
+    clip("x,1\ny,2");
     render(<Harness f={f} rows={[0]} cols={[1]} />);
     await pasteBtn();
     expect(screen.getByRole("status")).toHaveTextContent("CSV comma");
@@ -250,7 +254,9 @@ describe("usePaste", () => {
       fireEvent.click(screen.getByRole("menuitem", { name: "CSV semicolon" }));
     });
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("CSV semicolon"));
-    expect(f.cs.get(1, 0)).toEqual(t("x,y\nz,w"));
+    expect(f.cs.get(1, 0)).toEqual(t("x,1"));
+    expect(f.cs.get(1, 1)).toEqual(t("y,2"));
+    expect(f.cs.get(2, 0)).toEqual(i(0));
     expect(f.cs.undoDepth).toBe(1);
   });
 

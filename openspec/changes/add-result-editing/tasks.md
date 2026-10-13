@@ -8,27 +8,27 @@
 
 ## 2. Editing engine
 
-- [ ] 2.1 Generalise `ChangeSet` with `ColumnMap`, key indexes and key-based (not row-based) storage with a key → rows index (spec: result-editing › Shared rows)
-- [ ] 2.2 Generalise `ChangeRequest` and `changes_preview/apply` with target, column map and key columns; the table editor keeps working through the identity map
-- [ ] 2.3 Key columns of existing rows read-only; generated, identity-always and computed columns read-only; `NOT NULL` hides Set NULL (spec: result-editing › Editing cells)
-- [ ] 2.4 Test: edits through an aliased/reordered column generate the right UPDATE; shared rows produce one statement; table editor tests unchanged
+- [x] 2.1 Generalise `ChangeSet` with `ColumnMap`, key indexes and key-based (not row-based) storage with a key → rows index (spec: result-editing › Shared rows)
+- [x] 2.2 Generalise `ChangeRequest` and `changes_preview/apply` with target, column map and key columns; the table editor keeps working through the identity map
+- [x] 2.3 Key columns of existing rows read-only; generated, identity-always and computed columns read-only; `NOT NULL` hides Set NULL (spec: result-editing › Editing cells)
+- [x] 2.4 Test: edits through an aliased/reordered column generate the right UPDATE; shared rows produce one statement; table editor tests unchanged
 
 ## 3. Console result UI
 
 - [ ] 3.1 Result toolbar per `design/canvas/ResultEditing.dc.html`: edit chip, row operations, tools, View as, auto-refresh, export, options menu; wraps instead of clipping
-- [ ] 3.2 Edit chip with read-only reasons, fixes and the table chooser menu (spec: result-editing › Read-only reasons, Choosing the table in a joined result)
-- [ ] 3.3 Cell editors, Set NULL/DEFAULT/Generate UUID, add, clone and delete rows with the specified rules (spec: result-editing › Adding, cloning and deleting rows)
-- [ ] 3.4 Pending bar, Preview SQL, Revert all/selected, undo/redo, guard on re-run, new statement, close and paging (spec: result-editing › Pending changes)
-- [ ] 3.5 Per-result state for multi-result scripts (spec: result-editing › Large and multiple results)
-- [ ] 3.6 Test: component tests for each read-only reason message, chooser, row operations and the leave-with-pending dialog
+- [x] 3.2 Edit chip with read-only reasons, fixes and the table chooser menu (spec: result-editing › Read-only reasons, Choosing the table in a joined result)
+- [x] 3.3 Cell editors, Set NULL/DEFAULT/Generate UUID, add, clone and delete rows with the specified rules (spec: result-editing › Adding, cloning and deleting rows)
+- [x] 3.4 Pending bar, Preview SQL, Revert all/selected, undo/redo, guard on re-run, new statement, close and paging (spec: result-editing › Pending changes)
+- [x] 3.5 Per-result state for multi-result scripts (spec: result-editing › Large and multiple results)
+- [x] 3.6 Test: component tests for each read-only reason message, chooser, row operations and the leave-with-pending dialog
 
 ## 4. Submit and transactions
 
-- [ ] 4.1 `changes_apply` modes `own_transaction` and `in_session_transaction` with savepoint adapters per driver (spec: result-editing › Submit and transactions) (backend done)
-- [ ] 4.2 Submit, Submit and commit, Commit and Roll back in the pending bar and toolbar; statement counter in the Tx chip
-- [ ] 4.3 Optimistic-conflict dialog (Keep editing, Reload row, Overwrite) and failing-row highlight
-- [ ] 4.4 Read-back by key / RETURNING; stale computed columns; Re-run action and auto re-run setting (spec: result-editing › After submit) (backend done)
-- [ ] 4.5 Production confirmation and typed confirmation through the guard; read-only sessions make results read-only; AI cannot stage or submit (spec: result-editing › Safeguards apply)
+- [x] 4.1 `changes_apply` modes `own_transaction` and `in_session_transaction` with savepoint adapters per driver (spec: result-editing › Submit and transactions) (backend done)
+- [x] 4.2 Submit, Submit and commit, Commit and Roll back in the pending bar and toolbar; statement counter in the Tx chip
+- [x] 4.3 Optimistic-conflict dialog (Keep editing, Reload row, Overwrite) and failing-row highlight
+- [x] 4.4 Read-back by key / RETURNING; stale computed columns; Re-run action and auto re-run setting (spec: result-editing › After submit) (backend done)
+- [x] 4.5 Production confirmation and typed confirmation through the guard; read-only sessions make results read-only; AI cannot stage or submit (spec: result-editing › Safeguards apply)
 - [ ] 4.6 Test (integration, real databases): failed submit in manual mode leaves earlier statements intact on PostgreSQL, MySQL and SQLite; auto-commit submit commits; conflict detected
 
 ## 5. Paste
@@ -50,11 +50,11 @@
 
 ## 7. Console tools
 
-- [ ] 7.1 Auto-refresh with pause rules and read-only restriction (spec: sql-console › Auto-refresh)
-- [ ] 7.2 Result paging mode with First/Previous/Next/Last and page size (spec: sql-console › Result paging)
-- [ ] 7.3 Output tab tools: soft wrap, auto-scroll, pause, clear, context menu (spec: sql-console › Output tab tools)
-- [ ] 7.4 Plan tab: copy original plan, node details pane, cost bars, Explain with AI hook when a provider exists (spec: sql-console › Plan tab details)
-- [ ] 7.5 Test: refresh pauses with pending changes; next page loads rows 501–1,000
+- [x] 7.1 Auto-refresh with pause rules and read-only restriction (spec: sql-console › Auto-refresh)
+- [x] 7.2 Result paging mode with First/Previous/Next/Last and page size (spec: sql-console › Result paging)
+- [x] 7.3 Output tab tools: soft wrap, auto-scroll, pause, clear, context menu (spec: sql-console › Output tab tools)
+- [x] 7.4 Plan tab: copy original plan, node details pane, cost bars, Explain with AI hook when a provider exists (spec: sql-console › Plan tab details)
+- [x] 7.5 Test: refresh pauses with pending changes; next page loads rows 501–1,000
 
 ## 8. Shortcuts and accessibility
 

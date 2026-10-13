@@ -93,3 +93,11 @@
   color: var(--text-muted);
   font-size: var(--fs-small);
 }
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  text-decoration: underline;
+}

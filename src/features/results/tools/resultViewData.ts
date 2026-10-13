@@ -43,7 +43,13 @@ export function useResultData(p: ResultViewProps): {
   const total = storeRows.length;
   const shown = Math.min(total, maxRows);
   const data = useMemo(
-    () => pickData(source, columns, Array.from({ length: shown }, (_, i) => storeRows[i]), cols),
+    () =>
+      pickData(
+        source,
+        columns,
+        Array.from({ length: shown }, (_, i) => storeRows[i]),
+        cols,
+      ),
     // `source.version` changes when rows are replaced or appended.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [source, source.version, columns, storeRows, cols, shown],

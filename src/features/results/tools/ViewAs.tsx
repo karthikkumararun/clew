@@ -34,13 +34,7 @@ export interface ViewAsProps {
   extractor: ExtractorController;
 }
 
-export function ViewAs({
-  mode,
-  onMode,
-  transpose,
-  onTranspose,
-  extractor,
-}: ViewAsProps) {
+export function ViewAs({ mode, onMode, transpose, onTranspose, extractor }: ViewAsProps) {
   const [dialog, setDialog] = useState(false);
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

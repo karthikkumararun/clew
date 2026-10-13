@@ -5,11 +5,7 @@
  * lives (or to a global store, to share it with Copy as and Export).
  */
 import { useCallback, useMemo, useState } from "react";
-import {
-  defaultExtractorStore,
-  optionsFor,
-  rememberOptions,
-} from "../../grid/tools/viewAs";
+import { defaultExtractorStore, optionsFor, rememberOptions } from "../../grid/tools/viewAs";
 import type { ExtractorFormat, ExtractorOptions, ExtractorStore } from "../../grid/tools/viewAs";
 
 export interface ExtractorController {

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { ColumnMeta, Value } from "../../../lib/ipc/drivers";
 import { ColumnarStore } from "../../grid/source";
-import { col, int, text } from "../../grid/tools/testing";
+import { col, int } from "../../grid/tools/testing";
 import { ResultTextView } from "./TextView";
 import { ResultTreeView } from "./TreeView";
 import { ViewAs } from "./ViewAs";
@@ -60,11 +60,11 @@ describe("ViewAs control", () => {
   it("offers Table, Tree and Text as a radiogroup with Transpose (spec: data-grid › View as)", () => {
     render(<Harness />);
     const group = screen.getByRole("radiogroup", { name: "View as" });
-    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual([
-      "Table",
-      "Tree",
-      "Text",
-    ]);
+    expect(
+      within(group)
+        .getAllByRole("radio")
+        .map((r) => r.textContent),
+    ).toEqual(["Table", "Tree", "Text"]);
     expect(screen.getByRole("radio", { name: "Table" })).toBeChecked();
     fireEvent.click(screen.getByRole("radio", { name: "Text" }));
     expect(screen.getByRole("radio", { name: "Text" })).toBeChecked();
@@ -163,10 +163,8 @@ describe("Extractor options dialog", () => {
     fireEvent.change(within(dialog).getByLabelText("Delimiter"), { target: { value: ";" } });
     fireEvent.click(within(dialog).getByRole("checkbox", { name: /Skip generated columns/ }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Apply" }));
-    expect(screen.getByRole("textbox", { name: "Result text" }).textContent?.split(/\r?\n/)[0]).toBe(
-      '1;"{""carrier"":""UPS"",""parcels"":[1,2]}";11.00',
-    );
+    expect(
+      screen.getByRole("textbox", { name: "Result text" }).textContent?.split(/\r?\n/)[0],
+    ).toBe('1;"{""carrier"":""UPS"",""parcels"":[1,2]}";11.00');
   });
 });
-
-void text;

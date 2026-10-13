@@ -19,6 +19,7 @@ import { displayRowOf } from "../grid/tools/visibleRows";
 import { useEditingUi, useEditorFor } from "../results/useResultEditing";
 import { AutoRefreshMenu } from "./AutoRefreshMenu";
 import { usePaging } from "./usePaging";
+import { useResultTools } from "./useResultTools";
 import { DocViewSwitch, DocumentsResult } from "../documents/DocResult";
 import type { DocResultView } from "../documents/DocResult";
 import { askChoice } from "./prompts";
@@ -133,6 +134,28 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
     connectionName,
     source: editSource,
   });
+  const tools = useResultTools({
+    runtime,
+    active,
+    editor,
+    grid,
+    view: gv.view,
+    shown: paging.source,
+    values: editSource,
+    loadedRows: base.rowCount,
+    toStoreRow,
+    visible: gv.visible,
+    columnFilters: gv.columnFilters,
+    setColumnFilters: gv.setColumnFilters,
+    resetView: gv.resetView,
+    hidden: gv.hidden,
+    statement: active ? resultSql[active.key] : undefined,
+    driver,
+    tableName: active ? sourceTable(active.columns, driver) : undefined,
+    transposed,
+    setTransposed,
+    pageOffset: paging.offset,
+  });
   const matches = gv.view.rowCount;
 
   const fetchMore = useCallback(() => void runtime.fetchMore(active?.key), [runtime, active?.key]);
@@ -227,6 +250,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
           <>
             {ui.chip}
             {ui.rowOps}
+            {ui.pasteNotice}
           </>
         ) : null}
         <div className={styles.grow} />
@@ -249,13 +273,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             >
               <Filter size={14} />
             </IconButton>
-            <IconButton
-              aria-label="Transpose"
-              aria-pressed={transposed}
-              onClick={() => setTransposed((t) => !t)}
-            >
-              <TransposeIcon />
-            </IconButton>
+            {tools.toolbar}
             <ColumnsMenu
               columns={active.columns}
               hidden={gv.hidden}
@@ -271,6 +289,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
               <Download size={13} />
               Export…
             </button>
+            {tools.options}
           </>
         ) : null}
       </div>
@@ -324,38 +343,49 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </div>
           ) : active ? (
             <>
-              {gv.sort && active.hasMore && !transposed ? (
-                <div className={styles.sortNotice} role="status">
-                  Sorted {active.rowCount.toLocaleString()} loaded rows —{" "}
-                  <button
-                    type="button"
-                    className={styles.link}
-                    onClick={() => void reorderInDatabase()}
-                  >
-                    Re-run with ORDER BY
-                  </button>
+              {tools.bars}
+              <div className={styles.gridRow}>
+                <div className={styles.gridCol}>
+                  {gv.sort && active.hasMore && !transposed ? (
+                    <div className={styles.sortNotice} role="status">
+                      Sorted {active.rowCount.toLocaleString()} loaded rows —{" "}
+                      <button
+                        type="button"
+                        className={styles.link}
+                        onClick={() => void reorderInDatabase()}
+                      >
+                        Re-run with ORDER BY
+                      </button>
+                    </div>
+                  ) : null}
+                  {tools.alt ?? (
+                    <ResultGrid
+                      ref={grid}
+                      source={paging.source}
+                      driver={driver}
+                      tableName={sourceTable(active.columns, driver)}
+                      sort={gv.sort}
+                      onSort={gv.onSort}
+                      hidden={gv.hidden}
+                      order={gv.order}
+                      onOrderChange={gv.setOrder}
+                      widths={gv.widths}
+                      onWidthsChange={gv.setWidths}
+                      onNearEnd={fetchMore}
+                      onSelectionChange={tools.onSelectionChange}
+                      highlight={tools.highlight}
+                      decorations={transposed ? undefined : ui.decorations}
+                      onActivate={transposed ? undefined : ui.onActivate}
+                      onCellContext={transposed ? undefined : ui.onCellContext}
+                      keyColumns={transposed ? undefined : ui.keyColumns}
+                      headerDetail={transposed ? undefined : ui.headerDetail}
+                    />
+                  )}
+                  {tools.strip}
+                  {transposed || tools.alt ? null : ui.footer}
                 </div>
-              ) : null}
-              <ResultGrid
-                ref={grid}
-                source={paging.source}
-                driver={driver}
-                tableName={sourceTable(active.columns, driver)}
-                sort={gv.sort}
-                onSort={gv.onSort}
-                hidden={gv.hidden}
-                order={gv.order}
-                onOrderChange={gv.setOrder}
-                widths={gv.widths}
-                onWidthsChange={gv.setWidths}
-                onNearEnd={fetchMore}
-                decorations={transposed ? undefined : ui.decorations}
-                onActivate={transposed ? undefined : ui.onActivate}
-                onCellContext={transposed ? undefined : ui.onCellContext}
-                keyColumns={transposed ? undefined : ui.keyColumns}
-                headerDetail={transposed ? undefined : ui.headerDetail}
-              />
-              {transposed ? null : ui.footer}
+                {tools.side}
+              </div>
             </>
           ) : (
             <p className={styles.emptyPane}>
@@ -400,20 +430,4 @@ function sourceTable(columns: { source_table?: string }[], driver: string): stri
     .split(".")
     .map((part) => quoteIdent(flavor, part))
     .join(".");
-}
-
-function TransposeIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      aria-hidden="true"
-    >
-      <path d="M3 3h4v10H3zM9 3h4v4H9z" />
-    </svg>
-  );
 }

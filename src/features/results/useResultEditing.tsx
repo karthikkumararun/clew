@@ -20,6 +20,7 @@ import { askChoice } from "../console/prompts";
 import type { ConsoleRuntime } from "../console/runtime";
 import { confirmSwitchToReadWrite } from "../safety/switch";
 import { registerEditTarget } from "../grid/editTarget";
+import { usePaste } from "../grid/paste/usePaste";
 import type { GridDecorations, GridHandle } from "../grid/ResultGrid";
 import { RowsSource } from "../grid/source";
 import type { GridSource } from "../grid/source";
@@ -141,6 +142,8 @@ export interface EditingUi {
   footer: ReactNode;
   /** Dialogs and the cell editor, rendered once. */
   dialogs: ReactNode;
+  /** After a paste: what was pasted, Interpret as, Undo. */
+  pasteNotice: ReactNode;
   decorations: GridDecorations | undefined;
   onActivate: (col: number, row: number) => boolean;
   onCellContext: ((col: number, row: number, x: number, y: number) => void) | undefined;
@@ -156,6 +159,7 @@ const NO_UI: EditingUi = {
   rowOps: null,
   footer: null,
   dialogs: null,
+  pasteNotice: null,
   decorations: undefined,
   onActivate: () => false,
   onCellContext: undefined,
@@ -216,6 +220,14 @@ export function useEditingUi(a: EditingUiArgs): EditingUi {
     };
   }, [a.grid, a.toStoreRow]);
 
+  const pasting = usePaste({
+    editor,
+    grid: a.grid,
+    toStoreRow: a.toStoreRow,
+    source: a.source,
+    notify: (m) => useNotices.getState().push(m),
+  });
+
   const submit = useCallback(
     async (commit = false) => {
       if (!editor) return;
@@ -258,6 +270,7 @@ export function useEditingUi(a: EditingUiArgs): EditingUi {
         setDefault: () => forSelectedCells((c, r) => editor.setDefault(c, r)),
         submit: () => void submit(false),
         submitAndCommit: () => void submit(true),
+        paste: pasting.paste,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -449,6 +462,14 @@ export function useEditingUi(a: EditingUiArgs): EditingUi {
 
   const footer = editable ? (
     <>
+      {empty.stale && counts.total === 0 ? (
+        <div className={styles.sharedNotice} role="status">
+          Computed columns are out of date after your edit.{" "}
+          <button type="button" className={styles.linkButton} onClick={() => void runtime.rerun()}>
+            Re-run
+          </button>
+        </div>
+      ) : null}
       {shared ? (
         <div className={styles.sharedNotice} role="status">
           {shared}
@@ -609,7 +630,13 @@ export function useEditingUi(a: EditingUiArgs): EditingUi {
     chip,
     rowOps,
     footer,
-    dialogs,
+    dialogs: (
+      <>
+        {dialogs}
+        {pasting.dialogs}
+      </>
+    ),
+    pasteNotice: pasting.notice,
     decorations,
     onActivate,
     onCellContext,
