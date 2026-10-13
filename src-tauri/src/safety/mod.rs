@@ -2,5 +2,6 @@
 //! statement may run, needs the user's confirmation, or is blocked.
 
 pub mod classify;
+pub mod cypher;
 pub mod guard;
 pub mod nosql;

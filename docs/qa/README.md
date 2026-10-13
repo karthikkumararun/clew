@@ -2,7 +2,7 @@
 
 The loop for a release, from a clean machine to a release gate.
 
-1. **Run the suites.** `pnpm qa:up` (needs Docker; `--profiles core,nosql` to choose), then
+1. **Run the suites.** `pnpm qa:up` (needs Docker; `--profiles core,nosql` to choose; add `graph` for the Neo4j journeys: `--profiles core,nosql,graph`, seeded from `docker/neo4j/seed.cypher`, Bolt on `localhost:17687`, user `neo4j`, password `clewclew`), then
    `pnpm qa:e2e --suite smoke` and `pnpm qa:e2e --suite full`. `pnpm qa:e2e` rebuilds the app when
    the sources changed. Results and failure artifacts are in `e2e/artifacts/`. `pnpm qa:down`
    stops the stack and removes its volumes.

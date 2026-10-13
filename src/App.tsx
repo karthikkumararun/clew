@@ -7,6 +7,7 @@ import { registerConsoleCommands } from "./features/console/commands";
 import { installQuitGuard } from "./features/console/quit";
 import { registerSessionsFeature } from "./features/sessions";
 import { registerCollectionCommands } from "./features/documents/CollectionTab";
+import { registerGraphCommands } from "./features/graph/GraphTab";
 import { registerKeysCommands } from "./features/key-value/KeysTab";
 import { registerTableCommands } from "./features/table-editor/TableTab";
 import { registerExplorerCommands } from "./features/explorer/commands";
@@ -22,6 +23,7 @@ export default function App() {
     const offTable = registerTableCommands();
     const offCollection = registerCollectionCommands();
     const offKeys2 = registerKeysCommands();
+    const offGraph = registerGraphCommands();
     const offQuit = installQuitGuard();
     const offSessions = registerSessionsFeature();
     void useConnections.getState().load();
@@ -34,6 +36,7 @@ export default function App() {
       offTable();
       offCollection();
       offKeys2();
+      offGraph();
       offQuit();
       offSessions();
     };

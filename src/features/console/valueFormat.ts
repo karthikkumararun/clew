@@ -28,6 +28,12 @@ export function valueText(v: Value): string | null {
       return `{${v.value.map((x) => valueText(x) ?? "NULL").join(",")}}`;
     case "other":
       return v.value;
+    case "node":
+      return `(${v.labels.map((l) => `:${l}`).join("")})`;
+    case "relationship":
+      return `[:${v.relType}]`;
+    case "path":
+      return `<path ${v.nodes.length} ${v.nodes.length === 1 ? "node" : "nodes"}>`;
   }
 }
 

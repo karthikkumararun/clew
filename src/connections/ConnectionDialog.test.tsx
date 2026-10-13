@@ -151,6 +151,41 @@ describe("ConnectionDialog", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("shows the Neo4j form: protocol, host, port 7687, user, password, database and the AuraDB hint (spec: graph-browser › Graph console tab)", async () => {
+    open(newDraft("neo4j"));
+    const protocol = screen.getByLabelText("Protocol") as HTMLSelectElement;
+    expect([...protocol.options].map((o) => o.textContent)).toEqual([
+      "neo4j://",
+      "neo4j+s://",
+      "bolt://",
+      "bolt+s://",
+    ]);
+    expect(screen.getByLabelText("Host")).toHaveValue("localhost");
+    expect(screen.getByLabelText("Port")).toHaveValue("7687");
+    expect(screen.getByLabelText("User")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("Database")).toBeInTheDocument();
+    expect(screen.getByText(/for AuraDB/)).toBeInTheDocument();
+
+    fireEvent.change(protocol, { target: { value: "neo4j+s" } });
+    fireEvent.change(screen.getByLabelText("Host"), { target: { value: "x.databases.neo4j.io" } });
+    fireEvent.change(screen.getByLabelText("User"), { target: { value: "neo4j" } });
+    fireEvent.change(screen.getByLabelText("Database"), { target: { value: "movies" } });
+    expect(screen.getByTestId("url-preview")).toHaveTextContent(
+      "neo4j+s://neo4j@x.databases.neo4j.io:7687/movies",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Save & connect/ }));
+    await waitFor(() => expect(api.save).toHaveBeenCalled());
+    expect((api.save.mock.calls[0][0] as SaveRequest).connection.settings).toMatchObject({
+      kind: "neo4j",
+      protocol: "neo4j+s",
+      host: "x.databases.neo4j.io",
+      port: 7687,
+      user: "neo4j",
+      database: "movies",
+    });
+  });
+
   it("saves a default isolation level from Advanced settings, only where the driver has levels (spec: sql-console › Connection default)", async () => {
     open();
     fireEvent.change(screen.getByLabelText("Host"), { target: { value: "db" } });

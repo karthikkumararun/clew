@@ -13,6 +13,7 @@ import {
   rectangularSelection,
 } from "@codemirror/view";
 import { useEffect, useRef } from "react";
+import { cypherLanguage } from "../../graph/cypher/language";
 import { editorDialect, isNoSql, splitDialect } from "./dialects";
 import { statementExtensions } from "./statementField";
 import type { StatementRange } from "./statements";
@@ -36,9 +37,16 @@ export interface EditorProps {
 // The default keymap minus the keys the shell owns: Mod+Enter runs, Escape cancels.
 const editingKeys = defaultKeymap.filter((b) => b.key !== "Mod-Enter" && b.key !== "Escape");
 
-/** SQL highlighting for SQL drivers; the command languages of Mongo and Redis have none. */
+/** SQL highlighting for SQL drivers, Cypher for Neo4j; the command languages of Mongo and Redis have none. */
 const languageFor = (driver: string): Extension =>
-  isNoSql(driver) ? [] : sql({ dialect: editorDialect(driver), upperCaseKeywords: false });
+  driver === "neo4j"
+    ? cypherLanguage()
+    : isNoSql(driver)
+      ? []
+      : sql({ dialect: editorDialect(driver), upperCaseKeywords: false });
+
+const ariaLabelFor = (driver: string) =>
+  driver === "neo4j" ? "Cypher editor" : isNoSql(driver) ? "Command editor" : "SQL editor";
 
 /** CodeMirror 6 wrapped for React. The document is owned by the tab state. */
 export function Editor(props: EditorProps) {
@@ -83,7 +91,7 @@ export function Editor(props: EditorProps) {
         size.current.of(sizeTheme(p.fontSize)),
         extra.current.of(p.extensions ?? []),
         EditorView.contentAttributes.of({
-          "aria-label": isNoSql(p.driver) ? "Command editor" : "SQL editor",
+          "aria-label": ariaLabelFor(p.driver),
           spellcheck: "false",
         }),
         EditorView.updateListener.of((u) => {

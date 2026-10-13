@@ -79,7 +79,7 @@
       "pending": "add-command-palette"
     },
     "GraphBrowser": {
-      "pending": "add-graph-browser"
+      "pending": "needs the graph Docker stack: the design suite adds container-backed states on Linux"
     },
     "MongoBrowser": {
       "pending": "needs the nosql Docker stack: the design suite adds container-backed states on Linux"

@@ -228,6 +228,7 @@ impl Driver for MongoDriver {
                     .collect(),
                 functions: vec![],
             }],
+            ..Default::default()
         })
     }
 }

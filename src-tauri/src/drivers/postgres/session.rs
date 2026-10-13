@@ -298,7 +298,10 @@ fn value_text(v: &Value) -> Option<String> {
         | Value::Other { value, .. } => value.clone(),
         Value::Bytes { value, .. } => format!("\\x{value}"),
         Value::Json { value } => value.to_string(),
-        Value::Array { .. } => return None,
+        Value::Array { .. }
+        | Value::Node { .. }
+        | Value::Relationship { .. }
+        | Value::Path { .. } => return None,
     })
 }
 

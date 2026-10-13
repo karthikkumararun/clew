@@ -1,6 +1,7 @@
 import type { MenuItem } from "../../components/Menu";
 import type { Connection, Group } from "../../connections/api";
 import { ENVIRONMENTS } from "../../connections/draft";
+import { graphTargetOf } from "../graph/explorerTarget";
 import { isTableLike } from "./names";
 import { isMac } from "../../lib/platform";
 import type { NodeEntry } from "./tree";
@@ -54,6 +55,24 @@ export function nodeMenu(e: NodeEntry, driver?: string): MenuItem[] {
       { id: "explorer.copyName", label: "Copy name" },
       { id: "explorer.refresh", label: "Refresh" },
     ];
+  }
+  if (driver === "neo4j") {
+    const g = graphTargetOf(e.path, e.kind);
+    if (g) {
+      return [
+        {
+          id: "explorer.openData",
+          label:
+            g.kind === "database"
+              ? "Open Cypher console"
+              : g.kind === "label"
+                ? "Show nodes"
+                : "Show relationships",
+        },
+        { id: "explorer.copyName", label: "Copy name" },
+        { id: "explorer.refresh", label: "Refresh" },
+      ];
+    }
   }
   if (driver === "redis" && e.kind === "database") {
     return [

@@ -3,4 +3,4 @@
 /**
  * Coarse kind of a column's values, for grid rendering and editing decisions.
  */
-export type ValueKind = "bool" | "int" | "bigint" | "float" | "decimal" | "text" | "bytes" | "date" | "time" | "timestamp" | "timestamptz" | "interval" | "uuid" | "json" | "array" | "other";
+export type ValueKind = "bool" | "int" | "bigint" | "float" | "decimal" | "text" | "bytes" | "date" | "time" | "timestamp" | "timestamptz" | "interval" | "uuid" | "json" | "array" | "node" | "relationship" | "path" | "other";

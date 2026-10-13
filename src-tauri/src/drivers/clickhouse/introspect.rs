@@ -183,6 +183,7 @@ pub async fn snapshot(client: &Arc<Client>, db: &str) -> DriverResult<SchemaSnap
             tables: out,
             functions,
         }],
+        ..Default::default()
     })
 }
 

@@ -438,5 +438,8 @@ pub async fn snapshot(meta: &SqliteMeta, db: &str) -> DriverResult<SchemaSnapsho
                 .collect();
         }
     }
-    Ok(SchemaSnapshot { schemas })
+    Ok(SchemaSnapshot {
+        schemas,
+        ..Default::default()
+    })
 }

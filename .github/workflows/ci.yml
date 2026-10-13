@@ -91,7 +91,7 @@ jobs:
         run: ./scripts/gen-test-certs.sh
       - name: Start the databases
         run: |
-          docker compose --profile core --profile nosql up -d --build --wait
+          docker compose --profile core --profile nosql --profile graph up -d --build --wait
           docker compose --profile heavy up -d --wait clickhouse
       - name: Integration tests
         run: cargo test --features integration
@@ -100,7 +100,7 @@ jobs:
         run: git diff --exit-code -- src/lib/ipc/generated
       - name: Container logs
         if: failure()
-        run: docker compose --profile core --profile nosql --profile heavy logs --no-color --tail=200
+        run: docker compose --profile core --profile nosql --profile graph --profile heavy logs --no-color --tail=200
       - name: Stop the databases
         if: always()
-        run: docker compose --profile core --profile nosql --profile heavy down -v
+        run: docker compose --profile core --profile nosql --profile graph --profile heavy down -v

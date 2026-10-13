@@ -336,7 +336,10 @@ pub async fn snapshot(shared: &Arc<Shared>, db: &str) -> DriverResult<SchemaSnap
             type_name: s(&r[3]),
         });
     }
-    Ok(SchemaSnapshot { schemas })
+    Ok(SchemaSnapshot {
+        schemas,
+        ..Default::default()
+    })
 }
 
 fn target(path: &NodePath) -> DriverResult<(String, String, String, NodeKind)> {

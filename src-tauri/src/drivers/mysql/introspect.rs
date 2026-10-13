@@ -446,5 +446,6 @@ pub async fn snapshot(meta: &MyMeta, db: &str) -> DriverResult<SchemaSnapshot> {
     }
     Ok(SchemaSnapshot {
         schemas: by_schema.into_values().collect(),
+        ..Default::default()
     })
 }

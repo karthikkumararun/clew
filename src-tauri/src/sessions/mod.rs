@@ -314,6 +314,8 @@ fn switch_statement_nosql(driver: &str, database: Option<&str>) -> DriverResult<
         "mongodb" => Ok(format!("use {db}")),
         // the explorer names Redis databases `db3`
         "redis" => Ok(format!("SELECT {}", db.strip_prefix("db").unwrap_or(db))),
+        // the Neo4j session reads this as "run the following statements on that database"
+        "neo4j" => Ok(format!(":use {db}")),
         _ => Err(DriverError::unsupported("switching database or schema")),
     }
 }
@@ -1376,6 +1378,7 @@ mod dialect_tests {
     }
 }
 
+mod graph;
 mod manage;
 
 #[cfg(test)]

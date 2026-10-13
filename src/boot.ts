@@ -4,6 +4,7 @@ import { startSnapshotSync } from "./features/console/completionTarget";
 import { registerConsoleTab } from "./features/console/ConsoleTab";
 import { startFileSync } from "./features/console/fileSync";
 import { registerCollectionTab } from "./features/documents/CollectionTab";
+import { registerGraphTab } from "./features/graph/GraphTab";
 import { registerKeysTab } from "./features/key-value/KeysTab";
 import { registerTableTab } from "./features/table-editor/TableTab";
 import { startExplorerSync, useExplorer } from "./features/explorer/explorerStore";
@@ -39,6 +40,7 @@ export async function boot(): Promise<void> {
   registerTableTab();
   registerCollectionTab();
   registerKeysTab();
+  registerGraphTab();
   restoreSession();
   startSessionPersistence();
 }

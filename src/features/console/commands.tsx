@@ -16,6 +16,7 @@ import { registerConsoleStatusItems } from "./statusItems";
 import { registerSlotItem } from "../../shell/registry/slots";
 import { getView } from "./editor/views";
 import { useWorkspace } from "../../stores/workspaceStore";
+import { graphDelegate, openGraphConsole } from "../graph/GraphTab";
 import { pickConnection } from "./ConnectionPicker";
 import { CONSOLE_KIND, newConsoleKey } from "./state";
 import type { ConsoleState } from "./state";
@@ -34,6 +35,13 @@ export interface NewConsoleArgs {
 export async function openConsole(args: NewConsoleArgs = {}): Promise<string | null> {
   const connectionId = args.connectionId ?? connectionInContext() ?? (await pickConnection());
   if (!connectionId) return null;
+  // Neo4j connections open the graph console (spec: graph-browser › Graph console tab).
+  if (
+    useConnections.getState().file.connections.find((c) => c.id === connectionId)?.driver ===
+    "neo4j"
+  ) {
+    return openGraphConsole({ connectionId, database: args.database, cypher: args.sql });
+  }
   // "Manual commit" connections start every console in Manual transaction mode.
   const saved = useConnections.getState().file.connections.find((c) => c.id === connectionId);
   const manual = saved?.safeguards.manualCommit && supportsTransactions(saved.driver);
@@ -93,6 +101,10 @@ export function sqlToRun(
 
 /** Run the selection or current statement (`current`), or the whole script. */
 export async function runActive(mode: "current" | "script"): Promise<void> {
+  if (graphDelegate.active()) {
+    await graphDelegate.run("run");
+    return;
+  }
   const what = sqlToRun(mode);
   if (!what) {
     if (activeConsole()) useNoticesStore.push("Nothing to run at the cursor");
@@ -107,6 +119,10 @@ export async function runActive(mode: "current" | "script"): Promise<void> {
  * read-only connection.
  */
 export async function explainActive(analyze: boolean): Promise<void> {
+  if (graphDelegate.active()) {
+    await graphDelegate.run(analyze ? "profile" : "explain");
+    return;
+  }
   const what = sqlToRun("current");
   if (!what) {
     if (activeConsole()) useNoticesStore.push("Nothing to explain at the cursor");
@@ -190,6 +206,10 @@ export async function rerunActive(): Promise<void> {
 
 /** Cancel the active console's running statement. */
 export async function cancelActive(): Promise<void> {
+  if (graphDelegate.active()) {
+    await graphDelegate.cancel();
+    return;
+  }
   const tab = useWorkspace
     .getState()
     .tabs.find((t) => t.id === useWorkspace.getState().activeTabId && t.kind === CONSOLE_KIND);
@@ -198,6 +218,7 @@ export async function cancelActive(): Promise<void> {
 }
 
 const activeIsBusy = () => {
+  if (graphDelegate.active()) return graphDelegate.busy();
   const { tabs, activeTabId } = useWorkspace.getState();
   const tab = tabs.find((t) => t.id === activeTabId && t.kind === CONSOLE_KIND);
   return !!tab && getRuntime(tab.id, (tab.state as ConsoleState).connectionId).busy;

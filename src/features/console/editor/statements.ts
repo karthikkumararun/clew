@@ -16,6 +16,8 @@ export type SplitDialect =
   | "oracle"
   /** One command per line (Redis); `#` starts a comment line. */
   | "lines"
+  /** Cypher: `//` comments (`--` is a relationship), backslash escapes, backtick names. */
+  | "cypher"
   | null;
 
 export interface StatementRange {
@@ -190,6 +192,7 @@ export function splitStatements(
   const n = sql.length;
   const mysql = dialect === "mysql" || dialect === "mariadb";
   const postgres = dialect === "postgresql";
+  const cypher = dialect === "cypher";
   const out: StatementRange[] = [];
 
   const code = (i: number) => sql.charCodeAt(i);
@@ -239,6 +242,7 @@ export function splitStatements(
 
   const isLineCommentStart = (i: number): boolean => {
     const c = code(i);
+    if (cypher) return c === SLASH && code(i + 1) === SLASH;
     if (c === DASH && code(i + 1) === DASH) {
       // MySQL requires whitespace (or the end) after `--`.
       if (!mysql) return true;
@@ -364,14 +368,15 @@ export function splitStatements(
     if (c === QUOTE) {
       const backslash =
         mysql ||
+        cypher ||
         (postgres &&
           i > 0 &&
           (code(i - 1) === 101 || code(i - 1) === 69) &&
           (i < 2 || !isIdentChar(code(i - 2))));
       i = skipQuoted(i, QUOTE, backslash);
     } else if (c === DQUOTE) {
-      i = skipQuoted(i, DQUOTE, mysql);
-    } else if (c === BACKTICK && mysql) {
+      i = skipQuoted(i, DQUOTE, mysql || cypher);
+    } else if (c === BACKTICK && (mysql || cypher)) {
       i = skipQuoted(i, BACKTICK, false);
     } else if (c === DOLLAR) {
       const tag = dollarTag(i);

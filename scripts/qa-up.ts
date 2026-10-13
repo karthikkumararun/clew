@@ -1,6 +1,6 @@
 // Start the local QA stack: certificates, chosen Compose profiles, wait until healthy, check the
 // seed (spec: release-qa › One-command local QA stack).
-// Usage: pnpm qa:up [--profiles core,nosql]      (default: core,nosql,ai-mock)
+// Usage: pnpm qa:up [--profiles core,nosql,graph]      (default: core,nosql,ai-mock)
 import { spawnSync } from "node:child_process";
 import {
   DOCKER_HELP,

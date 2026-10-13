@@ -127,6 +127,11 @@ pub struct ColumnInfo {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SchemaSnapshot {
     pub schemas: Vec<SnapshotSchema>,
+    /// Graph family: labels with counts, relationship types, property keys, indexes and
+    /// constraints, functions and procedures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub graph: Option<crate::drivers::graph::GraphSchema>,
 }
 
 #[derive(ts_rs::TS)]
