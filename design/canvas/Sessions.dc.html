@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Clew sessions panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#E3A64F}a:hover{color:#F2C27F}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.tb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #262B33;background:#1A1E25;color:#E6E8EB;font-size:12px}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:#9AA3AE}
+.tr{display:flex;align-items:center;gap:6px;height:24px;padding-right:8px;font-size:12.5px;color:#C9CED6;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:14px;border-radius:3px;font:600 8.5px/1 'JetBrains Mono',monospace;color:#0E1014;flex:none}
+.ln{display:block;height:20px;white-space:pre}
+.g{border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px;width:100%}
+.g th{position:sticky;top:0;background:#1A1E25;text-align:left;font-weight:500;color:#C9CED6;padding:6px 12px;border-right:1px solid #262B33;border-bottom:1px solid #262B33;white-space:nowrap}
+.g td{padding:0 12px;height:26px;border-right:1px solid #1F242B;border-bottom:1px solid #1F242B;white-space:nowrap;color:#E6E8EB}
+.g tr:hover td{background:#171B21}
+.rn{color:#7D8794;text-align:right;width:44px;background:#14171C}
+</style>
+</helmet>
+<div style="width: 100%; height: 900px; display: flex; flex-direction: column; background: #0E1014; color: #E6E8EB; font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 13px">
+
+  <!-- Title bar / main toolbar -->
+  <header style="height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 16px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="color: {{accent}}" role="img" aria-label="Clew logo: a ball of thread"><defs>
+    <mask id="clew-mark-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+      <circle cx="10.8" cy="10.2" r="7.6" fill="#fff"/>
+      <g fill="none" stroke="#000" stroke-width="1.15">
+        <g transform="rotate(-38 10.8 10.2)"><ellipse cx="10.8" cy="10.2" rx="2.7" ry="8.2"/><ellipse cx="10.8" cy="10.2" rx="5.5" ry="8.2"/></g>
+        <g transform="rotate(34 10.8 10.2)"><ellipse cx="10.8" cy="10.2" rx="3.8" ry="8.2"/></g>
+      </g>
+    </mask>
+  </defs>
+  <circle cx="10.8" cy="10.2" r="7.6" mask="url(#clew-mark-cut)"/>
+  <path d="M10.4 17.6 C10.9 20.6 15 21.6 18 20 C20 18.9 22.2 19.2 22.4 21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      <span style="display: flex; flex-direction: column; line-height: 1.1">
+        <span style="font-weight: 600; letter-spacing: 0.02em">Clew</span>
+        <span style="color: {{accent}}; font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em">by ADK</span>
+      </span>
+    </div>
+    <div style="width: 1px; height: 20px; background: #262B33"></div>
+    <button class="tb" type="button" aria-label="Active connection: prod-postgres, database analytics">
+      <span style="width: 8px; height: 8px; border-radius: 50%; background: #F2766B"></span>
+      <span class="badge" style="background: #6EA8FE">PG</span>
+      <span>prod-postgres</span>
+      <span style="color: #7D8794">/</span>
+      <span>analytics</span>
+      <span style="color: #7D8794">/</span>
+      <span>public</span>
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+    </button>
+    <button class="tb" type="button" style="background: {{accent}}; border-color: {{accent}}; color: #0E1014; font-weight: 600">
+      <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5l9 5.5-9 5.5z" fill="currentColor"/></svg>
+      Run
+      <span class="mono" style="font-weight: 500; opacity: 0.75">⌘↵</span>
+    </button>
+    <button class="tb" type="button">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h6"/></svg>
+      Explain
+    </button>
+    <button class="tb" type="button" style="border-color: #4A3A22; background: #1E1A12; color: #F2C27F">Tx: Manual<span style="width: 1px; height: 14px; background: #4A3A22"></span><span class="mono" style="font-size:11px">READ COMMITTED</span><span style="width: 1px; height: 14px; background: #4A3A22"></span><span>7 statements</span>
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+    <button class="tb" type="button" style="color: #6CC4A1; border-color: #23463A">Commit</button>
+    <button class="tb" type="button">Roll back</button>
+    <span style="display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 4px; background: #5A1D1A; color: #FFB4AC; font-size: 11px; font-weight: 600; letter-spacing: 0.06em">PRODUCTION · READ-WRITE</span>
+    <div style="flex: 1"></div>
+    <button class="tb" type="button" style="min-width: 260px; justify-content: space-between; color: #9AA3AE">
+      <span style="display: inline-flex; align-items: center; gap: 8px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>Go to table, query, action…</span>
+      <span class="mono" style="font-size: 11px">⌘K</span>
+    </button>
+    <button class="ib" type="button" aria-label="Settings"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></button>
+  </header>
+
+  <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+
+    <!-- Explorer -->
+    <aside style="flex: 1 1 260px; max-width: 300px; min-width: 240px; height: 100%; display: flex; flex-direction: column; background: #14171C; border-right: 1px solid #262B33">
+      <div style="height: 36px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE">
+        <span>EXPLORER</span>
+        <div style="display: flex; gap: 2px">
+          <button class="ib" type="button" aria-label="New connection"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+          <button class="ib" type="button" aria-label="Refresh schema"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2.5v3h-3"/></svg></button>
+          <button class="ib" type="button" aria-label="Collapse all"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 10l4-4 4 4"/></svg></button>
+        </div>
+      </div>
+      <div style="padding: 0 10px 8px">
+        <label for="tree-filter" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter explorer</label>
+        <input id="tree-filter" placeholder="Filter objects…" style="width: 100%; height: 28px; border-radius: 6px; border: 1px solid #262B33; background: #0E1014; color: #E6E8EB; padding: 0 10px; font: inherit; font-size: 12px">
+      </div>
+      <nav aria-label="Database explorer" style="flex: 1; overflow: auto; padding-bottom: 12px">
+        <div class="tr" style="padding-left: 8px; color: #9AA3AE; font-size: 11px; font-weight: 600; letter-spacing: 0.06em"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>PRODUCTION</div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg><span class="badge" style="background: #6EA8FE">PG</span><span style="font-weight: 500; color: #E6E8EB">prod-postgres</span><span style="width: 6px; height: 6px; border-radius: 50%; background: #F2766B"></span><span style="margin-left: auto; color: #7D8794; font-size: 11px">db.internal</span></div>
+        <div class="tr" style="padding-left: 38px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.3" aria-hidden="true"><path d="M3 4c0-1.1 2.2-2 5-2s5 .9 5 2v8c0 1.1-2.2 2-5 2s-5-.9-5-2z"/><path d="M3 4c0 1.1 2.2 2 5 2s5-.9 5-2M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/></svg>analytics</div>
+        <div class="tr" style="padding-left: 56px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.3" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg>public</div>
+        <div class="tr" style="padding-left: 74px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>tables<span style="color: #7D8794">12</span></div>
+        <div class="tr" style="padding-left: 104px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>customers</div>
+        <div class="tr" style="padding-left: 104px; background: #1E242C; box-shadow: inset 2px 0 0 {{accent}}; color: #E6E8EB"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>orders<span style="margin-left: auto; color: #7D8794; font-size: 11px">12.4k</span></div>
+        <div class="tr" style="padding-left: 122px; color: #9AA3AE"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#E3A64F" stroke-width="1.4" aria-hidden="true"><circle cx="5" cy="8" r="2.5"/><path d="M7.5 8H14M12 8v2"/></svg>id<span style="color: #7D8794">int8</span></div>
+        <div class="tr" style="padding-left: 122px; color: #9AA3AE"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7FC8F8" stroke-width="1.4" aria-hidden="true"><path d="M3 8h8M8 5l3 3-3 3"/></svg>user_id<span style="color: #7D8794">int8 → users</span></div>
+        <div class="tr" style="padding-left: 122px; color: #9AA3AE"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.4" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1"/></svg>status<span style="color: #7D8794">order_status</span></div>
+        <div class="tr" style="padding-left: 122px; color: #9AA3AE"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.4" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1"/></svg>total<span style="color: #7D8794">numeric(12,2)</span></div>
+        <div class="tr" style="padding-left: 104px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>order_items</div>
+        <div class="tr" style="padding-left: 104px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>products</div>
+        <div class="tr" style="padding-left: 104px"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>users</div>
+        <div class="tr" style="padding-left: 74px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>views<span style="color: #7D8794">3</span></div>
+        <div class="tr" style="padding-left: 74px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg>functions<span style="color: #7D8794">8</span></div>
+        <div class="tr" style="padding-left: 38px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.3" aria-hidden="true"><path d="M3 4c0-1.1 2.2-2 5-2s5 .9 5 2v8c0 1.1-2.2 2-5 2s-5-.9-5-2z"/><path d="M3 4c0 1.1 2.2 2 5 2s5-.9 5-2M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/></svg>billing</div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="badge" style="background: #6EA8FE">PG</span>prod-replica<span style="width: 6px; height: 6px; border-radius: 50%; background: #F2766B"></span></div>
+
+        <div class="tr" style="padding-left: 8px; margin-top: 10px; color: #9AA3AE; font-size: 11px; font-weight: 600; letter-spacing: 0.06em"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>STAGING</div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="badge" style="background: #F0A35E">MY</span>staging-mysql<span style="width: 6px; height: 6px; border-radius: 50%; background: #E3A64F"></span></div>
+
+        <div class="tr" style="padding-left: 8px; margin-top: 10px; color: #9AA3AE; font-size: 11px; font-weight: 600; letter-spacing: 0.06em"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>LOCAL</div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="badge" style="background: #6CC48A">MG</span>dev-mongo<span style="width: 6px; height: 6px; border-radius: 50%; background: #6CC4A1"></span></div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="badge" style="background: #F2766B">RD</span>cache-redis<span style="width: 6px; height: 6px; border-radius: 50%; background: #6CC4A1"></span></div>
+        <div class="tr" style="padding-left: 20px"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg><span class="badge" style="background: #B8C0CC">SQ</span>notes.sqlite<span style="margin-left: auto; color: #7D8794; font-size: 11px">disconnected</span></div>
+      </nav>
+    </aside>
+
+    <!-- Editor + results -->
+    <main style="flex: 999 1 560px; min-width: 0; height: 100%; display: flex; flex-direction: column">
+      <!-- Editor tabs -->
+      <div role="tablist" aria-label="Open editors" style="height: 36px; flex: none; display: flex; align-items: stretch; background: #14171C; border-bottom: 1px solid #262B33; overflow-x: auto">
+        <button role="tab" aria-selected="true" type="button" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-right: 1px solid #262B33; background: #0E1014; box-shadow: inset 0 2px 0 #F2766B; font-size: 12.5px">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg>
+          console <span style="color: #7D8794">prod-postgres</span>
+          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="#7D8794" stroke-width="1.8" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+        </button>
+        <button role="tab" aria-selected="false" type="button" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-right: 1px solid #262B33; background: transparent; color: #9AA3AE; font-size: 12.5px; box-shadow: inset 0 2px 0 #3A1D1B">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6EA8FE" stroke-width="1.3" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 7h12M6 7v6"/></svg>
+          orders
+        </button>
+        <button role="tab" aria-selected="false" type="button" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-right: 1px solid #262B33; background: transparent; color: #9AA3AE; font-size: 12.5px">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#6CC48A" stroke-width="1.5" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg>
+          console <span style="color: #7D8794">dev-mongo</span>
+        </button>
+        <button role="tab" aria-selected="false" type="button" style="display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 0; border-right: 1px solid #262B33; background: transparent; color: #9AA3AE; font-size: 12.5px">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M4 2h6l3 3v9H4z"/><path d="M10 2v3h3"/></svg>
+          weekly_report.sql
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9AA3AE" aria-label="Unsaved changes"></span>
+        </button>
+        <button class="ib" type="button" aria-label="New console" style="align-self: center; margin-left: 4px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button>
+      </div>
+
+      <!-- SQL editor -->
+      <section aria-label="SQL editor" class="mono" style="height: 150px; flex: none; display: flex; font-size: 13px; line-height: 20px; background: #0E1014; overflow: hidden">
+        <div aria-hidden="true" style="width: 56px; flex: none; padding: 10px 10px 0 0; text-align: right; color: #4E5661; border-right: 1px solid #1A1E25">
+          <span class="ln">1</span><span class="ln" style="color: #E3A64F">▶ 2</span><span class="ln">3</span><span class="ln">4</span><span class="ln">5</span><span class="ln">6</span>
+        </div>
+        <div style="flex: 1; min-width: 0; padding-top: 10px">
+          <span class="ln" style="padding-left: 14px; color: #7D8794">-- pending orders to review</span>
+          <div style="background: #13171D">
+            <span class="ln" style="padding-left: 14px"><span style="color: #C9A0FF">SELECT</span> id, user_id, status, total,</span>
+            <span class="ln" style="padding-left: 14px">       total * <span style="color: #F0B37E">1.2</span> <span style="color: #C9A0FF">AS</span> with_tax, notes, created_at</span>
+            <span class="ln" style="padding-left: 14px"><span style="color: #C9A0FF">FROM</span> orders <span style="color: #C9A0FF">WHERE</span> status = <span style="color: #9CD08B">'pending'</span></span>
+            <span class="ln" style="padding-left: 14px"><span style="color: #C9A0FF">ORDER BY</span> created_at <span style="color: #C9A0FF">DESC</span>;</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Splitter -->
+      <div aria-hidden="true" style="height: 5px; flex: none; background: #14171C; border-top: 1px solid #262B33; border-bottom: 1px solid #262B33; display: flex; justify-content: center; align-items: center"><span style="width: 32px; height: 2px; border-radius: 1px; background: #2E343D"></span></div>
+
+      <!-- Results -->
+      <section aria-label="Sessions" style="flex: 1; min-height: 0; display: flex; flex-direction: column; background: #0E1014">
+        <div style="min-height: 40px; flex: none; display: flex; align-items: center; gap: 4px; padding: 4px 8px 4px 14px; border-bottom: 1px solid #262B33; background: #14171C; flex-wrap: wrap">
+          <span style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: #9AA3AE; margin-right: 8px">SESSIONS</span>
+          <button class="ib" type="button" aria-label="Cancel running statement"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1"/></svg></button>
+          <button class="ib" type="button" aria-label="Commit"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg></button>
+          <button class="ib" type="button" aria-label="Roll back"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M5 6L2.5 8.5 5 11M3 8.5h6a4 4 0 0 1 0 5H6"/></svg></button>
+          <div style="width:1px;height:18px;background:#262B33;margin:0 6px"></div>
+          <button class="ib" type="button" aria-label="Close session"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+          <button class="tb" type="button">Close all sessions</button>
+          <button class="tb" type="button">Deactivate connection</button>
+          <div style="flex:1"></div>
+          <label for="sf" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Filter sessions</label>
+          <input id="sf" placeholder="Filter sessions…" style="width:200px;height:28px;border-radius:6px;border:1px solid #262B33;background:#0E1014;color:#E6E8EB;padding:0 10px;font:inherit;font-size:12px">
+          <button class="ib" type="button" aria-label="Hide panel"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
+        </div>
+        <div style="flex: 1; min-height: 0; display: flex; flex-wrap: wrap">
+          <div role="tree" aria-label="Sessions by connection" style="flex: 1 1 520px; min-width: 0; max-width: 640px; overflow: auto; border-right: 1px solid #262B33; padding: 6px 0; position: relative">
+            <div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 10px;font-size:13px;font-weight:500"><span style="color:#7D8794"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></span><span class="badge" style="background:#6EA8FE">PG</span><span>prod-postgres</span><span style="width:7px;height:7px;border-radius:50%;background:#F2766B;flex:none"></span><span style="color:#7D8794;font-size:11.5px;font-weight:400">PRODUCTION</span><span style="margin-left:auto;color:#9AA3AE;font-size:11.5px;font-weight:400">4 sessions · 1 in transaction</span></div><div role="treeitem" aria-selected="false" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 40px;font-size:12.5px"><span style="color:#7D8794"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">console</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#6CC4A1;font-size:11.5px;white-space:nowrap">Idle</span><span style="color:#7D8794;font-size:11.5px;width:96px;text-align:right;white-space:nowrap">0 statements</span></div><div role="treeitem" aria-selected="false" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 40px;font-size:12.5px"><span style="color:#7D8794"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">weekly_report.sql</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#7FC8F8;font-size:11.5px;white-space:nowrap">Running 00:12</span><span style="color:#7D8794;font-size:11.5px;width:96px;text-align:right;white-space:nowrap">SELECT …</span></div><div role="treeitem" aria-selected="true" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 40px;background:#1E242C;box-shadow:inset 2px 0 0 #E3A64F;font-size:12.5px"><span style="color:#7D8794"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">orders (table editor)</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#E3A64F;font-size:11.5px;white-space:nowrap">In transaction 4:12 ⚠</span><span style="color:#7D8794;font-size:11.5px;width:96px;text-align:right;white-space:nowrap">7 statements</span></div><div role="treeitem" aria-selected="false" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 40px;font-size:12.5px"><span style="color:#7D8794"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">console (2)</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#6CC4A1;font-size:11.5px;white-space:nowrap">Idle</span><span style="color:#7D8794;font-size:11.5px;width:96px;text-align:right;white-space:nowrap">0 statements</span></div><div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 10px;font-size:13px;font-weight:500"><span style="color:#7D8794"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></span><span class="badge" style="background:#F0A35E">MY</span><span>staging-mysql</span><span style="width:7px;height:7px;border-radius:50%;background:#E3A64F;flex:none"></span><span style="color:#7D8794;font-size:11.5px;font-weight:400">STAGING</span><span style="margin-left:auto;color:#9AA3AE;font-size:11.5px;font-weight:400">1 session</span></div><div role="treeitem" aria-selected="false" style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 40px;font-size:12.5px"><span style="color:#7D8794"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#9AA3AE" stroke-width="1.4" aria-hidden="true"><path d="M3 4l3 4-3 4M8 12h5"/></svg></span><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">console</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:#6CC4A1;font-size:11.5px;white-space:nowrap">Idle</span><span style="color:#7D8794;font-size:11.5px;width:96px;text-align:right;white-space:nowrap">0 statements</span></div><div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 10px;font-size:13px;font-weight:500"><span style="color:#7D8794"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></span><span class="badge" style="background:#6CC48A">MG</span><span>dev-mongo</span><span style="width:7px;height:7px;border-radius:50%;background:#6CC4A1;flex:none"></span><span style="color:#7D8794;font-size:11.5px;font-weight:400">LOCAL</span><span style="margin-left:auto;color:#9AA3AE;font-size:11.5px;font-weight:400">1 session</span></div><div style="display:flex;align-items:center;gap:8px;height:30px;padding:0 10px 0 10px;font-size:13px;font-weight:500"><span style="color:#7D8794"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 4l4 4-4 4"/></svg></span><span class="badge" style="background:#B8C0CC">SQ</span><span>notes.sqlite</span><span style="width:7px;height:7px;border-radius:50%;background:#7D8794;flex:none"></span><span style="color:#7D8794;font-size:11.5px;font-weight:400">LOCAL</span><span style="margin-left:auto;color:#9AA3AE;font-size:11.5px;font-weight:400">disconnected</span></div>
+            <!-- switch session menu -->
+            <div role="menu" style="position:absolute;left:150px;top:268px;width:300px;padding:4px 0;border:1px solid #2E343D;border-radius:8px;background:#1A1E25;box-shadow:0 12px 32px rgba(0,0,0,0.45);font-size:12.5px">
+              <div style="padding:6px 12px;color:#9AA3AE;font-size:11px;font-weight:600;letter-spacing:0.06em">ATTACH weekly_report.sql TO</div>
+              <div style="display:flex;gap:8px;align-items:center;height:28px;padding:0 12px"><span style="color:#E3A64F;width:12px">✓</span>its own session</div>
+              <div style="display:flex;gap:8px;align-items:center;height:28px;padding:0 12px"><span style="width:12px"></span>console</div>
+              <div style="display:flex;gap:8px;align-items:center;height:28px;padding:0 12px"><span style="width:12px"></span>console (2)</div>
+              <div style="height:1px;background:#262B33;margin:4px 0"></div>
+              <div style="display:flex;gap:8px;align-items:center;height:28px;padding:0 12px"><span style="width:12px"></span>New session</div>
+            </div>
+          </div>
+          <div style="flex: 999 1 380px; min-width: 0; overflow: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #5A2A26;background:#1F1416;color:#F7A39B;font-size:12.5px;line-height:1.5"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#F7A39B" stroke-width="1.5" aria-hidden="true"><path d="M8 2l6 11H2z"/><path d="M8 6.5v3M8 11.5v.5"/></svg><span><b>Open for 4 minutes on Production.</b> An open transaction can block other writers and keep old row versions alive. Commit or roll back when you are done.</span></div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:15px;font-weight:600">orders (table editor)</span><span style="color:#E3A64F;font-size:12px;display:inline-flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#E3A64F;flex:none"></span>In transaction</span></div>
+            <dl style="display:grid;grid-template-columns:140px minmax(0,1fr);gap:8px 14px;margin:0">
+              <div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Connection</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">prod-postgres · analytics</dd></div><div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Server</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">PostgreSQL 16.2 · via SSH bastion</dd></div><div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Backend PID</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">28841</dd></div><div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Started</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">10:02:11</dd></div><div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Last activity</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">10:06:20 (4 min 12 s ago)</dd></div><div style="display:contents"><dt style="color:#9AA3AE;font-size:12px">Statements in tx</dt><dd style="margin:0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB">7 (3 UPDATE, 1 INSERT, 1 DELETE, 2 SELECT)</dd></div>
+              <div style="display:contents"><dt style="color:#9AA3AE;font-size:12px;padding-top:4px">Isolation level</dt><dd style="margin:0"><button type="button" style="height:28px;padding:0 10px;border-radius:6px;border:1px solid #2E343D;background:#1A1E25;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:#E6E8EB;display:inline-flex;align-items:center;gap:6px">READ COMMITTED <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button> <span style="color:#7D8794;font-size:11.5px">applies to the next transaction</span></dd></div>
+            </dl>
+            <div><div style="font-size:11px;font-weight:600;letter-spacing:0.08em;color:#9AA3AE;margin-bottom:8px">LAST STATEMENTS IN THIS TRANSACTION</div>
+              <pre style="margin:0;padding:10px 12px;border-radius:8px;border:1px solid #262B33;background:#111419;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;line-height:1.7;color:#E6E8EB;overflow:auto"><span style="color:#7D8794">10:06:20</span>  <span style="color:#C9A0FF">DELETE FROM</span> orders <span style="color:#C9A0FF">WHERE</span> id = <span style="color:#F0B37E">88190</span>;
+<span style="color:#7D8794">10:06:19</span>  <span style="color:#C9A0FF">UPDATE</span> orders <span style="color:#C9A0FF">SET</span> status = <span style="color:#9CD08B">'shipped'</span> <span style="color:#C9A0FF">WHERE</span> id = <span style="color:#F0B37E">88213</span>;
+<span style="color:#7D8794">10:05:02</span>  <span style="color:#C9A0FF">INSERT INTO</span> orders (user_id, status, total) <span style="color:#C9A0FF">VALUES</span> …;</pre></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #2E343D;background:transparent;border-color:#23463A;color:#6CC4A1;font-size:12px;color:inherit;white-space:nowrap;">Commit</button><button type="button" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #2E343D;background:#1A1E25;font-size:12px;color:inherit;white-space:nowrap;">Roll back</button><button type="button" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #2E343D;background:transparent;font-size:12px;color:inherit;white-space:nowrap;">Go to tab</button><button type="button" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:6px;border:1px solid #2E343D;background:transparent;font-size:12px;color:inherit;white-space:nowrap;">Close session</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Status bar -->
+  <footer style="height: 26px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 12px; border-top: 1px solid #262B33; background: #14171C; color: #9AA3AE; font-size: 11.5px; overflow: hidden; white-space: nowrap">
+    <span style="display: inline-flex; align-items: center; gap: 6px"><span style="width: 7px; height: 7px; border-radius: 50%; background: #6CC4A1"></span>Connected · prod-postgres</span>
+    <span>PostgreSQL 16.2</span>
+    <span>via SSH bastion</span>
+    <span>Read-write session</span><span style="display:inline-flex;align-items:center;gap:6px;color:#F2C27F"><span style="width:7px;height:7px;border-radius:50%;background:#E3A64F"></span>Sessions 4 · 1 idle in transaction</span>
+    <span style="flex: 1"></span>
+    <span>Ln 7, Col 34</span>
+    <span>UTF-8</span>
+    <span>SQL · PostgreSQL dialect</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#E3A64F","options":["#E3A64F","#6EA8FE","#6CC4A1","#E58FB5"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const statusColors = { delivered: '#6CC4A1', shipped: '#7FC8F8', pending: '#E3A64F', refunded: '#F2766B' };
+    const raw = [
+      [1042, 'Ada Lovelace', 'ada@example.com', 'delivered', '18,420.00', '2026-10-08 21:14:07+00'],
+      [2210, 'Grace Hopper', 'grace@example.com', 'shipped', '12,906.50', '2026-10-08 17:02:51+00'],
+      [3381, 'Alan Turing', null, 'delivered', '9,775.25', '2026-10-07 09:48:12+00'],
+      [1177, 'Katherine Johnson', 'kj@example.com', 'pending', '8,310.00', '2026-10-09 06:31:40+00'],
+      [4520, 'Edsger Dijkstra', 'ewd@example.com', 'delivered', '7,642.90', '2026-10-05 13:20:03+00'],
+      [2964, 'Barbara Liskov', 'liskov@example.com', 'refunded', '6,980.00', '2026-10-02 11:11:59+00'],
+      [3105, 'Donald Knuth', 'taocp@example.com', 'delivered', '6,412.75', '2026-10-06 19:45:30+00'],
+      [5088, 'Margaret Hamilton', 'mh@example.com', 'shipped', '5,903.10', '2026-10-08 08:16:44+00'],
+      [1820, 'Ken Thompson', 'ken@example.com', 'delivered', '5,550.00', '2026-10-04 22:03:17+00'],
+      [6012, 'Frances Allen', 'fran@example.com', 'pending', '4,998.40', '2026-10-09 02:57:08+00'],
+      [2733, 'John McCarthy', 'jmc@example.com', 'delivered', '4,721.65', '2026-10-01 15:39:26+00'],
+      [3990, 'Radia Perlman', 'radia@example.com', 'shipped', '4,380.00', '2026-10-07 23:12:55+00'],
+      [4401, 'Leslie Lamport', 'lamport@example.com', 'delivered', '4,115.20', '2026-10-03 10:27:41+00'],
+      [5277, 'Hedy Lamarr', 'hedy@example.com', 'delivered', '3,960.00', '2026-09-30 18:05:09+00']
+    ];
+    const rows = raw.map((r, i) => ({
+      n: i + 1, id: r[0], name: r[1], email: r[2], emailNull: r[2] === null, emailSet: r[2] !== null,
+      status: r[3], statusColor: statusColors[r[3]], revenue: r[4], last: r[5]
+    }));
+    return { accent: this.props.accent ?? '#E3A64F', rows };
+  }
+}
+</script>
+</body>
+</html>
