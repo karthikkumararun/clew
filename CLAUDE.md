@@ -20,13 +20,15 @@ Implement one change at a time, in this order (each depends on the earlier ones)
 6. `add-data-grid`
 7. `add-production-safeguards`
 8. `add-app-icon`  (real app icon and in-app mark; independent, quick, can be built at any time)
-9. `add-e2e-testing`  (real-app end-to-end harness, seed data, release QA loop)
-10. `add-more-sql-drivers`  (SQL Server, Oracle, ClickHouse, DuckDB)
-11. `add-nosql-browser`
-12. `add-graph-browser`  (Neo4j)
-13. `add-command-palette`
-14. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
-15. `add-release-packaging`
+9. `add-result-editing`  (edit query results in the console, paste, result tools; builds on the table editor)
+10. `add-session-manager`  (Sessions panel, transactions, isolation level)
+11. `add-e2e-testing`  (real-app end-to-end harness, seed data, release QA loop)
+12. `add-more-sql-drivers`  (SQL Server, Oracle, ClickHouse, DuckDB)
+13. `add-nosql-browser`
+14. `add-graph-browser`  (Neo4j)
+15. `add-command-palette`
+16. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
+17. `add-release-packaging`
 
 ## Workflow per change
 

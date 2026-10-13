@@ -24,6 +24,9 @@ This folder is the source of truth for implementation:
 | Command palette | `canvas/CommandPalette.dc.html` | `add-command-palette` |
 | Import / export connections (encrypted export, DataGrip import with SQL consoles) | `canvas/ImportExport.dc.html` | `add-connection-management` |
 | App icon (macOS, Windows, small sizes), in-app mark, dev-build badge | `canvas/AppIcon.dc.html` | `add-app-icon` |
+| Editing query results (console Result tab: edit chip, row operations, paste, aggregate, pending bar, submit and commit) | `canvas/ResultEditing.dc.html` | `add-result-editing` |
+| Editing query results, all states (read-only reasons, table chooser, paste dialogs, production confirm, conflict, local filter, value editor, View as, menus) | `canvas/ResultEditingStates.dc.html` | `add-result-editing` |
+| Sessions panel (sessions, transactions, idle warnings, switch session, isolation level) | `canvas/Sessions.dc.html` | `add-session-manager` |
 | AI assistant side panel, inline diff review, Fix with AI | `canvas/AIAssistant.dc.html` | `add-ai-assistant` (panel slot: `add-app-shell`) |
 | Settings › AI assistant (providers, sign-in, routing, privacy); also the layout for every Settings section | `canvas/AIProviders.dc.html` | `add-ai-assistant`, `add-app-shell` (Settings layout) |
 
