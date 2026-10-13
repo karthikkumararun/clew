@@ -107,12 +107,14 @@
 }
 
 .resultsHeader {
-  height: 36px;
+  /* wraps onto a second line rather than clipping its tools (spec: result-editing toolbar) */
+  min-height: 40px;
   flex: none;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 2px;
-  padding: 0 8px;
+  gap: 4px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
 }
@@ -840,4 +842,51 @@
 
 .diff [data-kind="removed"] {
   background: var(--grid-deleted-row);
+}
+
+.pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.pageLabel {
+  min-width: 96px;
+  padding: 0 6px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageSize {
+  position: relative;
+  margin-left: 4px;
+}
+
+.pageSizeMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+}
+
+.refreshWrap {
+  position: relative;
+}
+
+.refreshMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+}
+
+.customInterval {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
 }

@@ -23,6 +23,12 @@ pub struct Settings {
     pub check_for_updates: bool,
     /// Folder of the Oracle Instant Client, when it isn't somewhere Clew looks by itself.
     pub oracle_client_dir: String,
+    /// How console results are browsed: `scroll` (rows load as you scroll) or `pages`.
+    pub result_browse: String,
+    /// Rows per page in `pages` mode (10–100,000).
+    pub result_page_size: u32,
+    /// Run a result's statement again after a submit when it has at most 1,000 rows.
+    pub result_auto_rerun: bool,
 }
 
 impl Default for Settings {
@@ -34,6 +40,9 @@ impl Default for Settings {
             confirm_close_unsaved: true,
             check_for_updates: false,
             oracle_client_dir: String::new(),
+            result_browse: "scroll".to_string(),
+            result_page_size: 500,
+            result_auto_rerun: false,
         }
     }
 }
@@ -48,6 +57,10 @@ impl Settings {
         if !GRID_PAGE_SIZES.contains(&self.grid_page_size) {
             self.grid_page_size = defaults.grid_page_size;
         }
+        if self.result_browse != "scroll" && self.result_browse != "pages" {
+            self.result_browse = defaults.result_browse;
+        }
+        self.result_page_size = self.result_page_size.clamp(10, 100_000);
         self
     }
 }

@@ -17,6 +17,8 @@ import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
 import { displayRowOf } from "../grid/tools/visibleRows";
 import { useEditingUi, useEditorFor } from "../results/useResultEditing";
+import { AutoRefreshMenu } from "./AutoRefreshMenu";
+import { usePaging } from "./usePaging";
 import { DocViewSwitch, DocumentsResult } from "../documents/DocResult";
 import type { DocResultView } from "../documents/DocResult";
 import { askChoice } from "./prompts";
@@ -117,11 +119,14 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
   const connectionName =
     useConnections((s) => s.file.connections.find((c) => c.id === runtime.connectionId))?.name ??
     "this connection";
-  const toDisplayRow = (storeRow: number) => displayRowOf(gv.visible, storeRow);
+  // Pages mode shows a window over the rows; the window's row r is the view's row offset + r.
+  const paging = usePaging({ runtime, active, view: gv.view, resetKey: active?.key ?? "" });
+  const toStoreRow = (displayRow: number) => gv.toStoreRow(displayRow + paging.offset);
+  const toDisplayRow = (storeRow: number) => displayRowOf(gv.visible, storeRow) - paging.offset;
   const ui = useEditingUi({
     runtime,
     editor,
-    toStoreRow: gv.toStoreRow,
+    toStoreRow,
     toDisplayRow,
     grid,
     driver,
@@ -228,7 +233,9 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         {tab === "result" && active ? (
           <>
             {active.docs ? <DocViewSwitch value={docView} onChange={setDocView} /> : null}
+            {paging.toolbar}
             <span className={styles.range}>{range}</span>
+            <AutoRefreshMenu runtime={runtime} />
             <IconButton aria-label="Re-run query" disabled={!lastRun || busy} onClick={onRerun}>
               <Refresh size={14} />
             </IconButton>
@@ -331,7 +338,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
               ) : null}
               <ResultGrid
                 ref={grid}
-                source={gv.view}
+                source={paging.source}
                 driver={driver}
                 tableName={sourceTable(active.columns, driver)}
                 sort={gv.sort}

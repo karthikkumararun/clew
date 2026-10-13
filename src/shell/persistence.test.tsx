@@ -186,6 +186,9 @@ describe("settings", () => {
       confirmCloseUnsaved: true,
       checkForUpdates: false,
       oracleClientDir: "",
+      resultBrowse: "scroll",
+      resultPageSize: 500,
+      resultAutoRerun: false,
     });
   });
 
@@ -247,7 +250,8 @@ describe("settings", () => {
     const user = userEvent.setup();
     render(<App />);
     useSettings.getState().openDialog("Data grid");
-    await user.click(await screen.findByRole("radio", { name: "1000" }));
+    const perPage = await screen.findByRole("radiogroup", { name: "Rows per page" });
+    await user.click(within(perPage).getByRole("radio", { name: "1000" }));
     expect(useSettings.getState().settings.gridPageSize).toBe(1000);
 
     await user.click(screen.getByRole("button", { name: "General" }));
