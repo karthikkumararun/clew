@@ -21,7 +21,17 @@ export function createDataDir(prefix = "clew e2e é-"): TestDataDir {
   return {
     dir: join(root, "data"),
     dialogQueue: join(root, "dialogs.txt"),
-    cleanup: () => rmSync(root, { recursive: true, force: true }),
+    cleanup: () => {
+      // The app stops a moment after the run (see e2e_exit), and Windows will not delete files a
+      // running process holds: retry, then leave the temp folder to the OS rather than turn a
+      // passed run into a failed one.
+      try {
+        rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 300 });
+      } catch (e) {
+        const code = (e as NodeJS.ErrnoException).code;
+        if (code !== "EBUSY" && code !== "EPERM") throw e;
+      }
+    },
   };
 }
 
