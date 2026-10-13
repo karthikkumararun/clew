@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { IconButton } from "../../components/Button";
-import { Download, Filter, Refresh } from "../../components/icons";
+import { Download, Lines, Refresh } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
 import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
@@ -16,6 +16,7 @@ import { ExportDialog } from "../grid/ExportDialog";
 import type { ExportSource } from "../grid/ExportDialog";
 import { visibleColumns } from "../grid/views";
 import { displayRowOf } from "../grid/tools/visibleRows";
+import { dispatchShortcut } from "../../shell/registry/shortcuts";
 import { useEditingUi, useEditorFor } from "../results/useResultEditing";
 import { AutoRefreshMenu } from "./AutoRefreshMenu";
 import { usePaging } from "./usePaging";
@@ -221,7 +222,16 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
       : null;
 
   return (
-    <section className={styles.results} aria-label="Query results" data-shortcut-scope="grid">
+    <section
+      className={styles.results}
+      aria-label="Query results"
+      data-shortcut-scope="grid"
+      // The grid handles Enter (and its modified forms) itself and marks the event handled, so a
+      // window listener would never see Mod+Enter: take the grid shortcuts on the way down.
+      onKeyDownCapture={(e) => {
+        if (dispatchShortcut(e.nativeEvent)) e.stopPropagation();
+      }}
+    >
       <div className={styles.resultsHeader}>
         <div role="tablist" aria-label="Result views" className={styles.resultTabs}>
           {TABS.map((t) => (
@@ -265,13 +275,14 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
             </IconButton>
             <IconButton
               aria-label="Filter results"
+              title="Quick text filter over the loaded rows"
               aria-pressed={filterOpen}
               onClick={() => {
                 setFilterOpen((o) => !o);
                 if (filterOpen) setFilter("");
               }}
             >
-              <Filter size={14} />
+              <Lines size={14} />
             </IconButton>
             {tools.toolbar}
             <ColumnsMenu

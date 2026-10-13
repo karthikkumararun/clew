@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Menu } from "../../components/Menu";
 import type { MenuItem } from "../../components/Menu";
 import { ChevronDown } from "../../components/icons";
-import { useKeepInWindow } from "../../components/useKeepInWindow";
+import { AnchoredMenu } from "../../components/AnchoredMenu";
 import type { Candidate, EditResolution, TableRef } from "./api";
 import styles from "./Results.module.css";
 
@@ -48,8 +48,11 @@ export interface EditChipProps {
 /** The chip next to the result tabs: what the result edits, or why it can't be edited. */
 export function EditChip(p: EditChipProps) {
   const [menu, setMenu] = useState(false);
-  const host = useRef<HTMLDivElement>(null);
-  useKeepInWindow(host, menu, menu);
+  const opener = useRef<HTMLButtonElement>(null);
+  const closeMenu = () => {
+    setMenu(false);
+    opener.current?.focus();
+  };
   const res = p.resolution;
 
   if (p.resolving && !res) return <span className={styles.chipMuted}>Checking editability…</span>;
@@ -62,19 +65,19 @@ export function EditChip(p: EditChipProps) {
 
   const chooser = menu ? (
     <>
-      <div className={styles.menuScrim} onMouseDown={() => setMenu(false)} aria-hidden="true" />
-      <div ref={host} className={styles.chipMenu}>
+      <div className={styles.menuScrim} onMouseDown={closeMenu} aria-hidden="true" />
+      <AnchoredMenu anchor={opener}>
         <Menu
           aria-label="Choose table"
           items={chooserItems(candidates, chosen)}
-          onClose={() => setMenu(false)}
+          onClose={closeMenu}
           onSelect={(id) => {
-            setMenu(false);
+            closeMenu();
             const c = candidates.find((x) => qualified(x) === id);
             if (c) p.onChoose({ schema: c.schema, table: c.table });
           }}
         />
-      </div>
+      </AnchoredMenu>
     </>
   ) : null;
 
@@ -83,16 +86,17 @@ export function EditChip(p: EditChipProps) {
     return (
       <span className={styles.chipWrap}>
         <button
+          ref={opener}
           type="button"
           className={styles.editChip}
-          aria-label={`Editing table ${res.target.table}, key ${keys}${choose ? ". Change table" : ""}`}
+          aria-label={`Editing ${qualified(res.target)} · key ${keys}${choose ? ". Change table" : ""}`}
           aria-haspopup={choose ? "menu" : undefined}
           aria-expanded={choose ? menu : undefined}
           title={choose && p.locked ? "Submit or revert the changes to switch table" : undefined}
           disabled={!choose || p.locked}
           onClick={() => choose && setMenu((m) => !m)}
         >
-          Editing <span className={styles.mono}>{qualified(res.target)}</span>
+          Editing <span className={styles.mono}>{qualified(res.target)}</span>{" "}
           <span className={styles.chipKey}>· key {keys}</span>
           {choose ? <ChevronDown size={10} /> : null}
         </button>
@@ -115,6 +119,7 @@ export function EditChip(p: EditChipProps) {
       ) : null}
       {reason.code === "multipleTables" && choose ? (
         <Button
+          ref={opener}
           variant="toolbar"
           aria-haspopup="menu"
           aria-expanded={menu}

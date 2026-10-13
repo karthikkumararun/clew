@@ -130,7 +130,9 @@ export const STATES: Record<string, StateFixture> = {
     steps: async () => {
       await openConsole("dev-sqlite");
       await runQuery(ORDERS);
-      await $("aria/Editing table orders, key id").waitForDisplayed({ timeout: 20_000 });
+      await $('.//button[starts-with(@aria-label, "Editing ")]').waitForDisplayed({
+        timeout: 20_000,
+      });
       await TableEditor.editCell(0, "status", "shipped");
       await TableEditor.pendingBar().waitForDisplayed({ timeout: 10_000 });
     },
@@ -175,7 +177,7 @@ export const STATES: Record<string, StateFixture> = {
       await runQuery(
         "SELECT o.id AS oid, o.status, u.id AS uid, u.name FROM orders o JOIN users u ON u.id = o.user_id ORDER BY o.id LIMIT 10",
       );
-      const chip = $('.//button[starts-with(@aria-label, "Editing table orders")]');
+      const chip = $('.//button[starts-with(@aria-label, "Editing ")]');
       await chip.waitForDisplayed({ timeout: 20_000 });
       await chip.click();
       await $('[role="menu"]').waitForDisplayed({ timeout: 5_000 });

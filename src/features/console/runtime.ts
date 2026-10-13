@@ -628,6 +628,18 @@ export class ConsoleRuntime {
   async setReadOnly(readOnly: boolean): Promise<void> {
     try {
       const sessionId = await this.ensureSession();
+      // A transaction opened while the session was read-only stays read-only on the server (on
+      // PostgreSQL it cannot become read-write after a query). A read-only session ran only
+      // reads, so ending it loses nothing: roll it back so the next statement can write.
+      const { txOpen, readOnly: wasReadOnly } = this.store.getState();
+      if (!readOnly && wasReadOnly && txOpen) {
+        if (!(await this.endTransaction(false))) return;
+        this.log({
+          kind: "info",
+          statement: "",
+          message: "The open transaction was rolled back so this session can write.",
+        });
+      }
       await setSessionReadOnly(sessionId, readOnly);
       this.store.setState({ readOnly });
     } catch (e) {

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useStore } from "zustand";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
 import { Input } from "../../components/Input";
+import { AnchoredMenu } from "../../components/AnchoredMenu";
 import { Menu } from "../../components/Menu";
 import { ChevronDown, Refresh } from "../../components/icons";
 import { useNotices } from "../../stores/noticesStore";
@@ -15,6 +16,11 @@ export function AutoRefreshMenu({ runtime }: { runtime: ConsoleRuntime }) {
   const auto = useStore(runtime.store, (s) => s.autoRefresh);
   const lastRun = useStore(runtime.store, (s) => s.lastRun);
   const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setOpen(false);
+    opener.current?.focus();
+  };
   const [custom, setCustom] = useState<string | null>(null);
 
   const can = lastRun ? canAutoRefresh(lastRun.sql) : ({ ok: true } as const);
@@ -28,6 +34,7 @@ export function AutoRefreshMenu({ runtime }: { runtime: ConsoleRuntime }) {
   return (
     <span className={styles.refreshWrap}>
       <button
+        ref={opener}
         type="button"
         className={styles.exportButton}
         aria-haspopup="menu"
@@ -42,8 +49,8 @@ export function AutoRefreshMenu({ runtime }: { runtime: ConsoleRuntime }) {
       </button>
       {open ? (
         <>
-          <div className={styles.menuScrim} onMouseDown={() => setOpen(false)} aria-hidden="true" />
-          <div className={styles.refreshMenu}>
+          <div className={styles.menuScrim} onMouseDown={close} aria-hidden="true" />
+          <AnchoredMenu anchor={opener} align="right">
             <Menu
               aria-label="Auto-refresh"
               items={[
@@ -55,15 +62,15 @@ export function AutoRefreshMenu({ runtime }: { runtime: ConsoleRuntime }) {
                 })),
                 { id: "custom", label: "Custom…", disabled: !can.ok },
               ]}
-              onClose={() => setOpen(false)}
+              onClose={close}
               onSelect={(id) => {
-                setOpen(false);
+                close();
                 if (id === "custom")
                   setCustom(String(Math.max(1, Math.round(auto.ms / 1000)) || 15));
                 else choose(Number(id));
               }}
             />
-          </div>
+          </AnchoredMenu>
         </>
       ) : null}
       {custom !== null ? (

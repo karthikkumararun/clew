@@ -137,9 +137,9 @@ describe("the edit chip (spec: result-editing › Read-only reasons)", () => {
 
   it("names the table and key of an editable result (spec: result-editing › Single table with its key)", () => {
     chip(editable());
-    expect(screen.getByRole("button", { name: "Editing table orders, key id" })).toHaveTextContent(
-      "Editing public.orders· key id",
-    );
+    expect(
+      screen.getByRole("button", { name: "Editing public.orders · key id" }),
+    ).toHaveTextContent("Editing public.orders · key id");
   });
 
   it("says no primary key is in the result and names it (spec: result-editing › Key missing)", () => {
@@ -193,7 +193,7 @@ describe("the edit chip (spec: result-editing › Read-only reasons)", () => {
     chip(editable({ candidates: [orders, { ...users, available: true, missingKeys: [] }] }), {
       onChoose,
     });
-    fireEvent.click(screen.getByRole("button", { name: /Editing table orders.*Change table/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Editing public.orders.*Change table/ }));
     const menu = screen.getByRole("menu", { name: "Choose table" });
     fireEvent.click(within(menu).getByRole("menuitem", { name: /public\.users/ }));
     expect(onChoose).toHaveBeenCalledWith({ schema: "public", table: "users" });
@@ -207,7 +207,7 @@ describe("the edit chip (spec: result-editing › Read-only reasons)", () => {
 
   it("does not offer a chooser for a single table, and locks it while changes are pending", () => {
     const { rerender } = chip(editable());
-    expect(screen.getByRole("button", { name: "Editing table orders, key id" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Editing public.orders · key id" })).toBeDisabled();
     rerender(
       <EditChip
         resolution={editable({ candidates: [orders, users] })}

@@ -2,9 +2,10 @@
  * Page-by-page browsing of a console result (spec: sql-console › Result paging). A page is a
  * window over the rows loaded so far; moving forward loads more rows from the open cursor.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { IconButton } from "../../components/Button";
+import { AnchoredMenu } from "../../components/AnchoredMenu";
 import { Menu } from "../../components/Menu";
 import { formatShortcut } from "../../lib/platform";
 import type { ResultView } from "../../lib/ipc/queryRun";
@@ -40,6 +41,7 @@ export function usePaging(args: {
   const setSettings = useSettings((s) => s.set);
   const [page, setPage] = useState(0);
   const [sizeMenu, setSizeMenu] = useState(false);
+  const sizeButton = useRef<HTMLButtonElement>(null);
   const paged = mode === "pages";
 
   useEffect(() => setPage(0), [resetKey, size, mode]);
@@ -167,6 +169,7 @@ export function usePaging(args: {
       </IconButton>
       <span className={styles.pageSize}>
         <button
+          ref={sizeButton}
           type="button"
           className={styles.exportButton}
           aria-haspopup="menu"
@@ -183,7 +186,7 @@ export function usePaging(args: {
               onMouseDown={() => setSizeMenu(false)}
               aria-hidden="true"
             />
-            <div className={styles.pageSizeMenu}>
+            <AnchoredMenu anchor={sizeButton} align="right">
               <Menu
                 aria-label="Page size"
                 items={PAGE_SIZES.map((n) => ({
@@ -196,7 +199,7 @@ export function usePaging(args: {
                   setSettings({ resultPageSize: Number(id) });
                 }}
               />
-            </div>
+            </AnchoredMenu>
           </>
         ) : null}
       </span>

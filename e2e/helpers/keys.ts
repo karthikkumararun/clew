@@ -6,11 +6,17 @@ import { browser } from "@wdio/globals";
  * events the page sees, so shortcut handlers never fire from `browser.keys([Key.Command, ...])`.
  * Plain typing still goes through `browser.keys`.
  */
-export async function pressMod(key: string, opts: { shift?: boolean } = {}): Promise<void> {
+export async function pressMod(
+  key: string,
+  opts: { shift?: boolean; alt?: boolean; selector?: string } = {},
+): Promise<void> {
   const mac = process.platform === "darwin";
   await browser.execute(
-    (k: string, shift: boolean, isMac: boolean) => {
-      const target = document.activeElement ?? document.body;
+    (k: string, shift: boolean, alt: boolean, isMac: boolean, selector: string | null) => {
+      const target =
+        (selector ? document.querySelector(selector) : null) ??
+        document.activeElement ??
+        document.body;
       const init: KeyboardEventInit = {
         key: k,
         code:
@@ -22,6 +28,7 @@ export async function pressMod(key: string, opts: { shift?: boolean } = {}): Pro
         metaKey: isMac,
         ctrlKey: !isMac,
         shiftKey: shift,
+        altKey: alt,
         bubbles: true,
         cancelable: true,
         composed: true,
@@ -31,6 +38,8 @@ export async function pressMod(key: string, opts: { shift?: boolean } = {}): Pro
     },
     key,
     opts.shift ?? false,
+    opts.alt ?? false,
     mac,
+    opts.selector ?? null,
   );
 }

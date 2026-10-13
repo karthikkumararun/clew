@@ -1,7 +1,12 @@
 import { $, browser, expect } from "@wdio/globals";
 import { launchApp, waitForShell } from "../helpers/app";
 import { describeViolations, focusFirstStop, seriousViolations, tabStops } from "../helpers/a11y";
+import { copyFileSync } from "node:fs";
 import { connectionFactory, seedConnections } from "../helpers/connections";
+import { createIsolatedDb } from "../helpers/db";
+import { Console } from "../pages/Console";
+import { Grid } from "../pages/Grid";
+import { TableEditor } from "../pages/TableEditor";
 import { covers } from "../helpers/covers";
 import { withDataDir } from "../helpers/dataDir";
 import { Explorer } from "../pages/Explorer";
@@ -13,6 +18,9 @@ describe("D-02 accessibility", () => {
   const data = withDataDir();
 
   before(async () => {
+    const lite = await createIsolatedDb("sqlite");
+    copyFileSync(lite.name, `${data.dir}/a.db`);
+    await lite.cleanup();
     seedConnections(data.dir, [connectionFactory.sqlite("a11y-db", `${data.dir}/a.db`)]);
     await waitForShell();
     await launchApp(data);
@@ -33,6 +41,17 @@ describe("D-02 accessibility", () => {
     await browser.keys("Enter");
     await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
     await scan("Console");
+  });
+
+  it("has no serious violations in an editable result with a pending change", async () => {
+    await Console.setText("SELECT id, user_id, status, total FROM orders ORDER BY id LIMIT 10");
+    await Console.run();
+    await browser.waitUntil(async () => (await Grid.rowCount()) === 10, { timeoutMsg: "10 rows" });
+    await $('.//button[starts-with(@aria-label, "Editing ")]').waitForDisplayed({ timeout: 20_000 });
+    await TableEditor.editCell(0, "status", "cancelled");
+    await TableEditor.pendingBar().waitForDisplayed({ timeout: 10_000 });
+    await scan("Result editing");
+    await TableEditor.revertButton().click();
   });
 
   it("has no serious violations in Settings", async () => {
