@@ -18,6 +18,8 @@ export interface PlanNode {
   actualMs?: number;
   /** `Filter: (total > 100)`, `Index: orders_pkey`, … */
   details: string[];
+  /** Every field the database reported for the node, as `[name, value]` (the details pane). */
+  props?: [string, string][];
   children: PlanNode[];
 }
 
@@ -26,6 +28,12 @@ export interface Plan {
   /** `Planning time: 0.2 ms`, `Execution time: 3.1 ms`. */
   summary: string[];
   analyze: boolean;
+}
+
+/** The plan in the database's own format (`EXPLAIN (FORMAT JSON)`, XML, or text), as returned. */
+export interface OriginalPlan {
+  format: "json" | "xml" | "text";
+  text: string;
 }
 
 const WRITE_WORDS = /\b(insert|update|delete|merge|replace|upsert)\b/i;
@@ -144,8 +152,15 @@ function pgNode(p: { [k: string]: Json }): PlanNode {
   const removed = num(p["Rows Removed by Filter"]);
   if (removed !== undefined) details.push(`Rows removed by filter: ${removed.toLocaleString()}`);
   const plans = Array.isArray(p["Plans"]) ? p["Plans"] : [];
+  const props: [string, string][] = Object.entries(p)
+    .filter(([k]) => k !== "Plans")
+    .map(([k, v]) => [
+      k,
+      Array.isArray(v) ? v.join(", ") : isObj(v) ? JSON.stringify(v) : String(v),
+    ]);
   return {
     id: newId(),
+    props,
     type: `${str(p["Node Type"]) ?? "Node"}${join ? ` (${join})` : ""}`,
     relation: rel ? (alias && alias !== rel ? `${rel} ${alias}` : rel) : undefined,
     estRows: num(p["Plan Rows"]),
@@ -323,4 +338,47 @@ export function parsePlan(driver: string, rows: Value[][], analyze: boolean): Pl
   } catch {
     return null;
   }
+}
+
+/** The plan exactly as the server returned it, for Copy original plan. */
+export function originalPlan(rows: Value[][]): OriginalPlan {
+  const doc = firstJson(rows);
+  if (doc !== undefined) return { format: "json", text: JSON.stringify(doc, null, 2) };
+  const text = rows.map((r) => r.map((v) => valueText(v)).join("\t")).join("\n");
+  return { format: /^\s*</.test(text) ? "xml" : "text", text };
+}
+
+/** The end of a node's cost (`0.00..35.50` → 35.5, `12` → 12), or undefined. */
+export function costOf(node: PlanNode): number | undefined {
+  const m = node.cost?.match(/(\d+(?:\.\d+)?)\s*$/);
+  return m ? Number(m[1]) : undefined;
+}
+
+/** Each node's share of the plan's total cost (the root's), 0..1, by node id. */
+export function costShares(nodes: PlanNode[]): Map<string, number> {
+  const out = new Map<string, number>();
+  const total = nodes.map(costOf).find((c) => c !== undefined && c > 0);
+  const walk = (n: PlanNode) => {
+    const c = costOf(n);
+    if (total && c !== undefined) out.set(n.id, Math.min(1, c / total));
+    n.children.forEach(walk);
+  };
+  nodes.forEach(walk);
+  return out;
+}
+
+/** The fields shown in the details pane: everything reported, else what was parsed. */
+export function nodeFields(node: PlanNode): [string, string][] {
+  if (node.props && node.props.length > 0) return node.props;
+  const f: [string, string][] = [["Node type", node.type]];
+  if (node.relation) f.push(["Relation", node.relation]);
+  if (node.estRows !== undefined) f.push(["Rows (estimated)", String(node.estRows)]);
+  if (node.cost) f.push(["Cost", node.cost]);
+  if (node.actualRows !== undefined) f.push(["Rows (actual)", String(node.actualRows)]);
+  if (node.actualMs !== undefined) f.push(["Time (ms)", String(node.actualMs)]);
+  for (const d of node.details) {
+    const i = d.indexOf(": ");
+    f.push(i > 0 ? [d.slice(0, i), d.slice(i + 2)] : ["Detail", d]);
+  }
+  return f;
 }

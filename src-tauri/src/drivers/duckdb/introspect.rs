@@ -416,6 +416,7 @@ pub async fn table_meta(shared: &Arc<Shared>, path: &NodePath) -> DriverResult<T
                 nullable: b(&r[2]),
                 default: opt(&r[3]),
                 comment: opt(&r[4]),
+                generated: None,
             }
         })
         .collect();
@@ -512,5 +513,6 @@ pub async fn table_meta(shared: &Arc<Shared>, path: &NodePath) -> DriverResult<T
         foreign_keys,
         referenced_by,
         estimated_rows,
+        is_view: None,
     })
 }

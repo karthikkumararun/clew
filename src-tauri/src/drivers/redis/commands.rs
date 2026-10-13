@@ -400,6 +400,8 @@ fn column(name: &str, sample: Option<&GridValue>) -> ColumnMeta {
         nullable: Some(true),
         source_table: None,
         source_column: None,
+        source_schema: None,
+        source_updatable: None,
     }
 }
 

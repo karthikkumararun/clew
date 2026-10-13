@@ -18,7 +18,16 @@ import { ConsoleView } from "./ConsoleView";
 import { openConsole, registerConsoleCommands } from "./commands";
 import { charOffsetToIndex, errorRange } from "./editor/diagnostics";
 import { getView } from "./editor/views";
-import { ExplainUnsupported, explainStatement, isWrite, parsePlan } from "./explain";
+import {
+  ExplainUnsupported,
+  costShares,
+  explainStatement,
+  isWrite,
+  nodeFields,
+  originalPlan,
+  parsePlan,
+} from "./explain";
+import { ExplainPane } from "./ExplainPane";
 import { clearPrompts, ConsolePromptHost } from "./prompts";
 import { clearRuntimes, getRuntime } from "./runtime";
 
@@ -231,6 +240,66 @@ describe("plan parsers", () => {
     expect(plan.nodes).toHaveLength(1);
     expect(plan.nodes[0].children.map((c) => c.relation)).toEqual(["orders", "users"]);
     expect(plan.nodes[0]).toMatchObject({ estRows: 3, actualRows: 3, actualMs: 0.4 });
+  });
+});
+
+describe("plan tab details", () => {
+  it("keeps the plan JSON as the server returned it (spec: sql-console › Copy native plan)", () => {
+    const original = originalPlan([[json(PG_PLAN)]]);
+    expect(original.format).toBe("json");
+    expect(JSON.parse(original.text)).toEqual(PG_PLAN);
+  });
+
+  it("lists every field the database reported for a node (spec: sql-console › Node details)", () => {
+    const plan = parsePlan("postgres", [[json(PG_PLAN)]], false)!;
+    const seq = plan.nodes[0].children[0];
+    const fields = Object.fromEntries(nodeFields(seq));
+    expect(fields["Node Type"]).toBe("Seq Scan");
+    expect(fields["Relation Name"]).toBe("orders");
+    expect(fields["Plan Rows"]).toBe("2550");
+    expect(fields["Total Cost"]).toBe("35.5");
+    expect(fields["Filter"]).toBe("(total > 100)");
+  });
+
+  it("gives each node its share of the total cost", () => {
+    const plan = parsePlan("postgres", [[json(PG_PLAN)]], false)!;
+    const shares = costShares(plan.nodes);
+    expect(shares.get(plan.nodes[0].id)).toBe(1);
+    const seq = plan.nodes[0].children[0];
+    expect(shares.get(seq.id)).toBeCloseTo(35.5 / 48.25, 5);
+  });
+
+  it("selecting a node shows its details and Copy original plan writes the plan", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    const plan = parsePlan("postgres", [[json(PG_PLAN)]], false)!;
+    render(
+      <ExplainPane
+        explain={{
+          status: "done",
+          analyze: false,
+          sql: "select 1",
+          plan,
+          original: originalPlan([[json(PG_PLAN)]]),
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("treeitem", { name: /Seq Scan/ }));
+    const details = screen.getByRole("complementary", { name: "Node details" });
+    expect(within(details).getByText("Relation Name")).toBeInTheDocument();
+    expect(within(details).getByText("orders")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Copy original plan" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    expect(JSON.parse(writeText.mock.calls[0][0] as string)).toEqual(PG_PLAN);
+  });
+
+  it("offers Explain with AI only when a provider hook is given", () => {
+    const plan = parsePlan("postgres", [[json(PG_PLAN)]], false)!;
+    const explain = { status: "done" as const, analyze: false, sql: "x", plan };
+    const { rerender } = render(<ExplainPane explain={explain} />);
+    expect(screen.queryByRole("button", { name: "Explain with AI" })).toBeNull();
+    rerender(<ExplainPane explain={explain} onExplainWithAi={() => {}} />);
+    expect(screen.getByRole("button", { name: "Explain with AI" })).toBeInTheDocument();
   });
 });
 

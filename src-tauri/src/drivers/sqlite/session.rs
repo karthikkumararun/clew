@@ -23,6 +23,7 @@ use super::decode::{decode_by_class, kind_for_declared};
 use super::error::{is_connection_error, map_error};
 use crate::drivers::introspect::NodeKind;
 use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
+use crate::drivers::split_source;
 use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
@@ -327,6 +328,11 @@ impl Session for SqliteSession {
                 nullable: None,
                 source_table: origin.as_ref().map(|(t, _)| t.clone()),
                 source_column: origin.as_ref().map(|(_, c)| c.clone()),
+                source_schema: origin.as_ref().map(|(t, _)| {
+                    // The driver qualifies only attached databases; everything else is `main`.
+                    split_source(t).0.unwrap_or("main").to_string()
+                }),
+                source_updatable: Some(origin.is_some()),
             })
             .collect();
         let result_id = self.next_result;

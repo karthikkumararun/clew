@@ -396,7 +396,7 @@ pub async fn table_meta(meta: &Arc<Meta>, path: &NodePath) -> DriverResult<Table
             "SELECT c.name, {ty}, c.is_nullable, dc.definition, \
              CASE WHEN EXISTS (SELECT 1 FROM {d}.sys.index_columns ic JOIN {d}.sys.indexes i ON i.object_id = ic.object_id AND i.index_id = ic.index_id \
                WHERE i.is_primary_key = 1 AND ic.object_id = c.object_id AND ic.column_id = c.column_id) THEN 1 ELSE 0 END, \
-             CAST(ep.value AS nvarchar(4000)) \
+             CAST(ep.value AS nvarchar(4000)), c.is_computed, c.is_identity \
              FROM {d}.sys.columns c JOIN {d}.sys.types ty ON ty.user_type_id = c.user_type_id \
              LEFT JOIN {d}.sys.default_constraints dc ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id \
              LEFT JOIN {d}.sys.extended_properties ep ON ep.class = 1 AND ep.major_id = c.object_id AND ep.minor_id = c.column_id AND ep.name = 'MS_Description' \
@@ -412,6 +412,8 @@ pub async fn table_meta(meta: &Arc<Meta>, path: &NodePath) -> DriverResult<Table
             default: opt(&r[3]),
             primary_key: n(&r[4]) == 1,
             comment: opt(&r[5]),
+            generated: (b(&r[6]) || b(&r[7]))
+                .then_some(crate::drivers::table_meta::Generation::Always),
         })
         .collect();
 
@@ -492,12 +494,20 @@ pub async fn table_meta(meta: &Arc<Meta>, path: &NodePath) -> DriverResult<Table
     } else {
         None
     };
+    let is_view = meta
+        .rows(&format!(
+            "SELECT type FROM {d}.sys.objects WHERE object_id = OBJECT_ID({oid})"
+        ))
+        .await?
+        .first()
+        .map(|r| s(&r[0]).trim() == "V");
     Ok(TableMeta {
         columns,
         indexes,
         foreign_keys,
         referenced_by,
         estimated_rows,
+        is_view,
     })
 }
 

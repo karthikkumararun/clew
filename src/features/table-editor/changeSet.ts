@@ -26,6 +26,18 @@ const DEFAULT_SHOWN: Value = { kind: "other", value: "DEFAULT", type_name: "defa
 
 const same = (a: Value, b: Value) => JSON.stringify(a) === JSON.stringify(b);
 
+/**
+ * How a result's columns map onto the table being edited (a query result in the console, not the
+ * table editor itself; spec: result-editing › Editable query results). Absent for the table
+ * editor, where result columns are the table's columns.
+ */
+export interface ChangeMapping {
+  /** Per result column: the column of the edit table it writes to, or null when it is not editable. */
+  columnMap: (string | null)[];
+  /** Result column indexes that hold the edit table's key, in key order. */
+  keyIndexes: number[];
+}
+
 export interface Counts {
   edited: number;
   inserted: number;
@@ -45,7 +57,38 @@ export class ChangeSet implements GridSource {
   private rev = 0;
   private listeners = new Set<() => void>();
 
-  constructor(private base: GridSource) {}
+  constructor(
+    private base: GridSource,
+    private mapping?: ChangeMapping,
+  ) {}
+
+  /** Result rows by the key of the table row they show (shared rows); built per loaded version. */
+  private keyIndex: { version: number; rows: Map<string, number[]> } | null = null;
+
+  private keyString(row: number): string | null {
+    const m = this.mapping;
+    if (!m || m.keyIndexes.length === 0) return null;
+    return JSON.stringify(m.keyIndexes.map((i) => this.base.get(i, row)));
+  }
+
+  /** Every loaded row that shows the same table row as `row`, including `row` itself. */
+  sharedRows(row: number): number[] {
+    if (row >= this.base.rowCount) return [row];
+    const k = this.keyString(row);
+    if (k === null) return [row];
+    if (!this.keyIndex || this.keyIndex.version !== this.base.version) {
+      const rows = new Map<string, number[]>();
+      for (let r = 0; r < this.base.rowCount; r++) {
+        const key = this.keyString(r);
+        if (key === null) continue;
+        const list = rows.get(key);
+        if (list) list.push(r);
+        else rows.set(key, [r]);
+      }
+      this.keyIndex = { version: this.base.version, rows };
+    }
+    return this.keyIndex.rows.get(k) ?? [row];
+  }
 
   // --- GridSource ---------------------------------------------------------------------------
 
@@ -103,10 +146,23 @@ export class ChangeSet implements GridSource {
   }
 
   counts(): Counts {
-    let edited = 0;
-    for (const r of this.snap.edits.keys()) if (!this.snap.deletes.has(r)) edited++;
+    // Rows that show the same table row count once (spec: result-editing › Shared rows).
+    const once = (rows: Iterable<number>) => {
+      const seen = new Set<string>();
+      let n = 0;
+      for (const r of rows) {
+        const k = this.keyString(r);
+        if (k === null) n++;
+        else if (!seen.has(k)) {
+          seen.add(k);
+          n++;
+        }
+      }
+      return n;
+    };
+    const edited = once([...this.snap.edits.keys()].filter((r) => !this.snap.deletes.has(r)));
     const inserted = this.snap.inserts.length;
-    const deleted = this.snap.deletes.size;
+    const deleted = once(this.snap.deletes);
     return { edited, inserted, deleted, total: edited + inserted + deleted };
   }
 
@@ -136,11 +192,14 @@ export class ChangeSet implements GridSource {
       ins.set(col, value);
     } else {
       if (next.deletes.has(row)) return;
-      const cells = next.edits.get(row) ?? new Map<number, NewValue>();
-      if (value.kind === "value" && same(value.value, this.base.get(col, row))) cells.delete(col);
-      else cells.set(col, value);
-      if (cells.size === 0) next.edits.delete(row);
-      else next.edits.set(row, cells);
+      // An edit of a table row applies to every result row that shows it.
+      for (const r of this.sharedRows(row)) {
+        const cells = next.edits.get(r) ?? new Map<number, NewValue>();
+        if (value.kind === "value" && same(value.value, this.base.get(col, r))) cells.delete(col);
+        else cells.set(col, value);
+        if (cells.size === 0) next.edits.delete(r);
+        else next.edits.set(r, cells);
+      }
     }
     this.commit(next);
   }
@@ -157,7 +216,7 @@ export class ChangeSet implements GridSource {
   deleteRows(rows: number[]): void {
     const n = this.base.rowCount;
     const next = copy(this.snap);
-    const loaded = rows.filter((r) => r < n);
+    const loaded = [...new Set(rows.filter((r) => r < n).flatMap((r) => this.sharedRows(r)))];
     const fresh = rows.filter((r) => r >= n).sort((a, b) => b - a);
     for (const r of fresh) next.inserts.splice(r - n, 1);
     const restore = loaded.length > 0 && loaded.every((r) => next.deletes.has(r));
@@ -166,6 +225,22 @@ export class ChangeSet implements GridSource {
       else next.deletes.add(r);
     }
     this.commit(next);
+  }
+
+  /**
+   * Run several changes as one undo step: Mod+Z reverts all of them together (a paste is one
+   * step, however many cells it sets).
+   */
+  group<T>(fn: () => T): T {
+    const start = this.past.length;
+    const out = fn();
+    if (this.past.length - start > 1) this.past.splice(start + 1);
+    return out;
+  }
+
+  /** How many undo steps are recorded (for callers that undo what they just staged). */
+  get undoDepth(): number {
+    return this.past.length;
   }
 
   undo(): boolean {
@@ -217,24 +292,52 @@ export class ChangeSet implements GridSource {
   /** The edits as a request for the backend. `keyColumns` must be column names of the table. */
   request(path: NodePath, keyColumns: string[]): ChangeRequest {
     const cols = this.base.columns;
-    const keyIdx = keyColumns.map((k) => cols.findIndex((c) => c.name === k));
+    const map = this.mapping;
+    // The table column a result column writes to; the table editor writes to its own names.
+    const target = (col: number): string | null =>
+      map ? (map.columnMap[col] ?? null) : cols[col].name;
+    const keyIdx = map
+      ? map.keyIndexes
+      : keyColumns.map((k) => cols.findIndex((c) => c.name === k));
     const keyOf = (row: number) => keyIdx.map((i) => this.base.get(i, row));
+    // One statement per table row: result rows that share a key are one change.
+    const firstOfKey = (rows: number[]) => {
+      const seen = new Set<string>();
+      return rows.filter((r) => {
+        const k = this.keyString(r);
+        if (k === null) return true;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+    };
+    const seenCols = new Set<string>();
+    const columns: { name: string; type_name: string }[] = [];
+    cols.forEach((c, i) => {
+      const t = target(i);
+      if (t !== null && !seenCols.has(t)) {
+        seenCols.add(t);
+        columns.push({ name: t, type_name: c.type_name });
+      }
+    });
     return {
       path,
-      columns: cols.map((c) => ({ name: c.name, type_name: c.type_name })),
+      columns,
       keyColumns,
-      edits: this.editedRows().map((row) => ({
+      edits: firstOfKey(this.editedRows()).map((row) => ({
         key: keyOf(row),
-        changes: [...this.snap.edits.get(row)!].map(([col, nv]) => ({
-          column: cols[col].name,
-          old: this.base.get(col, row),
-          new: nv,
-        })),
+        changes: [...this.snap.edits.get(row)!].flatMap(([col, nv]) => {
+          const t = target(col);
+          return t === null ? [] : [{ column: t, old: this.base.get(col, row), new: nv }];
+        }),
       })),
       inserts: this.snap.inserts.map((ins) => ({
-        values: [...ins].map(([col, nv]) => ({ column: cols[col].name, value: nv })),
+        values: [...ins].flatMap(([col, nv]) => {
+          const t = target(col);
+          return t === null ? [] : [{ column: t, value: nv }];
+        }),
       })),
-      deletes: this.deletedRows().map((row) => ({ key: keyOf(row) })),
+      deletes: firstOfKey(this.deletedRows()).map((row) => ({ key: keyOf(row) })),
     };
   }
 }

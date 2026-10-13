@@ -4,6 +4,7 @@ pub mod commands;
 pub mod connections;
 pub mod diagnostics;
 pub mod drivers;
+pub mod editability;
 pub mod error;
 pub mod exporter;
 pub mod files;
@@ -164,6 +165,7 @@ pub fn run() {
                 test_cancels: Default::default(),
                 files,
                 exports: Default::default(),
+                editability: Default::default(),
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -222,6 +224,8 @@ pub fn run() {
             commands::sessions::table_query_sql,
             commands::sessions::changes_preview,
             commands::sessions::changes_apply,
+            commands::results::results_resolve_edit,
+            commands::results::changes_refetch,
             commands::sessions::safety_check,
             commands::sessions::safety_check_changes,
             commands::sessions::session_read_only,

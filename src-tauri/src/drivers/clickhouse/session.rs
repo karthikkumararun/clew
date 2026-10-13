@@ -222,6 +222,8 @@ async fn run_statement(
                             nullable: Some(is_nullable(ty)),
                             source_table: None,
                             source_column: None,
+                            source_schema: None,
+                            source_updatable: None,
                         })
                         .collect();
                     if let Some(h) = head.take() {

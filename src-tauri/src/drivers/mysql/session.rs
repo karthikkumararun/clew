@@ -22,6 +22,7 @@ use super::decode::{decode_text, effective_type_name, kind_for_type};
 use super::error::{is_connection_error, map_error};
 use crate::drivers::introspect::NodeKind;
 use crate::drivers::paging::{self, Msg, STREAM_BUFFER};
+use crate::drivers::split_source;
 use crate::drivers::value::unhex;
 use crate::drivers::{
     CancelFn, CancelHandle, ColumnMeta, DriverError, DriverResult, ErrorCode, ExecRequest,
@@ -301,6 +302,8 @@ impl Session for MySession {
                             nullable: None,
                             source_table: None,
                             source_column: None,
+                            source_schema: None,
+                            source_updatable: None,
                         }
                     })
                     .collect();
@@ -333,6 +336,11 @@ impl Session for MySession {
                 nullable: None,
                 source_table: origin.as_ref().map(|(t, _)| t.clone()),
                 source_column: origin.as_ref().map(|(_, c)| c.clone()),
+                source_schema: origin
+                    .as_ref()
+                    .and_then(|(t, _)| split_source(t).0.map(str::to_string)),
+                // A column without a table is an expression, an aggregate or a literal.
+                source_updatable: Some(origin.is_some()),
             })
             .collect();
         let result_id = self.next_result;

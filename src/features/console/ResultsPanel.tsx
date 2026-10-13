@@ -323,6 +323,7 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         {tab === "output" ? (
           <OutputLog
             entries={output}
+            onClear={() => runtime.clearOutput()}
             onAction={() => {
               void confirmSwitchToReadWrite(connectionName).then((yes) => {
                 if (yes) void runtime.setReadOnly(false);

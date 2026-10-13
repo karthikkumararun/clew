@@ -138,6 +138,8 @@ impl Session for FakeSession {
                         nullable: Some(false),
                         source_table: None,
                         source_column: None,
+                        source_schema: None,
+                        source_updatable: None,
                     }],
                 })
                 .await;

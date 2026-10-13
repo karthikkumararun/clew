@@ -1002,6 +1002,19 @@ impl SessionManager {
         statements: &[crate::changes::Statement],
         token: Option<String>,
     ) -> DriverResult<crate::changes::ApplyOutcome> {
+        self.apply_changes_with(session_id, statements, token, Default::default())
+            .await
+    }
+
+    /// Like [`Self::apply_changes_confirmed`], with the console's transaction behaviour. The
+    /// session's transaction state follows the outcome (a manual submit leaves one open).
+    pub async fn apply_changes_with(
+        &self,
+        session_id: &str,
+        statements: &[crate::changes::Statement],
+        token: Option<String>,
+        options: crate::changes::ApplyOptions,
+    ) -> DriverResult<crate::changes::ApplyOutcome> {
         let entry = self.session(session_id)?;
         let mut st = entry.state.lock().await;
         Self::touch(&entry);
@@ -1021,7 +1034,10 @@ impl SessionManager {
                 "The connection was lost. Run the query again to reconnect, then retry.",
             )
         })?;
-        crate::changes::apply(session.as_mut(), &driver, in_txn, statements).await
+        let outcome =
+            crate::changes::apply(session.as_mut(), &driver, in_txn, options, statements).await?;
+        st.in_transaction = outcome.transaction_open;
+        Ok(outcome)
     }
 
     pub fn driver_id(&self, connection_id: &str) -> DriverResult<String> {
@@ -1207,6 +1223,17 @@ impl GuardReport {
     }
 }
 
+/// The session and connection facts result-editing resolution depends on.
+#[derive(Debug, Clone)]
+pub struct ResolveContext {
+    pub driver: String,
+    /// The connection's default database.
+    pub database: Option<String>,
+    pub user: Option<String>,
+    pub read_only: bool,
+    pub production: bool,
+}
+
 /// An EXPLAIN that takes longer than this is abandoned: the estimate is a courtesy.
 const ESTIMATE_BUDGET: Duration = Duration::from_millis(300);
 
@@ -1265,6 +1292,24 @@ impl SessionManager {
                 }
             }
         }
+    }
+
+    /// What result-editing resolution needs to know about a session and its connection.
+    pub async fn resolve_context(
+        &self,
+        connection_id: &str,
+        session_id: &str,
+    ) -> DriverResult<ResolveContext> {
+        let connection = self.connection(connection_id)?;
+        let entry = self.session(session_id)?;
+        let read_only = entry.state.lock().await.read_only;
+        Ok(ResolveContext {
+            driver: connection.driver.meta().id.to_string(),
+            database: connection.cfg.database.clone(),
+            user: connection.cfg.user.clone(),
+            read_only,
+            production: self.policy_of(connection_id).is_production(),
+        })
     }
 
     /// Whether the session refuses writes right now.

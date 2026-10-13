@@ -7,7 +7,7 @@ use sqlx::AssertSqlSafe;
 use super::introspect::MyMeta;
 use crate::drivers::introspect::{NodeKind, NodePath};
 use crate::drivers::table_meta::{
-    ColumnDetail, ForeignKeyDetail, IndexDetail, ReferencedBy, TableMeta,
+    ColumnDetail, ForeignKeyDetail, Generation, IndexDetail, ReferencedBy, TableMeta,
 };
 use crate::drivers::{DriverError, DriverResult};
 
@@ -18,6 +18,7 @@ type ColumnRow = (
     Option<String>,
     String,
     Option<String>,
+    String,
 );
 type IndexRow = (String, i64, String, String, i64);
 type KeyRow = (
@@ -49,7 +50,8 @@ pub async fn table_meta(meta: &MyMeta, path: &NodePath) -> DriverResult<TableMet
 
     let columns: Vec<ColumnRow> = sqlx::query_as(
         "SELECT CAST(COLUMN_NAME AS CHAR), CAST(COLUMN_TYPE AS CHAR), CAST(IS_NULLABLE AS CHAR), \
-                CAST(COLUMN_DEFAULT AS CHAR), CAST(COLUMN_KEY AS CHAR), CAST(COLUMN_COMMENT AS CHAR) \
+                CAST(COLUMN_DEFAULT AS CHAR), CAST(COLUMN_KEY AS CHAR), CAST(COLUMN_COMMENT AS CHAR), \
+                CAST(EXTRA AS CHAR) \
          FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? \
          ORDER BY ORDINAL_POSITION",
     )
@@ -154,17 +156,35 @@ pub async fn table_meta(meta: &MyMeta, path: &NodePath) -> DriverResult<TableMet
     .map_err(|e| meta.err(e))?
     .flatten();
 
+    let table_type: Option<String> = sqlx::query_scalar(
+        "SELECT CAST(TABLE_TYPE AS CHAR) FROM information_schema.TABLES \
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
+    )
+    .bind(db)
+    .bind(table)
+    .fetch_optional(&meta.pool)
+    .await
+    .map_err(|e| meta.err(e))?;
+
     Ok(TableMeta {
         columns: columns
             .into_iter()
             .map(
-                |(name, type_name, nullable, default, key, comment)| ColumnDetail {
+                |(name, type_name, nullable, default, key, comment, extra)| ColumnDetail {
                     name,
                     type_name,
                     nullable: nullable == "YES",
                     default,
                     primary_key: key == "PRI",
                     comment: opt(comment),
+                    // `VIRTUAL GENERATED`, `STORED GENERATED` (and MariaDB's `VIRTUAL`/`PERSISTENT`).
+                    generated: {
+                        let extra = extra.to_ascii_uppercase();
+                        (extra.contains("GENERATED")
+                            || extra.contains("VIRTUAL")
+                            || extra.contains("PERSISTENT"))
+                        .then_some(Generation::Always)
+                    },
                 },
             )
             .collect(),
@@ -172,5 +192,6 @@ pub async fn table_meta(meta: &MyMeta, path: &NodePath) -> DriverResult<TableMet
         foreign_keys: fks.into_values().collect(),
         referenced_by: refs.into_values().collect(),
         estimated_rows: estimate,
+        is_view: table_type.map(|t| t.contains("VIEW")),
     })
 }

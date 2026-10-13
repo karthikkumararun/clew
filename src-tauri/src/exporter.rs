@@ -765,6 +765,8 @@ mod tests {
             nullable: None,
             source_table: None,
             source_column: None,
+            source_schema: None,
+            source_updatable: None,
         }
     }
     fn t(s: &str) -> Value {

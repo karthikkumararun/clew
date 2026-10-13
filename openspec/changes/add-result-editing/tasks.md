@@ -1,10 +1,10 @@
 ## 1. Provenance and editability
 
-- [ ] 1.1 Extend `ColumnMeta` with `source_schema` and `source_updatable`; fill them for PostgreSQL, MySQL/MariaDB and SQLite (spec: driver-framework › Result column provenance)
-- [ ] 1.2 Statement analysis with `sqlparser` for drivers without provenance: single table, plain columns, aliases; everything else read-only (spec: result-editing › Source detection)
-- [ ] 1.3 `resolve()` combining provenance, introspection keys/generated flags and view detection into an `EditPlan` or a read-only reason (spec: result-editing › Editable query results, Read-only reasons)
-- [ ] 1.4 Command `results_resolve_edit` returning the plan to the frontend; cache per connection and statement
-- [ ] 1.5 Test: table-driven resolver tests (aliases, reordered columns, expressions, missing key, join with one and two candidates, view, DISTINCT/GROUP BY, parse failure, Oracle inferred) with `/// spec:` references
+- [x] 1.1 Extend `ColumnMeta` with `source_schema` and `source_updatable`; fill them for PostgreSQL, MySQL/MariaDB and SQLite (spec: driver-framework › Result column provenance)
+- [x] 1.2 Statement analysis with `sqlparser` for drivers without provenance: single table, plain columns, aliases; everything else read-only (spec: result-editing › Source detection)
+- [x] 1.3 `resolve()` combining provenance, introspection keys/generated flags and view detection into an `EditPlan` or a read-only reason (spec: result-editing › Editable query results, Read-only reasons)
+- [x] 1.4 Command `results_resolve_edit` returning the plan to the frontend; cache per connection and statement
+- [x] 1.5 Test: table-driven resolver tests (aliases, reordered columns, expressions, missing key, join with one and two candidates, view, DISTINCT/GROUP BY, parse failure, Oracle inferred) with `/// spec:` references
 
 ## 2. Editing engine
 
@@ -24,10 +24,10 @@
 
 ## 4. Submit and transactions
 
-- [ ] 4.1 `changes_apply` modes `own_transaction` and `in_session_transaction` with savepoint adapters per driver (spec: result-editing › Submit and transactions)
+- [ ] 4.1 `changes_apply` modes `own_transaction` and `in_session_transaction` with savepoint adapters per driver (spec: result-editing › Submit and transactions) (backend done)
 - [ ] 4.2 Submit, Submit and commit, Commit and Roll back in the pending bar and toolbar; statement counter in the Tx chip
 - [ ] 4.3 Optimistic-conflict dialog (Keep editing, Reload row, Overwrite) and failing-row highlight
-- [ ] 4.4 Read-back by key / RETURNING; stale computed columns; Re-run action and auto re-run setting (spec: result-editing › After submit)
+- [ ] 4.4 Read-back by key / RETURNING; stale computed columns; Re-run action and auto re-run setting (spec: result-editing › After submit) (backend done)
 - [ ] 4.5 Production confirmation and typed confirmation through the guard; read-only sessions make results read-only; AI cannot stage or submit (spec: result-editing › Safeguards apply)
 - [ ] 4.6 Test (integration, real databases): failed submit in manual mode leaves earlier statements intact on PostgreSQL, MySQL and SQLite; auto-commit submit commits; conflict detected
 

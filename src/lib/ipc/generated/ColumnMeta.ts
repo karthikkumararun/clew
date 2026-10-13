@@ -5,4 +5,20 @@ export type ColumnMeta = { name: string,
 /**
  * The database's own type name, e.g. `int8`, `numeric`, `VARCHAR`.
  */
-type_name: string, kind: ValueKind, nullable: boolean | null, source_table?: string, source_column?: string, };
+type_name: string, kind: ValueKind, nullable: boolean | null, 
+/**
+ * The table the column was read from. Drivers that can name the schema write it qualified
+ * (`public.orders`); `source_schema` then repeats the schema on its own.
+ */
+source_table?: string, source_column?: string, 
+/**
+ * The schema (PostgreSQL), database (MySQL, MariaDB) or attached database (SQLite) of
+ * `source_table`.
+ */
+source_schema?: string, 
+/**
+ * Whether the column can be written through its source: `false` for expressions,
+ * aggregates and generated-always columns, `true` when it maps straight to a source column,
+ * `None` when the driver cannot tell.
+ */
+source_updatable?: boolean, };
