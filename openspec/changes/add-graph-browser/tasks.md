@@ -6,7 +6,7 @@
 - [x] 1.4 Type conversion incl. temporal, duration, point, big integers as strings; dedupe nodes/relationships into `GraphResult`
 - [x] 1.5 Introspection: labels/types with counts, property keys, indexes, constraints; completion snapshot; explorer nodes
 - [x] 1.6 Add the Neo4j form to the connection dialog (protocol, host, port 7687, user, password, database, AuraDB hint) and `neo4j://` / `neo4j+s://` / `bolt://` / `bolt+s://` URL parsing
-- [ ] 1.7 Test: conformance-style tests against `neo4j:5` in docker-compose (records, paging, cancel, read-mode rejection, big ints). Written: `src-tauri/tests/neo4j.rs` (23 tests) and, without Docker, `drivers/neo4j/server_tests.rs` against a fake Bolt server. Tick after a green `docker compose --profile graph up -d --wait && cargo test --features integration --test neo4j`
+- [x] 1.7 Test: conformance-style tests against `neo4j:5` in docker-compose (records, paging, cancel, read-mode rejection, big ints). Written: `src-tauri/tests/neo4j.rs` (23 tests) and, without Docker, `drivers/neo4j/server_tests.rs` against a fake Bolt server (green against `neo4j:5-community`: `docker compose --profile graph up -d --wait && cargo test --features integration --test neo4j`)
 
 ## 2. Cypher console
 
@@ -37,5 +37,5 @@
 ## 6. End-to-end
 
 - [x] 6.0 E2E: add the test-mode accessible mirror for the graph canvas (`data-testid` nodes and edges, only when `VITE_CLEW_E2E=1`), following `src/features/grid/GridMirror.tsx`
-- [ ] 6.1 E2E: add journey J-24 (J-15 is taken by the platform journey) in `e2e/specs/` — run a Cypher query, see the graph, expand neighbours, inspect a node; unfiltered DETACH DELETE on production needs typed confirmation (written in `e2e/specs/J-24-graph-browser.e2e.ts`, needs `pnpm qa:up --profiles graph`; not run yet because Docker Desktop was down)
-- [ ] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. graph-browser › Graph view; graph-browser › Cypher safeguards) and add the seed/compose service it needs to the matching profile (declared in J-24; the neo4j service is in the `graph` profile; tick with 6.1 once the journey has run)
+- [x] 6.1 E2E: add journey J-24 (J-15 is taken by the platform journey) in `e2e/specs/` — run a Cypher query, see the graph, expand neighbours, inspect a node; unfiltered DETACH DELETE on production needs typed confirmation (`e2e/specs/J-24-graph-browser.e2e.ts`, needs `pnpm qa:up --profiles graph`)
+- [x] 6.2 Declare `covers(...)` for the scenarios it exercises (e.g. graph-browser › Graph view; graph-browser › Cypher safeguards) and add the seed/compose service it needs to the matching profile (declared in J-24; the neo4j service is in the `graph` profile)
