@@ -3,6 +3,7 @@
 - [ ] 1.1 `palette_index` migration and update hooks from introspection and completion snapshots (spec: command-palette › Object index)
 - [ ] 1.2 `palette_search` with nucleo-matcher, ranking rules and match indices (spec: command-palette › Fuzzy search)
 - [ ] 1.3 Test: ranking order for the "ord" fixture; 100k objects under 50 ms
+- [ ] 1.4 Index graph labels and relationship types from `SchemaSnapshot.graph` (carried over from `add-graph-browser` 5.2; spec: graph-browser › Explorer, palette and AI integration); selecting one opens a graph console with the label query
 
 ## 2. Palette UI
 
