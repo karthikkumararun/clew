@@ -5,6 +5,7 @@ pub mod chat;
 pub mod chats;
 pub mod config;
 pub mod context;
+pub mod copilot;
 pub mod policy;
 pub mod providers;
 pub mod sse;
@@ -214,6 +215,20 @@ impl AiService {
                 "AI features are turned off in Settings › AI assistant",
             ))
         }
+    }
+
+    /// The provider for a feature, ready to use. This is the only way a request reaches the
+    /// network on the user's behalf, so it is where "nothing is sent until AI is on and a provider
+    /// is set up" (spec: ai-providers › Fresh install) is enforced.
+    pub fn open(
+        &self,
+        route: Route,
+        explicit: Option<&str>,
+    ) -> AppResult<(ProviderConfig, Box<dyn ChatProvider>)> {
+        self.ensure_enabled()?;
+        let cfg = self.resolve(route, explicit)?;
+        let provider = self.provider(&cfg, None)?;
+        Ok((cfg, provider))
     }
 
     /// A provider for a configuration. `secret` overrides the stored one (for Test connection

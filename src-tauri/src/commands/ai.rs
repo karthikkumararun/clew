@@ -154,14 +154,12 @@ pub async fn ai_chat(
     input: ChatInput,
     on_event: Channel<AiEvent>,
 ) -> AppResult<()> {
-    state.ai.ensure_enabled()?;
     let route = match input.feature {
         chat::Feature::Chat => Route::Chat,
         chat::Feature::Fix => Route::Fix,
         chat::Feature::NlSql => Route::NlSql,
     };
-    let cfg = state.ai.resolve(route, input.provider_id.as_deref())?;
-    let provider = state.ai.provider(&cfg, None)?;
+    let (cfg, provider) = state.ai.open(route, input.provider_id.as_deref())?;
     let conn = state.connections.get(&input.connection_id)?;
     let (hosts, users) = hosts_and_users(&conn);
     let settings = state.ai.settings();
@@ -212,8 +210,7 @@ pub async fn ai_complete(
     state: State<'_, AppState>,
     input: CompleteInput,
 ) -> AppResult<Vec<String>> {
-    state.ai.ensure_enabled()?;
-    let cfg = state.ai.resolve(Route::Inline, None)?;
+    let (cfg, provider) = state.ai.open(Route::Inline, None)?;
     let conn = state.connections.get(&input.connection_id)?;
     let settings = state.ai.settings();
     let access = policy::access(&settings.privacy, is_production(&conn));
@@ -257,7 +254,6 @@ pub async fn ai_complete(
                 .collect();
         }
     }
-    let provider = state.ai.provider(&cfg, None)?;
     let token = state.ai.start(&input.request_id);
     let model = model_for(&cfg, None);
     let result = chat::complete(

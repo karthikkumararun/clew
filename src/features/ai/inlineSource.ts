@@ -45,7 +45,13 @@ async function suggest(
   try {
     let out: Suggestions;
     if (route === "copilot") {
-      out = await copilotSuggest({ prefix, suffix, signal, driver: target.driver });
+      out = await copilotSuggest({
+        connectionId: target.connectionId,
+        documentId: tabId,
+        prefix,
+        suffix,
+        signal,
+      });
     } else {
       const requestId = newId("cmp");
       const onAbort = () => void aiCancel(requestId).catch(() => {});

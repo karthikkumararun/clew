@@ -252,6 +252,7 @@ impl ChatProvider for OpenAi {
         .json(&body(&req))
         .send();
         let resp = tokio::select! {
+            biased;
             _ = cancel.cancelled() => return Err(ProviderError::new(ErrorKind::Cancelled, "Stopped")),
             r = send => r.map_err(|e| self.unreachable(&e))?,
         };

@@ -329,3 +329,46 @@ fn the_default_model_for_claude_is_sonnet_5_5() {
     assert_eq!(model_for(&cfg, None), "claude-sonnet-5-5");
     assert_eq!(model_for(&cfg, Some("claude-opus-5-5")), "claude-opus-5-5");
 }
+
+/// (spec: app-shell › Offline by default; ai-providers › Fresh install)
+#[tokio::test]
+async fn no_request_is_made_while_ai_is_disabled() {
+    let server = serve(vec![Canned::sse(OPENAI_SSE)]).await;
+    let (svc, _, _d) = service();
+    let mut s = svc.settings();
+    s.enabled = false;
+    s.providers = vec![openai(&server.url)];
+    s.routing.chat = Some(OPENAI_ID.into());
+    s.routing.inline = Some(OPENAI_ID.into());
+    svc.set_settings(s).unwrap();
+    svc.set_secret(OPENAI_ID, &Secret::new("k")).unwrap();
+    for route in [Route::Chat, Route::Fix, Route::NlSql, Route::Inline] {
+        assert_eq!(svc.open(route, None).err().unwrap().code, "ai_disabled");
+    }
+    assert!(
+        server.requests.lock().unwrap().is_empty(),
+        "nothing reached the network"
+    );
+
+    // Switched on, the same request goes to the endpoint the user configured, and only there.
+    let mut s = svc.settings();
+    s.enabled = true;
+    svc.set_settings(s).unwrap();
+    let (_, provider) = svc.open(Route::Chat, None).unwrap();
+    run(provider.as_ref()).await.1.unwrap();
+    let seen = server.requests.lock().unwrap();
+    assert_eq!(seen.len(), 1);
+    assert!(seen[0].path.ends_with("/chat/completions"));
+}
+
+#[test]
+fn opening_a_provider_needs_a_configured_one() {
+    let (svc, _, _d) = service();
+    let mut s = svc.settings();
+    s.enabled = true;
+    svc.set_settings(s).unwrap();
+    assert_eq!(
+        svc.open(Route::Chat, None).err().unwrap().code,
+        "ai_no_provider"
+    );
+}

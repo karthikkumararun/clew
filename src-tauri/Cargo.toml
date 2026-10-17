@@ -59,6 +59,9 @@ tauri-plugin-wdio = { version = "1.5", optional = true }
 tauri-plugin-wdio-webdriver = { version = "1.5", optional = true }
 chrono-tz = "0.10"
 nucleo-matcher = "0.3.1"
+flate2 = "1.1.10"
+tar = { version = "0.4.46", default-features = false }
+open = "5.4.4"
 
 [profile.release]
 codegen-units = 1

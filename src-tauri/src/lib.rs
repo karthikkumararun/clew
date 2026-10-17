@@ -131,6 +131,15 @@ pub fn run() {
             let password_prompts = Arc::new(connections::service::PendingPasswords::default());
             let handle = app.handle().clone();
             let secrets = secret_store(&data_dir);
+            let copilot = {
+                let handle = app.handle().clone();
+                ai::copilot::service::CopilotService::new(
+                    data_dir.clone(),
+                    Arc::new(move |state| {
+                        let _ = handle.emit("copilot_state", state);
+                    }),
+                )
+            };
             let (ai, ai_backup) = ai::AiService::new(data_dir.clone(), secrets.clone());
             if let Some(backup) = ai_backup {
                 applog::log(&format!(
@@ -181,7 +190,10 @@ pub fn run() {
                 editability: Default::default(),
                 palette,
                 ai: Arc::new(ai),
+                copilot: copilot.clone(),
             });
+            // Pick up an existing Copilot sign-in without asking for anything.
+            tauri::async_runtime::spawn(async move { copilot.refresh().await });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
             }
@@ -282,6 +294,16 @@ pub fn run() {
             commands::ai::ai_chat_load,
             commands::ai::ai_chat_save,
             commands::ai::ai_chats_delete,
+            commands::external::open_external,
+            commands::copilot::copilot_state,
+            commands::copilot::copilot_refresh,
+            commands::copilot::copilot_begin,
+            commands::copilot::copilot_accept_consent,
+            commands::copilot::copilot_decline_consent,
+            commands::copilot::copilot_check_now,
+            commands::copilot::copilot_cancel,
+            commands::copilot::copilot_sign_out,
+            commands::copilot::copilot_complete,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,
             commands::files::file_save_dialog,

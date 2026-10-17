@@ -33,4 +33,6 @@ pub struct AppState {
     pub palette: Arc<crate::palette::Palette>,
     /// AI providers, settings and running requests.
     pub ai: Arc<crate::ai::AiService>,
+    /// GitHub Copilot's language server and sign-in.
+    pub copilot: Arc<crate::ai::copilot::service::CopilotService>,
 }

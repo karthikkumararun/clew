@@ -250,3 +250,94 @@
   color: var(--text-dim);
   font-size: var(--fs-small);
 }
+
+.signedOut {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.plain {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.signedIn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--keep-border);
+  background: var(--keep-bg);
+  color: var(--success);
+  flex-wrap: wrap;
+}
+
+.signedIn > span {
+  color: var(--text);
+}
+
+.monoText {
+  font-family: var(--font-mono);
+}
+
+.pending {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--pending-bar-border);
+  background: var(--pending-bar-bg);
+}
+
+.pendingHint {
+  color: var(--pending-bar-text);
+  font-size: var(--fs-small);
+}
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.code {
+  font: 600 26px var(--font-mono);
+  letter-spacing: 0.18em;
+  color: var(--accent-hover);
+}
+
+.waiting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.consent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-app);
+}
+
+.consentText {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.consentActions {
+  display: flex;
+  gap: 8px;
+}

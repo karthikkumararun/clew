@@ -243,6 +243,7 @@ impl ChatProvider for Anthropic {
             .json(&body(&req))
             .send();
         let resp = tokio::select! {
+            biased;
             _ = cancel.cancelled() => return Err(ProviderError::new(ErrorKind::Cancelled, "Stopped")),
             r = send => r.map_err(|e| send_error(&e, &self.base))?,
         };

@@ -20,23 +20,23 @@ pub struct Recorded {
 pub struct Canned {
     pub status: u16,
     pub content_type: &'static str,
-    pub body: String,
+    pub body: Vec<u8>,
 }
 
 impl Canned {
     pub fn sse(body: impl Into<String>) -> Self {
-        Self {
-            status: 200,
-            content_type: "text/event-stream",
-            body: body.into(),
-        }
+        Self::bytes(200, "text/event-stream", body.into().into_bytes())
     }
 
     pub fn json(status: u16, body: impl Into<String>) -> Self {
+        Self::bytes(status, "application/json", body.into().into_bytes())
+    }
+
+    pub fn bytes(status: u16, content_type: &'static str, body: Vec<u8>) -> Self {
         Self {
             status,
-            content_type: "application/json",
-            body: body.into(),
+            content_type,
+            body,
         }
     }
 }
@@ -48,8 +48,14 @@ pub struct TestServer {
 
 /// Serve `responses` in order, one per connection; the last one repeats.
 pub async fn serve(responses: Vec<Canned>) -> TestServer {
+    serve_with(|_| responses).await
+}
+
+/// Like [`serve`], for responses that need to know the server's own address.
+pub async fn serve_with(make: impl FnOnce(&str) -> Vec<Canned>) -> TestServer {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
+    let responses = make(&url);
     let requests = Arc::new(Mutex::new(Vec::new()));
     let log = requests.clone();
     tokio::spawn(async move {
@@ -99,19 +105,22 @@ pub async fn serve(responses: Vec<Canned>) -> TestServer {
                     .collect();
                 let body = String::from_utf8_lossy(&buf[head_end..]).to_string();
                 log.lock().unwrap().push(Recorded {
-                    method,
+                    method: method.clone(),
                     path,
                     headers,
                     body,
                 });
-                let response = format!(
-                    "HTTP/1.1 {} X\r\ncontent-type: {}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                let head = format!(
+                    "HTTP/1.1 {} X\r\ncontent-type: {}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
                     canned.status,
                     canned.content_type,
                     canned.body.len(),
-                    canned.body
                 );
-                let _ = sock.write_all(response.as_bytes()).await;
+                let _ = sock.write_all(head.as_bytes()).await;
+                // A HEAD request gets the headers only.
+                if method != "HEAD" {
+                    let _ = sock.write_all(&canned.body).await;
+                }
                 let _ = sock.shutdown().await;
             });
         }

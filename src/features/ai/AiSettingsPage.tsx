@@ -7,6 +7,7 @@ import settingsStyles from "../../shell/SettingsDialog.module.css";
 import { aiModels, aiSecretClear, aiSecretSet, aiTestProvider } from "./api";
 import type { AiSettings, ModelInfo, ProviderConfig } from "./api";
 import { CopilotPanel } from "./CopilotPanel";
+import { openExternal } from "./external";
 import { useCopilot } from "./copilotStore";
 import {
   BUILTIN,
@@ -231,7 +232,6 @@ export function AiSettingsPage() {
 
 function CopilotDetail() {
   const { settings, patch } = useAiSettings();
-  const copilot = useCopilot();
   return (
     <>
       <div className={styles.head}>
@@ -252,10 +252,10 @@ function CopilotDetail() {
       />
       <Checkbox
         label="Use Copilot for chat too"
-        description="Uses the chat models your Copilot plan allows."
-        checked={settings.copilot.chat}
-        disabled={copilot.phase !== "in"}
-        onChange={(e) => void patch({ copilot: { ...settings.copilot, chat: e.target.checked } })}
+        description="Not available yet: the Copilot component doesn't offer chat to other apps in this version."
+        checked={false}
+        disabled
+        onChange={() => {}}
       />
     </>
   );
@@ -558,18 +558,19 @@ function ProviderForm({
             </div>
             <span className={styles.hint}>
               Saved in the system keychain.{" "}
-              <a
+              <button
+                type="button"
                 className={styles.link}
-                href={
-                  cfg.kind === "anthropic"
-                    ? "https://console.anthropic.com/settings/keys"
-                    : "https://platform.openai.com/api-keys"
+                onClick={() =>
+                  void openExternal(
+                    cfg.kind === "anthropic"
+                      ? "https://console.anthropic.com/settings/keys"
+                      : "https://platform.openai.com/api-keys",
+                  )
                 }
-                target="_blank"
-                rel="noreferrer"
               >
                 Where do I get a key?
-              </a>
+              </button>
             </span>
           </div>
           <div className={styles.grid}>
