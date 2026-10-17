@@ -1,4 +1,4 @@
-import { invoke, isTauri } from "../../lib/ipc";
+import { invoke, isTauri } from "./ipc";
 
 /** Open one of the few pages the app links to (key consoles, GitHub's device page). */
 export async function openExternal(url: string): Promise<void> {

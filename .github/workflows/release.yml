@@ -1,0 +1,239 @@
+name: Release
+
+# Builds the installers for a version tag and puts them on a draft GitHub Release (spec:
+# release-packaging). Nothing is published unless every platform built: the release is created in
+# a last job that needs them all. Signing happens only when the secrets are present (see
+# docs/releasing.md); without them the installers are unsigned and the release says so.
+#
+# Run it by hand ("Run workflow") for a dry run: it builds everything and uploads the files and the
+# update manifest as a workflow artifact, but creates no release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      dry_run: ${{ github.event_name != 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: The tag must match the version of every file
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            pnpm exec tsx scripts/release/cli.ts meta "${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
+          else
+            pnpm exec tsx scripts/release/cli.ts meta --from-files | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: meta
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: macos
+            os: macos-14
+            args: --target universal-apple-darwin
+          - name: windows
+            os: windows-latest
+            args: --bundles nsis,msi
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.name == 'macos' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - run: pnpm install --frozen-lockfile
+
+      - name: Third-party licenses (fails on a license outside the allow-list)
+        run: pnpm build:licenses
+
+      # Signing secrets are exported only when they exist: an empty APPLE_CERTIFICATE would make
+      # the bundler try to import nothing and fail.
+      - name: Signing configuration
+        id: sign
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+          AZURE_CODE_SIGNING_ACCOUNT: ${{ secrets.AZURE_CODE_SIGNING_ACCOUNT }}
+          AZURE_CERT_PROFILE: ${{ secrets.AZURE_CERT_PROFILE }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: |
+          signed=false
+          if [ "${{ matrix.name }}" = "macos" ]; then
+            if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_SIGNING_IDENTITY" ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+                echo "$v=${!v}" >> "$GITHUB_ENV"
+              done
+              signed=true
+            fi
+          else
+            if [ -n "$AZURE_ENDPOINT" ] && [ -n "$AZURE_CODE_SIGNING_ACCOUNT" ] && [ -n "$AZURE_CERT_PROFILE" ] && [ -n "$AZURE_CLIENT_ID" ]; then
+              # Azure Trusted Signing through the bundler's signCommand.
+              for v in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET; do echo "$v=${!v}" >> "$GITHUB_ENV"; done
+              cargo install trusted-signing-cli --locked
+              cat > src-tauri/tauri.windows-sign.conf.json <<JSON
+          {"bundle":{"windows":{"signCommand":"trusted-signing-cli -e $AZURE_ENDPOINT -a $AZURE_CODE_SIGNING_ACCOUNT -c $AZURE_CERT_PROFILE -d Clew %1"}}}
+          JSON
+              echo "config=--config src-tauri/tauri.windows-sign.conf.json" >> "$GITHUB_OUTPUT"
+              signed=true
+            elif [ -n "$WINDOWS_CERTIFICATE" ]; then
+              # A PFX certificate, imported into the user store and used by thumbprint.
+              echo "$WINDOWS_CERTIFICATE" | base64 -d > cert.pfx
+              thumb=$(pwsh -NoProfile -Command "\$p = ConvertTo-SecureString -String '$WINDOWS_CERTIFICATE_PASSWORD' -AsPlainText -Force; (Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\\CurrentUser\\My -Password \$p).Thumbprint")
+              rm cert.pfx
+              cat > src-tauri/tauri.windows-sign.conf.json <<JSON
+          {"bundle":{"windows":{"certificateThumbprint":"$thumb","digestAlgorithm":"sha256","timestampUrl":"http://timestamp.digicert.com"}}}
+          JSON
+              echo "config=--config src-tauri/tauri.windows-sign.conf.json" >> "$GITHUB_OUTPUT"
+              signed=true
+            fi
+          fi
+          echo "signed=$signed" >> "$GITHUB_OUTPUT"
+          echo "This build is signed: $signed"
+
+      - name: Build the installers
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update archives so installed apps can verify them (spec: Opt-in updates).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json ${{ steps.sign.outputs.config }}
+
+      - name: Name the installers Clew_<version>_<platform>.<ext>
+        shell: bash
+        run: pnpm exec tsx scripts/release/cli.ts collect "$VERSION" release-files
+
+      # The package installs and carries what the spec promises, before anything is published.
+      - name: Check the macOS package
+        if: matrix.name == 'macos'
+        run: |
+          hdiutil attach "release-files/Clew_${VERSION}_universal.dmg" -mountpoint /tmp/clew-dmg -nobrowse
+          cp -R /tmp/clew-dmg/Clew.app /Applications/Clew.app
+          hdiutil detach /tmp/clew-dmg
+          lipo -archs /Applications/Clew.app/Contents/MacOS/clew | tee /dev/stderr | grep -q arm64
+          lipo -archs /Applications/Clew.app/Contents/MacOS/clew | grep -q x86_64
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' /Applications/Clew.app/Contents/Info.plist)" = "12.0"
+          if [ "${{ steps.sign.outputs.signed }}" = "true" ]; then
+            codesign --verify --deep --strict --verbose=2 /Applications/Clew.app
+            spctl --assess --type execute --verbose /Applications/Clew.app
+            xcrun stapler validate /Applications/Clew.app
+          fi
+      - name: Check the Windows installer
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $setup = (Resolve-Path "release-files/Clew_$($env:VERSION)_x64.exe").Path
+          Start-Process -FilePath $setup -ArgumentList "/S" -Wait
+          $dir = Join-Path $env:LOCALAPPDATA "Clew"
+          if (-not (Test-Path (Join-Path $dir "clew.exe"))) { throw "the installer did not install clew.exe" }
+          if ("${{ steps.sign.outputs.signed }}" -eq "true") {
+            $sig = Get-AuthenticodeSignature (Join-Path $dir "clew.exe")
+            if ($sig.Status -ne "Valid") { throw "clew.exe is not validly signed: $($sig.Status)" }
+          }
+          Start-Process -FilePath (Join-Path $dir "uninstall.exe") -ArgumentList "/S" -Wait
+
+      - name: Remember whether this platform was signed
+        shell: bash
+        run: echo "${{ steps.sign.outputs.signed }}" > release-files/signed-${{ matrix.name }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.name }}
+          path: release-files/
+          if-no-files-found: error
+
+  # Only here does a release come into being, and only when every build above succeeded.
+  publish:
+    needs: [meta, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ needs.meta.outputs.version }}
+      tag: ${{ needs.meta.outputs.tag }}
+      prerelease: ${{ needs.meta.outputs.prerelease }}
+      signed_macos: ${{ steps.signed.outputs.macos }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-files
+          merge-multiple: true
+      - name: Which platforms were signed
+        id: signed
+        run: |
+          echo "macos=$(cat release-files/signed-macos.txt)" >> "$GITHUB_OUTPUT"
+          echo "windows=$(cat release-files/signed-windows.txt)" >> "$GITHUB_OUTPUT"
+          rm release-files/signed-*.txt
+      - name: Checksums and the update manifest
+        env:
+          RELEASE_NOTES: Clew ${{ needs.meta.outputs.version }}. See https://github.com/${{ github.repository }}/releases/tag/${{ needs.meta.outputs.tag }}
+        run: pnpm exec tsx scripts/release/cli.ts finish release-files "${{ github.repository }}" "${{ needs.meta.outputs.tag }}" "${{ needs.meta.outputs.version }}"
+      - name: Dry run, keep the files for inspection
+        if: needs.meta.outputs.dry_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-release-files
+          path: release-files/
+      - name: Create the draft release
+        if: needs.meta.outputs.dry_run != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          MACOS_SIGNED: ${{ steps.signed.outputs.macos }}
+          WINDOWS_SIGNED: ${{ steps.signed.outputs.windows }}
+        run: |
+          pnpm exec tsx scripts/release/cli.ts unsigned-note "$MACOS_SIGNED" "$WINDOWS_SIGNED" > unsigned-note.md
+          flags=(--draft --title "Clew $VERSION" --generate-notes --notes-file unsigned-note.md)
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" release-files/* "${flags[@]}"

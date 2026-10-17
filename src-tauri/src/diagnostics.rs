@@ -166,6 +166,21 @@ pub fn about_info(app: tauri::AppHandle) -> AboutInfo {
     }
 }
 
+/// The third-party license list shipped with the app (generated when a release is built; a
+/// development build carries a short note instead).
+#[tauri::command]
+pub fn licenses_html(app: tauri::AppHandle) -> Result<String, String> {
+    use tauri::Manager;
+    let path = app
+        .path()
+        .resolve(
+            "THIRD_PARTY_LICENSES.html",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| e.to_string())?;
+    std::fs::read_to_string(path).map_err(|e| format!("The license list isn't available: {e}"))
+}
+
 /// The diagnostics report as text. `connection_id` is the connection in use, if any.
 #[tauri::command]
 pub async fn diagnostics_bundle(

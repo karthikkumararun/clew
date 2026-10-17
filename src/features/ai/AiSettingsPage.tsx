@@ -7,7 +7,7 @@ import settingsStyles from "../../shell/SettingsDialog.module.css";
 import { aiModels, aiSecretClear, aiSecretSet, aiTestProvider } from "./api";
 import type { AiSettings, ModelInfo, ProviderConfig } from "./api";
 import { CopilotPanel } from "./CopilotPanel";
-import { openExternal } from "./external";
+import { openExternal } from "../../lib/external";
 import { useCopilot } from "./copilotStore";
 import {
   BUILTIN,

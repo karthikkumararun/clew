@@ -25,7 +25,7 @@ vi.mock("./copilotStore", async (orig) => {
     copilotSignOut: () => calls.signOut(),
   };
 });
-vi.mock("./external", () => ({ openExternal: (u: string) => calls.open(u) }));
+vi.mock("../../lib/external", () => ({ openExternal: (u: string) => calls.open(u) }));
 
 beforeEach(() => {
   vi.clearAllMocks();

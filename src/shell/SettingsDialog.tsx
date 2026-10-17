@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { Button } from "../components/Button";
 import { Checkbox, Input, SegmentedControl } from "../components/Input";
 import { Dialog } from "../components/Dialog";
 import { AiSettingsPage } from "../features/ai/AiSettingsPage";
+import { APP_VERSION } from "../lib/appInfo";
 import { formatShortcut } from "../lib/platform";
+import { checkForUpdates } from "../features/updates/updater";
+import { useUpdates } from "../features/updates/updateStore";
+import updateStyles from "../features/updates/Updates.module.css";
 import { IDLE_MINUTES_RANGE, useSessionSettings } from "../stores/sessionSettings";
 import { FONT_SIZE_RANGE, PAGE_SIZES, useSettings } from "../stores/settingsStore";
 import { listCommands, subscribeCommands } from "./registry/commands";
@@ -261,6 +266,8 @@ function Keymap() {
 
 function Updates() {
   const { settings, set } = useSettings();
+  const status = useUpdates((s) => s.status);
+  const checking = status.kind === "checking" || status.kind === "installing";
   return (
     <Section
       title="Updates"
@@ -268,11 +275,34 @@ function Updates() {
     >
       <div className={styles.card}>
         <Checkbox
-          label="Check for updates"
-          description="Off by default. When on, Clew looks for a newer release at startup."
+          label="Check for updates automatically"
+          description="Off by default. When on, Clew looks for a newer release when it starts."
           checked={settings.checkForUpdates}
           onChange={(e) => set({ checkForUpdates: e.target.checked })}
         />
+        <div className={updateStyles.row}>
+          <Button variant="default" disabled={checking} onClick={() => void checkForUpdates()}>
+            {status.kind === "checking" ? "Checking…" : "Check now"}
+          </Button>
+          <span role="status" className={status.kind === "error" ? updateStyles.bad : styles.help}>
+            {status.kind === "upToDate" ? (
+              <span className={updateStyles.ok}>Clew is up to date (version {APP_VERSION}).</span>
+            ) : status.kind === "error" ? (
+              status.message
+            ) : status.kind === "available" ? (
+              <>
+                Version {status.version} is available.{" "}
+                <button
+                  type="button"
+                  className={updateStyles.link}
+                  onClick={() => useUpdates.getState().openDialog()}
+                >
+                  See what&apos;s new
+                </button>
+              </>
+            ) : null}
+          </span>
+        </div>
       </div>
     </Section>
   );

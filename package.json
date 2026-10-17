@@ -34,7 +34,9 @@
     "check:design-states": "tsx scripts/check-design-states.ts",
     "check:design-metrics": "tsx scripts/check-design-metrics.ts",
     "check:spec-completeness": "tsx scripts/check-spec-completeness.ts",
-    "dev:app": "tauri dev --config src-tauri/tauri.dev.conf.json"
+    "dev:app": "tauri dev --config src-tauri/tauri.dev.conf.json",
+    "check:licenses": "tsx scripts/licenses.ts --check --npm-only",
+    "build:licenses": "tsx scripts/licenses.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",
@@ -54,6 +56,8 @@
     "@tanstack/react-virtual": "^3.14.14",
     "@tauri-apps/api": "^2.12.2",
     "@tauri-apps/plugin-dialog": "^2.8.1",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.0",
     "codemirror": "^6.0.2",
     "cytoscape": "3.34.3",
     "cytoscape-fcose": "2.2.0",

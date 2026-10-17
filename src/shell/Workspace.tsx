@@ -3,6 +3,7 @@ import { NARROW_BREAKPOINT, useLayout } from "../stores/layoutStore";
 import { BottomDock } from "./BottomDock";
 import { EditorArea } from "./EditorArea";
 import { Notices } from "./Notices";
+import { UpdateDialog } from "../features/updates/UpdateDialog";
 import { PalettePanel } from "../features/palette/PalettePanel";
 import { ImportExportDialog } from "../connections/exchange/ImportExportDialog";
 import { ConnectionModals } from "../connections/ConnectionPrompts";
@@ -53,6 +54,7 @@ export function Workspace() {
       <OpenTransactionsHost />
       <ImportExportDialog />
       <PalettePanel />
+      <UpdateDialog />
       <Notices />
     </div>
   );

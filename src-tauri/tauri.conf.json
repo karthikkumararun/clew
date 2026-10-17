@@ -29,7 +29,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "app",
+      "dmg",
+      "nsis",
+      "msi"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -39,8 +44,36 @@
     ],
     "windows": {
       "nsis": {
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      },
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
       }
+    },
+    "publisher": "ADK",
+    "copyright": "Copyright (c) 2026 ADK",
+    "license": "MIT",
+    "licenseFile": "../LICENSE",
+    "category": "DeveloperTool",
+    "shortDescription": "Open-source database IDE",
+    "longDescription": "Clew is an open-source database IDE for macOS and Windows: SQL and NoSQL browsers, a SQL console, a data grid and a bring-your-own-model AI assistant.",
+    "resources": {
+      "resources/THIRD_PARTY_LICENSES.html": "THIRD_PARTY_LICENSES.html"
+    },
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "entitlements": "Entitlements.plist",
+      "hardenedRuntime": true
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlDRjM1RUE0MThFMzI1NUEKUldSYUplTVlwRjd6bkU0eWNyUHJ6ZHVBc01HcGd3V0xCK0tpMzRZU3o1YllYaVg5TmRZUVR5M2UK",
+      "endpoints": [
+        "https://github.com/karthikkumararun/clew/releases/latest/download/latest.json"
+      ]
     }
   }
 }
