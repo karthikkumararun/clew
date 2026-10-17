@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod applog;
 pub mod changes;
 pub mod commands;
@@ -129,9 +130,17 @@ pub fn run() {
             };
             let password_prompts = Arc::new(connections::service::PendingPasswords::default());
             let handle = app.handle().clone();
+            let secrets = secret_store(&data_dir);
+            let (ai, ai_backup) = ai::AiService::new(data_dir.clone(), secrets.clone());
+            if let Some(backup) = ai_backup {
+                applog::log(&format!(
+                    "ai.json was unreadable; moved to {}",
+                    backup.display()
+                ));
+            }
             let (connections, loaded) = connections::service::ConnectionService::new(
                 &data_dir,
-                secret_store(&data_dir),
+                secrets,
                 Arc::new(connections::service::EventPasswordPrompter {
                     pending: password_prompts.clone(),
                     emit: Arc::new(move |prompt| {
@@ -171,6 +180,7 @@ pub fn run() {
                 exports: Default::default(),
                 editability: Default::default(),
                 palette,
+                ai: Arc::new(ai),
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -258,6 +268,20 @@ pub fn run() {
             commands::palette::palette_stats,
             commands::palette::palette_recent_queries,
             commands::palette::palette_clear,
+            commands::ai::ai_settings_get,
+            commands::ai::ai_settings_set,
+            commands::ai::ai_secret_set,
+            commands::ai::ai_secret_clear,
+            commands::ai::ai_models,
+            commands::ai::ai_test_provider,
+            commands::ai::ai_policy,
+            commands::ai::ai_chat,
+            commands::ai::ai_cancel,
+            commands::ai::ai_complete,
+            commands::ai::ai_chats_list,
+            commands::ai::ai_chat_load,
+            commands::ai::ai_chat_save,
+            commands::ai::ai_chats_delete,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,
             commands::files::file_save_dialog,

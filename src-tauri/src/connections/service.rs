@@ -163,6 +163,7 @@ impl Overrides {
             SecretKind::Password => self.password.clone(),
             SecretKind::SshPassphrase => self.ssh_passphrase.clone(),
             SecretKind::SshPassword => self.ssh_password.clone(),
+            SecretKind::AiKey => None,
         }
     }
 }
@@ -444,6 +445,7 @@ impl ConnectionService {
                         SecretKind::Password => status.password = present,
                         SecretKind::SshPassphrase => status.ssh_passphrase = present,
                         SecretKind::SshPassword => status.ssh_password = present,
+                        SecretKind::AiKey => {}
                     }
                 }
                 Err(_) => status.keychain_unavailable = true,

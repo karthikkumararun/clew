@@ -4,6 +4,7 @@ use std::path::Path;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 
+use crate::ai::chats::{ChatSummary, StoredMessage};
 use crate::error::{AppError, AppResult};
 use crate::history::{entry_from_row, like_pattern, HistoryPage, NewEntry, Row, HISTORY_LIMIT};
 use crate::palette::{EntryKind, IndexEntry};
@@ -250,6 +251,113 @@ impl Store {
         Ok(rows.into_iter().map(entry_from_row).collect())
     }
 
+    /// Create a chat, or touch an existing one (new `updated_at`, same title).
+    pub async fn ai_chat_touch(&self, chat: &ChatSummary) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO ai_chats (id, connection_id, title, created_at, updated_at) \
+             VALUES (?, ?, ?, ?, ?) \
+             ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at",
+        )
+        .bind(&chat.id)
+        .bind(&chat.connection_id)
+        .bind(&chat.title)
+        .bind(chat.created_at)
+        .bind(chat.updated_at)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+
+    /// Insert or replace one message of a chat.
+    pub async fn ai_message_save(&self, chat_id: &str, m: &StoredMessage) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO ai_messages (id, chat_id, seq, role, body) VALUES (?, ?, ?, ?, ?) \
+             ON CONFLICT(id) DO UPDATE SET body = excluded.body, seq = excluded.seq",
+        )
+        .bind(&m.id)
+        .bind(chat_id)
+        .bind(m.seq)
+        .bind(&m.role)
+        .bind(&m.body)
+        .execute(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+
+    /// Chats, newest first; of one connection when `connection_id` is given.
+    pub async fn ai_chats_list(&self, connection_id: Option<&str>) -> AppResult<Vec<ChatSummary>> {
+        let rows: Vec<(String, String, String, i64, i64)> = sqlx::query_as(
+            "SELECT id, connection_id, title, created_at, updated_at FROM ai_chats \
+             WHERE (?1 IS NULL OR connection_id = ?1) ORDER BY updated_at DESC, id DESC LIMIT 500",
+        )
+        .bind(connection_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .map(
+                |(id, connection_id, title, created_at, updated_at)| ChatSummary {
+                    id,
+                    connection_id,
+                    title,
+                    created_at,
+                    updated_at,
+                },
+            )
+            .collect())
+    }
+
+    pub async fn ai_chat_messages(&self, chat_id: &str) -> AppResult<Vec<StoredMessage>> {
+        let rows: Vec<(String, i64, String, String)> = sqlx::query_as(
+            "SELECT id, seq, role, body FROM ai_messages WHERE chat_id = ? ORDER BY seq, id",
+        )
+        .bind(chat_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .map(|(id, seq, role, body)| StoredMessage {
+                id,
+                seq,
+                role,
+                body,
+            })
+            .collect())
+    }
+
+    /// Delete one chat, or every chat of a connection (or all chats). Returns how many chats went.
+    pub async fn ai_chats_delete(
+        &self,
+        chat_id: Option<&str>,
+        connection_id: Option<&str>,
+    ) -> AppResult<u64> {
+        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        sqlx::query(
+            "DELETE FROM ai_messages WHERE chat_id IN (SELECT id FROM ai_chats \
+             WHERE (?1 IS NULL OR id = ?1) AND (?2 IS NULL OR connection_id = ?2))",
+        )
+        .bind(chat_id)
+        .bind(connection_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?;
+        let n = sqlx::query(
+            "DELETE FROM ai_chats WHERE (?1 IS NULL OR id = ?1) AND (?2 IS NULL OR connection_id = ?2)",
+        )
+        .bind(chat_id)
+        .bind(connection_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db_err)?
+        .rows_affected();
+        tx.commit().await.map_err(db_err)?;
+        Ok(n)
+    }
+
     pub async fn ui_state_all(&self) -> AppResult<HashMap<String, String>> {
         let rows: Vec<(String, String)> = sqlx::query_as("SELECT key, value FROM ui_state")
             .fetch_all(&self.pool)
@@ -262,6 +370,87 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn chat(id: &str, conn: &str, at: i64) -> ChatSummary {
+        ChatSummary {
+            id: id.into(),
+            connection_id: conn.into(),
+            title: format!("title {id}"),
+            created_at: at,
+            updated_at: at,
+        }
+    }
+
+    fn msg(id: &str, seq: i64, role: &str) -> StoredMessage {
+        StoredMessage {
+            id: id.into(),
+            seq,
+            role: role.into(),
+            body: format!("{{\"id\":\"{id}\"}}"),
+        }
+    }
+
+    /// (spec: ai-assistant › Reopen a chat)
+    #[tokio::test]
+    async fn chats_are_listed_newest_first_and_reopen_in_order() {
+        let store = Store::open_in_memory().await.unwrap();
+        store.ai_chat_touch(&chat("a", "c1", 10)).await.unwrap();
+        store.ai_chat_touch(&chat("b", "c1", 20)).await.unwrap();
+        store.ai_chat_touch(&chat("c", "c2", 30)).await.unwrap();
+        store
+            .ai_message_save("a", &msg("m2", 2, "assistant"))
+            .await
+            .unwrap();
+        store
+            .ai_message_save("a", &msg("m1", 1, "user"))
+            .await
+            .unwrap();
+        let ids = |v: Vec<ChatSummary>| v.into_iter().map(|c| c.id).collect::<Vec<_>>();
+        assert_eq!(
+            ids(store.ai_chats_list(Some("c1")).await.unwrap()),
+            vec!["b", "a"]
+        );
+        assert_eq!(
+            ids(store.ai_chats_list(None).await.unwrap()),
+            vec!["c", "b", "a"]
+        );
+        let m = store.ai_chat_messages("a").await.unwrap();
+        assert_eq!(
+            m.iter().map(|m| m.id.as_str()).collect::<Vec<_>>(),
+            vec!["m1", "m2"]
+        );
+        // Saving a message again replaces its body; touching a chat keeps its title.
+        let mut again = msg("m1", 1, "user");
+        again.body = "{}".into();
+        store.ai_message_save("a", &again).await.unwrap();
+        assert_eq!(store.ai_chat_messages("a").await.unwrap()[0].body, "{}");
+        let mut renamed = chat("a", "c1", 99);
+        renamed.title = "other".into();
+        store.ai_chat_touch(&renamed).await.unwrap();
+        let listed = store.ai_chats_list(Some("c1")).await.unwrap();
+        assert_eq!(
+            (listed[0].id.as_str(), listed[0].title.as_str()),
+            ("a", "title a")
+        );
+    }
+
+    #[tokio::test]
+    async fn deleting_one_chat_or_all_of_a_connection() {
+        let store = Store::open_in_memory().await.unwrap();
+        for (id, conn) in [("a", "c1"), ("b", "c1"), ("c", "c2")] {
+            store.ai_chat_touch(&chat(id, conn, 1)).await.unwrap();
+            store
+                .ai_message_save(id, &msg(&format!("{id}1"), 1, "user"))
+                .await
+                .unwrap();
+        }
+        assert_eq!(store.ai_chats_delete(Some("a"), None).await.unwrap(), 1);
+        assert!(store.ai_chat_messages("a").await.unwrap().is_empty());
+        assert_eq!(store.ai_chats_delete(None, Some("c1")).await.unwrap(), 1);
+        assert_eq!(store.ai_chats_list(None).await.unwrap().len(), 1);
+        assert_eq!(store.ai_chats_delete(None, None).await.unwrap(), 1);
+        assert!(store.ai_chats_list(None).await.unwrap().is_empty());
+    }
 
     #[tokio::test]
     async fn ui_state_round_trip_and_overwrite() {

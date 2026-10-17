@@ -18,6 +18,8 @@ pub enum SecretKind {
     Password,
     SshPassphrase,
     SshPassword,
+    /// An AI provider's API key or token. Never part of a connection; see `ai::AiService`.
+    AiKey,
 }
 
 impl SecretKind {
@@ -26,6 +28,7 @@ impl SecretKind {
             SecretKind::Password => "password",
             SecretKind::SshPassphrase => "ssh-passphrase",
             SecretKind::SshPassword => "ssh-password",
+            SecretKind::AiKey => "ai-key",
         }
     }
 

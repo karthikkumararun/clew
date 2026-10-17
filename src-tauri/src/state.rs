@@ -31,4 +31,6 @@ pub struct AppState {
     pub editability: crate::editability::Cache,
     /// Objects the command palette searches.
     pub palette: Arc<crate::palette::Palette>,
+    /// AI providers, settings and running requests.
+    pub ai: Arc<crate::ai::AiService>,
 }
