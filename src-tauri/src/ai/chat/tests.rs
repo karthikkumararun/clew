@@ -193,7 +193,7 @@ async fn streams_text_and_finishes() {
     assert_eq!(events.last(), Some(&AiEvent::Done));
 }
 
-/// (spec: ai-assistant › Schema-grounded context, What was sent)
+/// (spec: ai-providers › What was sent)
 #[tokio::test]
 async fn the_context_sent_is_reported_and_sits_in_the_system_prompt() {
     let fake = Fake::new(vec![vec![text("ok")]]);

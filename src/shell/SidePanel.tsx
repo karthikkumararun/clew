@@ -29,7 +29,10 @@ export function SidePanel() {
     >
       <aside className={styles.panel} aria-label={def.title}>
         <div className={styles.header}>
-          <span>{def.title}</span>
+          <span className={styles.title}>{def.title}</span>
+          {def.headerLeft ? def.headerLeft() : null}
+          <span className={styles.grow} />
+          {def.headerRight ? def.headerRight() : null}
           <IconButton aria-label={`Close ${def.title}`} onClick={close}>
             <Close size={12} />
           </IconButton>

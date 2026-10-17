@@ -14,6 +14,12 @@ export interface SidePanelDef {
   title: string;
   icon: ComponentType<{ size?: number }>;
   render: () => ReactNode;
+  /** Shown after the title in the panel header (tabs). */
+  headerLeft?: () => ReactNode;
+  /** Shown before the close button in the panel header. */
+  headerRight?: () => ReactNode;
+  /** Short label and shortcut for the toolbar toggle, e.g. "AI" and "Mod+I". */
+  toggle?: { label: string; shortcut?: string };
 }
 
 export interface BottomPanelDef {

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
+import { Star } from "../../components/icons";
 import { Menu } from "../../components/Menu";
+import { formatShortcut } from "../../lib/platform";
 import { useKeepInWindow } from "../../components/useKeepInWindow";
 import { lineDiff } from "./lineDiff";
 import type { OutputEntry } from "./runtime";
@@ -33,12 +35,17 @@ export function OutputLog({
   entries,
   onAction,
   onClear,
+  aiEntryId,
+  onAi,
 }: {
   entries: OutputEntry[];
   /** The button on an entry was pressed. */
   onAction?: (entry: OutputEntry) => void;
   /** Empty the log for this console (the history is unaffected). */
   onClear?: () => void;
+  /** The error entry that offers Fix with AI / Explain error, and what they do. */
+  aiEntryId?: number;
+  onAi?: (kind: "fix" | "explain") => void;
 }) {
   const end = useRef<HTMLDivElement>(null);
   const [wrap, setWrap] = useState(true);
@@ -122,6 +129,27 @@ export function OutputLog({
                 </div>
                 {e.hint ? <div className={styles.outputHint}>Hint: {e.hint}</div> : null}
                 {e.detail ? <div className={styles.outputHint}>{e.detail}</div> : null}
+                {e.id === aiEntryId && onAi ? (
+                  <div className={styles.outputAi}>
+                    <button
+                      type="button"
+                      className={styles.outputAiPrimary}
+                      onClick={() => onAi("fix")}
+                      aria-keyshortcuts="Control+Alt+F Meta+Alt+F"
+                    >
+                      <Star size={13} />
+                      Fix with AI{" "}
+                      <span className={styles.outputAiKeys}>{formatShortcut("Mod+Alt+F")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.outputAiButton}
+                      onClick={() => onAi("explain")}
+                    >
+                      Explain error
+                    </button>
+                  </div>
+                ) : null}
                 {e.action === "switch-read-write" && onAction ? (
                   <button type="button" className={styles.outputAction} onClick={() => onAction(e)}>
                     Switch to read-write
