@@ -2,762 +2,802 @@
   "uncovered": [
     {
       "key": "app-icon›Size-specific artwork›16 px uses the small artwork",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Deterministic icon generation›Stale assets",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform integration›macOS bundle icon",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform integration›Windows executable icon",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Development builds are distinguishable›Dev window icon",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›In-app mark›Toolbar mark",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›In-app mark›Welcome mark",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›In-app mark›One source",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›In-app mark›About icon",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Golden images›Intended change",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform verification›Newest macOS wraps the icon",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform verification›Taskbar at 150%",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Desktop application on macOS and Windows›Launch on macOS",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Desktop application on macOS and Windows›Launch on Windows",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Desktop application on macOS and Windows›Missing WebView2 on Windows",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Workspace layout›Default layout",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Workspace layout›Resize the sidebar",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Workspace layout›Right side panel",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Brand mark in the toolbar›Toolbar brand",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Editor tabs›Overflow",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Editor tabs›Production stripe",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Persisted workspace state›Window off-screen",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Offline by default›No telemetry",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connection dialog›Oracle form",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connection dialog›Keyboard",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Import from DataGrip›Passwords from DataGrip's native keychain",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Import from DataGrip›DataGrip set to \"Do not save\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connection scripts›Save a console",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Grid rendering›Scroll a large result",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "database-explorer›Scripts node›Open an imported console",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Side-by-side design review›Produce the report",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Side-by-side design review›Agent-assisted review",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Query bar›Collection scan warning",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Tree, table and JSON views›Expand nested",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Export documents›Export as JSON lines",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Oracle driver›Large objects",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Oracle driver›Editing without a primary key",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›MongoDB driver›Server version in status",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Redis driver›Cluster detected",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Isolated test mode›Never touches the real profile",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Isolated test mode›Scripted dialogs",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Shared seed dataset›Seed parity",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Shared seed dataset›Fresh state per test file",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Docker stack›Start the core stack",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Docker stack›Port clash",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›Journey fails the run",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›New feature without a journey",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Scenario traceability›Renamed scenario",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Scenario traceability›Coverage report",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Test-level policy›Layout scenario with only a component test",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Test-level policy›Token declaration is not enough",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Persisted-state sweep›Seed a saved state",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›Prose claim without a scenario",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›Known gaps cannot grow silently",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›Spec audit before implementation",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Production visibility›Two windows of the same data",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›One-command local QA stack›Fresh machine run",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Manual QA checklist›Generate the checklist",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Manual QA checklist›Record a manual pass",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect reporting›File a defect",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect reporting›Spec is wrong, not the code",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix and verify loop›Regression test first",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix and verify loop›Re-verify",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect class guards›Clipped menu fixed",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect class guards›New kind of defect",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix pull request check›Fix without a test",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix pull request check›Spec scenario added with the fix",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Exploratory charters›Charter from a defect",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Pending changes›Leaving with pending changes",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Large and multiple results›Pending change in a filtered-out row",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     }
   ],
   "requirementsWithoutScenario": [],
   "underSpecified": [
     {
       "key": "app-icon›Icon artwork and sources›5 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Icon artwork and sources›no scenario mentions \"every generated\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Size-specific artwork›no scenario mentions \"Every raster\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform integration›6 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-icon›Platform verification›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Workspace layout›6 listed items, 5 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Welcome screen›12 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Settings›6 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Status bar›5 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "app-shell›Offline by default›6 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connection model›36 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connection dialog›9 listed items, 7 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Paste a connection URL›17 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Connect and disconnect›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Toolbar connection chip›7 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "connection-management›Recent connections›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Grid rendering›10 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Cell viewer›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Paste external data›7 listed items, 4 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Paste external data›no scenario mentions \"default paste\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Find on page›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Local filter›14 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›View as›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Value editor panel›7 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Extractor options›13 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "data-grid›Grid options menu›12 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "database-explorer›Explorer tree›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "database-explorer›Explorer tree›no scenario mentions \"default groups\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "database-explorer›Context actions›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Machine-readable design metrics›9 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Machine-readable design metrics›no scenario mentions \"for each named\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Token conformance›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Screen state matrix›6 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Side-by-side design review›6 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Visual regression baselines›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Overlay integrity›7 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Window-size and scale matrix›no scenario mentions \"every combination\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "design-conformance›Accessibility checks›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Collection tab›6 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Tree, table and JSON views›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Shell console for MongoDB›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "document-browser›Export documents›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Driver registry›20 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Driver registry›no scenario mentions \"default port\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Execute and stream results›6 listed items, 4 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Cancel and timeout›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Uniform value model›19 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Lazy schema introspection›9 listed items, 4 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›MySQL and MariaDB drivers›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›MySQL and MariaDB drivers›no scenario mentions \"default port\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›ClickHouse driver›no scenario mentions \"default port\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Conformance across SQL drivers›10 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Document session contract›15 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Key-value session contract›9 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›MongoDB driver›9 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Redis driver›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "driver-framework›Session state and isolation level›13 listed items, 4 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "driver-framework›Graph session contract›10 listed items, 2 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "driver-framework›Neo4j driver›26 listed items, 3 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "driver-framework›Neo4j driver›no scenario mentions \"default port\"",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Isolated test mode›7 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Shared seed dataset›10 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Shared seed dataset›no scenario mentions \"every supported\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Docker stack›13 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›no scenario mentions \"every available\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›no scenario mentions \"every combination\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Journey catalogue›no scenario mentions \"every menu\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Suites and triggers›11 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Scenario traceability›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Persisted-state sweep›7 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›8 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›no scenario mentions \"every SHALL\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "e2e-testing›Spec-to-test completeness›no scenario mentions \"every enumerated\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Graph console tab›6 listed items, 2 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Cypher editor›6 listed items, 2 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Graph view›6 listed items, 4 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Inspector›9 listed items, 1 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Cypher safeguards›3 listed items, 2 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Cypher safeguards›no scenario mentions \"every transaction\"",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
+    },
+    {
+      "key": "graph-browser›Explorer, palette and AI integration›4 listed items, 1 scenarios",
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "key-value-browser›Key viewer and editor›8 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "key-value-browser›Redis command console›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Statement classification›6 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Read-only sessions›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Confirm writes›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Confirm writes›no scenario mentions \"default button\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Dangerous statements›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Production visibility›5 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "production-safeguards›Production visibility›no scenario mentions \"Every surface\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "query-history›Record executed statements›10 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "query-history›Record executed statements›no scenario mentions \"every statement\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›One-command local QA stack›5 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Manual QA checklist›9 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Diagnostics bundle›10 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect reporting›14 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix and verify loop›4 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Fix and verify loop›no scenario mentions \"Every defect\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Defect class guards›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Exploratory charters›no scenario mentions \"every panel\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Exploratory charters›no scenario mentions \"every menu\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Exploratory charters›no scenario mentions \"every place\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Exploratory charters›no scenario mentions \"every screen\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Release gate›9 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "release-qa›Release gate›no scenario mentions \"every state\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Source detection›8 listed items, 4 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Editing cells›8 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Shared rows›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Pending changes›4 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›After submit›7 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Safeguards apply›5 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "result-editing›Result shortcuts›12 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Sessions panel›10 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Session states›8 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Session actions›12 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Switch session›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Open transactions on quit›4 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "session-manager›Open transactions on quit›no scenario mentions \"every such\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›SQL editor›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›Schema-aware completion›5 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›SQL files›3 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›Auto-refresh›6 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›Auto-refresh›no scenario mentions \"every minute\"",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›Result paging›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "sql-console›Plan tab details›7 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "table-editor›Table editor tab›5 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "table-editor›Staged inline editing›10 listed items, 3 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "table-editor›Record panel›3 listed items, 2 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
       "key": "table-editor›Structure, indexes, relations and DDL views›6 listed items, 1 scenarios",
-      "reason": "Archiving add-session-manager brings its specs in: several requirement lists have fewer scenarios than items."
+      "reason": "Archiving add-graph-browser brings its specs in: several requirement lists have fewer scenarios than items."
     }
   ]
 }
