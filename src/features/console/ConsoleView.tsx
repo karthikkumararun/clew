@@ -7,6 +7,7 @@ import { useSettings } from "../../stores/settingsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { rerunActive } from "./commands";
 import { ReviewBar } from "../ai/ReviewBar";
+import { inlineExtensionFor } from "../ai/inlineSource";
 import { reviewSlot } from "../ai/review";
 import { useExtensionTarget } from "./completionTarget";
 import { useStore } from "zustand";
@@ -38,8 +39,8 @@ export function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
     [tab.id, tab.state.connectionId],
   );
   const extensions = useMemo(
-    () => [completion.extension, diagnosticsExtension, reviewSlot],
-    [completion.extension],
+    () => [completion.extension, diagnosticsExtension, reviewSlot, inlineExtensionFor(tab.id)],
+    [completion.extension, tab.id],
   );
   const marks = useStore(runtime.store, (s) => s.marks);
   // Underline where the last run failed; clear the underlines when a new run starts.
