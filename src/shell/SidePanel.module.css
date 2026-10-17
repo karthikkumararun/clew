@@ -13,7 +13,7 @@
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 0 8px 0 14px;
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-label);
@@ -27,4 +27,12 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+
+.title {
+  white-space: nowrap;
+}
+
+.grow {
+  flex: 1;
 }

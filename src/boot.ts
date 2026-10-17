@@ -1,5 +1,7 @@
 import { isTauri, tauriUiStateBackend } from "./lib/ipc";
 import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
+import { startCopilotSync } from "./features/ai/copilotStore";
+import { useAiSettings } from "./features/ai/settingsStore";
 import { startSnapshotSync } from "./features/console/completionTarget";
 import { registerConsoleTab } from "./features/console/ConsoleTab";
 import { startFileSync } from "./features/console/fileSync";
@@ -33,6 +35,8 @@ export async function boot(): Promise<void> {
   startSnapshotSync();
   startFileSync();
   await useSettings.getState().load();
+  void useAiSettings.getState().load();
+  startCopilotSync();
   applySettingsToDocument(useSettings.getState().settings);
   useSettings.subscribe((s) => applySettingsToDocument(s.settings));
   // Editor kinds must exist before the last session is reopened.

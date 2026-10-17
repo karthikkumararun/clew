@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { resolve } from "node:path";
 import { browser } from "@wdio/globals";
 import { launchApp, waitForShell } from "../helpers/app";
@@ -9,7 +10,7 @@ import { withDataDir } from "../helpers/dataDir";
 import { setViewport } from "../helpers/geometry";
 import { metrics, regionProblems } from "../helpers/metrics";
 import { overlayProblems } from "../helpers/overlay";
-import { STATES } from "../fixtures/states/registry";
+import { STATES, stopStateServices } from "../fixtures/states/registry";
 
 // D-06 every state listed in design/states.json is reached in the real app and captured at the
 // reference size (spec: design-conformance › Every canvas state is reachable). Per state it writes
@@ -31,6 +32,7 @@ describe("D-06 canvas states", () => {
   });
   after(async () => {
     await browser.setWindowSize(1440, 900);
+    await stopStateServices();
   });
 
   for (const [screen, def] of Object.entries(states.screens)) {
@@ -41,6 +43,9 @@ describe("D-06 canvas states", () => {
         // every state starts clean: no tabs restored from the previous state
         seedUiState(data.dir, { "session.tabs": "" });
         seedConnections(data.dir, fixture.connections ? await fixture.connections(data.dir) : []);
+        // AI is off unless the state turns it on
+        rmSync(join(data.dir, "ai.json"), { force: true });
+        await fixture.prepare?.(data.dir);
         await launchApp(data);
         await browser.setWindowSize(1440, 900);
         await browser.pause(300);

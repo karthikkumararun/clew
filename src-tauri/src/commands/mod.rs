@@ -1,8 +1,11 @@
 //! Tauri command handlers. Keep them thin; delegate to services.
+pub mod ai;
 pub mod app;
 pub mod connections;
+pub mod copilot;
 pub mod drivers;
 pub mod export;
+pub mod external;
 pub mod files;
 pub mod graph;
 pub mod palette;

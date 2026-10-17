@@ -70,10 +70,20 @@
       ]
     },
     "AIAssistant": {
-      "pending": "add-ai-assistant"
+      "states": [
+        {
+          "id": "ai-fix-review",
+          "description": "Fix with AI: the panel with the Edited card, the inline diff and the review bar"
+        }
+      ]
     },
     "AIProviders": {
-      "pending": "add-ai-assistant"
+      "states": [
+        {
+          "id": "ai-settings",
+          "description": "Settings › AI assistant with a provider set up, routing and privacy"
+        }
+      ]
     },
     "CommandPalette": {
       "states": [

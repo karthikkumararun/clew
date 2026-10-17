@@ -4,7 +4,10 @@ import type { Connection } from "../../../src/lib/ipc/generated/Connection";
 import { connectionFactory } from "../../helpers/connections";
 import { createIsolatedDb } from "../../helpers/db";
 import { tablesPath } from "../../helpers/dialect";
+import { seedAi } from "../../helpers/ai";
 import { pressMod } from "../../helpers/keys";
+import { MockLlm } from "../../helpers/mockLlm";
+import { AiPanel } from "../../pages/AiPanel";
 import { Console } from "../../pages/Console";
 import { ConnectionDialog } from "../../pages/ConnectionDialog";
 import { Exchange } from "../../pages/Exchange";
@@ -21,12 +24,53 @@ import { Welcome } from "../../pages/Welcome";
  */
 export interface StateFixture {
   connections?(dir: string): Promise<Connection[]> | Connection[];
+  /** Anything else that must exist before the app starts (AI settings, a mock model). */
+  prepare?(dir: string): Promise<void> | void;
   steps?(): Promise<void>;
   /** Selectors of regions whose pixels change from run to run (timings, ids): masked in comparisons. */
   masks?: string[];
 }
 
 const STATUS_BAR = '[data-metric="status-bar"]';
+
+/** The model the AI states talk to; started by the first state that needs it. */
+const llm = new MockLlm();
+let llmStarted = false;
+export async function stopStateServices() {
+  if (llmStarted) await llm.stop();
+  llmStarted = false;
+}
+async function startLlm() {
+  if (!llmStarted) {
+    await llm.start();
+    llmStarted = true;
+    llm.respond((req) => {
+      if (req.completion) return {};
+      const answered = req.body.messages.some((m) => m.role === "tool");
+      if (!answered && req.body.tools?.some((t) => t.function.name === "edit_console")) {
+        return {
+          tools: [
+            {
+              name: "edit_console",
+              args: {
+                summary: "Join shipments",
+                edits: [
+                  {
+                    start_line: 1,
+                    end_line: 1,
+                    replacement:
+                      "SELECT s.carrier\nFROM orders o\nJOIN shipments s ON s.order_id = o.id",
+                  },
+                ],
+              },
+            },
+          ],
+        };
+      }
+      return { text: "`carrier` lives on `shipments`, not `orders`, so I joined it in." };
+    });
+  }
+}
 
 /** A saved connection to a fresh copy of the `shop` seed (SQLite, so no containers). */
 async function shopConnection(dir: string, name: string, env: Connection["environment"]) {
@@ -138,6 +182,35 @@ export const STATES: Record<string, StateFixture> = {
         },
         { timeout: 30_000, interval: 1000, timeoutMsg: "the connection should be indexed" },
       );
+    },
+  },
+  "ai-settings": {
+    // Nothing is called: the page only shows what is set up.
+    prepare: (dir) => seedAi(dir, { url: "http://127.0.0.1:9/v1" }),
+    steps: async () => {
+      await $("aria/Settings").click();
+      await $(
+        './/nav[@aria-label="Settings sections"]//button[normalize-space()="AI assistant"]',
+      ).click();
+      await $("aria/Chat provider").waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "ai-fix-review": {
+    connections: async (dir) => [await shopConnection(dir, "dev-sqlite", "development")],
+    prepare: async (dir) => {
+      await startLlm();
+      seedAi(dir, llm);
+    },
+    masks: [STATUS_BAR, '[aria-label="Output"]'],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await Console.setText("SELECT o.carrier FROM orders o");
+      await Console.run();
+      await Console.openTab("Output");
+      await $('[aria-label="Output"] [data-kind="error"]').waitForDisplayed({ timeout: 30_000 });
+      await AiPanel.fixButton().click();
+      await AiPanel.reviewBar().waitForDisplayed({ timeout: 30_000 });
+      await AiPanel.answered();
     },
   },
   "dialog-general-network": { steps: () => dialogTab("General") },

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Star } from "../components/icons";
 import App from "../App";
+import { Workspace } from "./Workspace";
 import { resetUiState } from "../lib/uiState";
 import { setPlatformForTests } from "../lib/platform";
 import { useLayout } from "../stores/layoutStore";
@@ -103,13 +104,13 @@ describe("side panel", () => {
     });
 
   it("is absent until a feature registers one", () => {
-    render(<App />);
+    render(<Workspace />);
     expect(screen.queryByRole("button", { name: /Toggle AI assistant/ })).not.toBeInTheDocument();
   });
 
   it("opens at 380px, clamps to 320–560 and restores its open state", () => {
     register();
-    const { unmount } = render(<App />);
+    const { unmount } = render(<Workspace />);
     fireEvent.click(screen.getByRole("button", { name: "Toggle AI assistant" }));
     const handle = screen.getByRole("separator", { name: /AI assistant/ });
     expect(handle).toHaveAttribute("aria-valuenow", "380");
@@ -125,7 +126,7 @@ describe("side panel", () => {
       sidePanelOpen: localStorage.getItem("clew:layout.sidePanelOpen") === "true",
     });
     register();
-    render(<App />);
+    render(<Workspace />);
     expect(screen.getByRole("separator", { name: /AI assistant/ })).toHaveAttribute(
       "aria-valuenow",
       "320",
@@ -134,7 +135,7 @@ describe("side panel", () => {
 
   it("closes from its header", () => {
     register();
-    render(<App />);
+    render(<Workspace />);
     fireEvent.click(screen.getByRole("button", { name: "Toggle AI assistant" }));
     fireEvent.click(screen.getByRole("button", { name: "Close AI assistant" }));
     expect(screen.queryByText("panel body")).not.toBeInTheDocument();
@@ -142,9 +143,9 @@ describe("side panel", () => {
 });
 
 describe("status bar", () => {
-  it("shows only the Sessions item and the app version when nothing else is registered (spec: app-shell › No active connection)", () => {
+  it("shows the Sessions item, the AI state and the app version when no connection is open (spec: app-shell › No active connection)", () => {
     render(<App />);
     const bar = screen.getByRole("contentinfo", { name: "Status bar" });
-    expect(bar).toHaveTextContent(/^Sessions 0Clew v\d/);
+    expect(bar).toHaveTextContent(/^Sessions 0AI: offClew v\d/);
   });
 });

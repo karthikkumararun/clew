@@ -1,3 +1,4 @@
+import { resolvePendingBeforeRun } from "../ai/pendingRun";
 import { getRuntime } from "./runtime";
 import type { ConsoleRuntime, RunRequest } from "./runtime";
 import { askChoice } from "./prompts";
@@ -24,6 +25,9 @@ export async function ensureFree(runtime: ConsoleRuntime): Promise<boolean> {
 
 /** Run on the tab's session (asking first when it is busy). */
 export async function submitRun(tab: ConsoleTab, req: RunRequest): Promise<boolean> {
+  if (!(await resolvePendingBeforeRun(tab.id, req.script ? "console.runScript" : "console.run"))) {
+    return false;
+  }
   const runtime = getRuntime(tab.id, tab.state.connectionId);
   if (!(await ensureFree(runtime))) return false;
   await runtime.run(req);
@@ -35,6 +39,7 @@ export async function submitExplain(
   tab: ConsoleTab,
   req: { sql: string; offset: number; analyze: boolean },
 ): Promise<boolean> {
+  if (!(await resolvePendingBeforeRun(tab.id, "console.run"))) return false;
   const runtime = getRuntime(tab.id, tab.state.connectionId);
   if (!(await ensureFree(runtime))) return false;
   await runtime.explain(req);

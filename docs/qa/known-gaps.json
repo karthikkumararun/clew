@@ -89,10 +89,6 @@
       "reason": "Archiving add-command-palette brings its specs in: several requirement lists have fewer scenarios than items."
     },
     {
-      "key": "app-shell›Offline by default›No telemetry",
-      "reason": "Archiving add-command-palette brings its specs in: several requirement lists have fewer scenarios than items."
-    },
-    {
       "key": "connection-management›Connection dialog›Oracle form",
       "reason": "Archiving add-command-palette brings its specs in: several requirement lists have fewer scenarios than items."
     },

@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 import { IconButton } from "../../components/Button";
 import { Download, Lines, Refresh } from "../../components/icons";
 import { useConnections } from "../../connections/connectionsStore";
+import { fixWithAi } from "../ai/fix";
 import { ExplainPane } from "./ExplainPane";
 import { OutputLog } from "./OutputLog";
 import { CopyAsMenu, ColumnsMenu } from "../grid/GridMenus";
@@ -411,6 +412,8 @@ export function ResultsPanel({ runtime, onRerun, explain, history }: ResultsPane
         {tab === "output" ? (
           <OutputLog
             entries={output}
+            aiEntryId={[...output].reverse().find((e) => e.kind === "error")?.id}
+            onAi={(kind) => void fixWithAi(kind)}
             onClear={() => runtime.clearOutput()}
             onAction={() => {
               void confirmSwitchToReadWrite(connectionName).then((yes) => {

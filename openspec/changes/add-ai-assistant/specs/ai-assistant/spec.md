@@ -11,6 +11,14 @@ The toolbar SHALL show an "AI" toggle (Mod+I) that opens the assistant in the ri
 - **WHEN** the panel opens and no chat provider is configured
 - **THEN** it shows "Connect a model to start" with a button to Settings › AI assistant
 
+#### Scenario: Panel comes back
+- **WHEN** the panel is open and the app restarts, or the window is narrowed to its minimum and widened again
+- **THEN** the panel is open again at the width it had, and Mod+I or the toolbar toggle closes and reopens it
+
+#### Scenario: Menus are fully visible
+- **WHEN** the user opens the model picker or the "+ context" menu in the composer, at a wide and a narrow window
+- **THEN** the menu lies inside the window and is not covered or clipped
+
 ### Requirement: Composer
 The composer SHALL contain: context chips (active connection with env dot, @-mentioned tables, attached selection/error/results, "+ context"), a multi-line input with placeholder "Ask about <connection>…  @ to mention a table, / for commands", an Ask / Edit mode switch, a model picker on one line (e.g. "● Sonnet 5.5 ▾"), and a Send button. Enter sends, Shift+Enter inserts a newline.
 

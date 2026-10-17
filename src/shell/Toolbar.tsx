@@ -1,7 +1,7 @@
 import { IconButton } from "../components/Button";
 import { ClewMark } from "../components/ClewMark";
 import { PanelRight, Settings } from "../components/icons";
-import { isMac } from "../lib/platform";
+import { formatShortcut, isMac } from "../lib/platform";
 import { useLayout } from "../stores/layoutStore";
 import { runCommand } from "./registry/commands";
 import { useSlots } from "./registry/slots";
@@ -60,7 +60,22 @@ export function Toolbar() {
       ) : null}
       <div className={styles.group}>
         <Items items={toolbarRight} />
-        {sidePanel ? (
+        {sidePanel?.toggle ? (
+          <button
+            type="button"
+            className={styles.panelToggle}
+            aria-label={`Toggle ${sidePanel.title}`}
+            aria-pressed={sidePanelOpen}
+            aria-keyshortcuts={sidePanel.toggle.shortcut}
+            onClick={toggleSidePanel}
+          >
+            <sidePanel.icon size={14} />
+            {sidePanel.toggle.label}
+            {sidePanel.toggle.shortcut ? (
+              <span className={styles.panelKeys}>{formatShortcut(sidePanel.toggle.shortcut)}</span>
+            ) : null}
+          </button>
+        ) : sidePanel ? (
           <IconButton
             aria-label={`Toggle ${sidePanel.title}`}
             aria-pressed={sidePanelOpen}
