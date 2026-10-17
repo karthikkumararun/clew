@@ -5,6 +5,7 @@ import { aiCancel, aiComplete } from "./api";
 import { completionsPaused, useCompletionState } from "./completionState";
 import { copilotSuggest } from "./copilotInline";
 import { useCopilot } from "./copilotStore";
+import { hasPendingReview } from "./review";
 import { inlineCompletion } from "./inlineCompletion";
 import type { Suggestions } from "./inlineCompletion";
 import { newId } from "./chatStore";
@@ -18,6 +19,8 @@ export function completionEnabled(tabId: string): boolean {
   const { settings } = useAiSettings.getState();
   if (!settings.enabled || !settings.routing.inline) return false;
   if (completionsPaused()) return false;
+  // While AI hunks wait for a decision the text on screen is not what the user is writing.
+  if (hasPendingReview(tabId)) return false;
   const target = completionTargetOf(tabId);
   if (!target?.connected) return false;
   const conn = useConnections.getState().file.connections.find((c) => c.id === target.connectionId);

@@ -19,7 +19,7 @@ describe("J-11 restart", () => {
     await launchApp(data);
     await Explorer.select("restart-sqlite");
     await browser.keys("Enter"); // connect and open a console
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 20_000 });
+    await Console.waitForEditor(20_000);
     await Console.setText(texts[0]);
     for (const text of texts.slice(1)) {
       await TabStrip.newConsole().click();

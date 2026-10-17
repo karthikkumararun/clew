@@ -36,7 +36,7 @@ describe("J-07 export", () => {
     queueDialog(data.dialogQueue, file);
     await ExportDialog.exportButton().click();
     await expect(ExportDialog.status()).toHaveText(
-      expect.stringContaining("Exported 100,000 rows"),
+      expect.stringMatching(/Exported 100[,.\s\u00a0\u202f]?000 rows/),
       { wait: 60_000 },
     );
     await ExportDialog.doneButton().click();

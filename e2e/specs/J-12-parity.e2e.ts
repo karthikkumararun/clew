@@ -67,7 +67,7 @@ describe("J-12 driver parity", () => {
       if (!names.includes(name)) return this.skip();
       await Explorer.select(name);
       await browser.keys("Enter");
-      await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+      await Console.waitForEditor(30_000);
       const per: Record<string, string[][]> = {};
       for (const [key, sql] of Object.entries(QUERIES)) {
         await Console.setText(sql);

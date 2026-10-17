@@ -36,7 +36,7 @@ describe("J-16 command palette", () => {
     for (const name of ["dev-sqlite", "staging-sqlite"]) {
       await Explorer.select(name);
       await browser.keys("Enter");
-      await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+      await Console.waitForEditor(30_000);
     }
     await browser.waitUntil(
       async () => {

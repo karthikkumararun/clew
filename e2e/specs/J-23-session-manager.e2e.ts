@@ -32,7 +32,7 @@ describe("J-23 session manager", function () {
     await launchApp(data);
     await Explorer.select(connection);
     await browser.keys("Enter");
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+    await Console.waitForEditor(30_000);
     await $('.//button[starts-with(normalize-space(.), "Tx:")]').click();
     await $('[role="menuitem"]*=Manual').click();
     await $('.//button[starts-with(normalize-space(.), "Tx: Manual")]').waitForDisplayed({
@@ -91,6 +91,12 @@ describe("J-23 session manager", function () {
     await (await sessionRow()).click();
     await $('.//button[starts-with(@aria-label, "Isolation level:")]').click();
     await $('[role="menuitem"]*=SERIALIZABLE').click();
+    // The attached session ran SELECT 1 in a manual transaction, which is still open: the change
+    // asks to end it first.
+    const ask = $('[role="dialog"]*=has an open transaction');
+    if (await ask.waitForDisplayed({ timeout: 3_000 }).catch(() => false)) {
+      await $('[role="dialog"]').$("button=Roll back").click();
+    }
     await $('.//button[@aria-label="Isolation level: SERIALIZABLE"]').waitForDisplayed({
       timeout: 10_000,
     });

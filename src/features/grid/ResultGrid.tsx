@@ -503,7 +503,9 @@ export const ResultGrid = forwardRef<GridHandle, ResultGridProps>(function Resul
           if (range.y + range.height >= source.rowCount - NEAR_END_ROWS) onNearEnd?.();
         }}
       />
-      {MIRROR_ENABLED ? <GridMirror source={source} visible={visible} /> : null}
+      {MIRROR_ENABLED ? (
+        <GridMirror source={source} visible={visible} selected={selection.current?.cell ?? null} />
+      ) : null}
       {viewer ? (
         <CellViewer
           value={source.get(visible[viewer.col], viewer.row)}

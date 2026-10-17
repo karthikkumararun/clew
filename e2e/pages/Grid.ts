@@ -39,5 +39,18 @@ export const Grid = {
       col,
       row,
     );
+    // The selection is applied on the next render; a key pressed before that goes to the cell
+    // that was selected (the first one, on focus) and opens its viewer instead of the editor.
+    await browser.waitUntil(
+      async () =>
+        (await (await this.mirror()).getAttribute("data-selected-cell")) === `${col}:${row}`,
+      { timeoutMsg: `cell ${col}:${row} should be selected` },
+    );
+    await browser.execute(
+      () =>
+        new Promise<void>((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => done())),
+        ),
+    );
   },
 };

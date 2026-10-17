@@ -12,7 +12,16 @@ export const MIRROR_ENABLED = import.meta.env.VITE_CLEW_E2E === "1";
  * The canvas grid is not DOM, so WebDriver cannot read it. This visually hidden table repeats the
  * first rows of the visible columns as text (`data-testid` rows and cells) for tests to read.
  */
-export function GridMirror({ source, visible }: { source: GridSource; visible: number[] }) {
+export function GridMirror({
+  source,
+  visible,
+  selected,
+}: {
+  source: GridSource;
+  visible: number[];
+  /** The selected cell as [visible column, row], for tests to wait on. */
+  selected?: readonly [number, number] | null;
+}) {
   const rows = Math.min(source.rowCount, MIRROR_ROWS);
   return (
     <table
@@ -20,6 +29,7 @@ export function GridMirror({ source, visible }: { source: GridSource; visible: n
       aria-label="Result grid contents"
       data-testid="grid-mirror"
       data-row-count={source.rowCount}
+      data-selected-cell={selected ? `${selected[0]}:${selected[1]}` : undefined}
     >
       <thead>
         <tr>

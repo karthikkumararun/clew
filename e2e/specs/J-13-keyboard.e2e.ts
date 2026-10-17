@@ -1,3 +1,4 @@
+import { Console } from "../pages/Console";
 import { covers } from "../helpers/covers";
 import { $, browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
@@ -28,7 +29,7 @@ describe("J-13 keyboard only", () => {
       expect.stringContaining("keys-sqlite"),
     );
     await browser.keys("Enter");
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 20_000 });
+    await Console.waitForEditor(20_000);
     await expect(TabStrip.tabs()).toBeElementsArrayOfSize(1);
   });
 

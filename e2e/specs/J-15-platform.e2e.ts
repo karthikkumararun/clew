@@ -65,7 +65,7 @@ describe("J-15 platform", () => {
     await launchApp(data);
     await Explorer.select("unicode-path");
     await browser.keys("Enter");
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+    await Console.waitForEditor(30_000);
     await Console.setText("SELECT count(*) AS n FROM users");
     await Console.run();
     await browser.waitUntil(async () => (await Grid.rowCount()) === 1, {

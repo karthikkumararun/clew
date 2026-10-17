@@ -1,3 +1,4 @@
+import { Console } from "../pages/Console";
 import { $ } from "@wdio/globals";
 import { launchApp } from "./app";
 import { connectionFactory, seedConnections, seedPassword } from "./connections";
@@ -44,6 +45,6 @@ export async function openShopConsole(
   await launchApp(data);
   await Explorer.select(connection);
   await browser.keys("Enter");
-  await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+  await Console.waitForEditor(30_000);
   return { db, connection };
 }
