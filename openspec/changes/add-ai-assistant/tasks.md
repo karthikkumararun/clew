@@ -30,6 +30,7 @@
 - [ ] 4.2 `Policy::filter` with production rules and redaction of hostnames/usernames; record "Context sent" per message (spec: ai-providers › Data-sharing policy)
 - [ ] 4.3 Schema tools `list_tables` / `describe_table` from the completion snapshot; refuse other tools; cap 8 calls per turn
 - [ ] 4.4 Test: production + attached rows refused; redaction; tool refusal
+- [ ] 4.5 Graph connections: `cypher` dialect and a context builder that reads `SchemaSnapshot.graph` (labels with counts, relationship types, property keys, indexes) (carried over from `add-graph-browser` 5.2; spec: graph-browser › Explorer, palette and AI integration)
 
 ## 5. Assistant panel
 
