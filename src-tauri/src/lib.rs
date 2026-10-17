@@ -9,6 +9,7 @@ pub mod error;
 pub mod exporter;
 pub mod files;
 pub mod history;
+pub mod palette;
 pub mod paths;
 pub mod safety;
 pub mod sessions;
@@ -145,6 +146,9 @@ pub fn run() {
                     backup.display()
                 ));
             }
+            let palette = Arc::new(palette::Palette::with_entries(
+                tauri::async_runtime::block_on(store.palette_load()).unwrap_or_default(),
+            ));
             let sessions = Arc::new(sessions::SessionManager::new(registry.clone(), ssh_env));
             sessions.set_history_sink(history::sink(store.clone()));
             spawn_idle_sweeper(sessions.clone());
@@ -166,6 +170,7 @@ pub fn run() {
                 files,
                 exports: Default::default(),
                 editability: Default::default(),
+                palette,
             });
             if let Some(window) = app.get_webview_window("main") {
                 correct_off_screen(&window);
@@ -249,6 +254,10 @@ pub fn run() {
             commands::sessions::session_read_only,
             commands::sessions::session_set_read_only,
             commands::sessions::history_list,
+            commands::palette::palette_search,
+            commands::palette::palette_stats,
+            commands::palette::palette_recent_queries,
+            commands::palette::palette_clear,
             commands::sessions::history_clear,
             commands::files::file_open_dialog,
             commands::files::file_save_dialog,

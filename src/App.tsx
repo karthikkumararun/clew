@@ -5,6 +5,7 @@ import { registerConnectionCommands } from "./connections/commands";
 import { useConnections } from "./connections/connectionsStore";
 import { registerConsoleCommands } from "./features/console/commands";
 import { installQuitGuard } from "./features/console/quit";
+import { registerPalette } from "./features/palette";
 import { registerSessionsFeature } from "./features/sessions";
 import { registerCollectionCommands } from "./features/documents/CollectionTab";
 import { registerGraphCommands } from "./features/graph/GraphTab";
@@ -26,6 +27,7 @@ export default function App() {
     const offGraph = registerGraphCommands();
     const offQuit = installQuitGuard();
     const offSessions = registerSessionsFeature();
+    const offPalette = registerPalette();
     void useConnections.getState().load();
     return () => {
       offKeys();
@@ -39,6 +41,7 @@ export default function App() {
       offGraph();
       offQuit();
       offSessions();
+      offPalette();
     };
   }, []);
   return <Workspace />;

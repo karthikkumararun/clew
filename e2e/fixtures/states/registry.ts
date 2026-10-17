@@ -10,6 +10,7 @@ import { ConnectionDialog } from "../../pages/ConnectionDialog";
 import { Exchange } from "../../pages/Exchange";
 import { Explorer } from "../../pages/Explorer";
 import { Grid } from "../../pages/Grid";
+import { Palette } from "../../pages/Palette";
 import { TableEditor } from "../../pages/TableEditor";
 import { Welcome } from "../../pages/Welcome";
 
@@ -119,6 +120,24 @@ export const STATES: Record<string, StateFixture> = {
       });
       await TableEditor.editCell(0, "status", "shipped");
       await TableEditor.pendingBar().waitForDisplayed({ timeout: 10_000 });
+    },
+  },
+  "palette-search": {
+    connections: async (dir) => [await shopConnection(dir, "dev-sqlite", "development")],
+    // Connecting indexes the connection; the footer's counts and the status bar change per run.
+    masks: [STATUS_BAR, '[data-testid="palette-footer"]'],
+    steps: async () => {
+      await openConsole("dev-sqlite");
+      await browser.waitUntil(
+        async () => {
+          await Palette.open();
+          await Palette.type("ord");
+          const found = (await Palette.rowTexts()).some((t) => t.startsWith("orders"));
+          if (!found) await browser.keys("Escape");
+          return found;
+        },
+        { timeout: 30_000, interval: 1000, timeoutMsg: "the connection should be indexed" },
+      );
     },
   },
   "dialog-general-network": { steps: () => dialogTab("General") },

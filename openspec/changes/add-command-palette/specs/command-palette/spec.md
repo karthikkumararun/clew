@@ -7,12 +7,24 @@ Mod+K (and the toolbar search button "Go to table, query, action… ⌘K") SHALL
 - **WHEN** the user presses Mod+K, then Esc
 - **THEN** the palette opens with the input focused, then closes and focus returns where it was
 
+#### Scenario: Scopes
+- **WHEN** the user presses Tab (Shift+Tab goes back) or clicks a scope tab
+- **THEN** the scope moves through All, Objects, Queries and Actions and wraps, the results show only that kind, and focus stays in the input
+
+#### Scenario: Palette is fully visible
+- **WHEN** the palette is open in a 1440 px wide window, and in an 880 px wide one
+- **THEN** it lies inside the window, is not covered or clipped, and a long result list scrolls inside it
+
 ### Requirement: Fuzzy search
 Typing SHALL fuzzy-match against object names, query text and action titles, ranking exact prefix matches first, then word-boundary matches, then recency, and highlight the matched characters in the accent color. Results SHALL appear within 50 ms for an index of 100,000 objects.
 
 #### Scenario: Search "ord"
 - **WHEN** the user types "ord"
 - **THEN** `orders` (prod-postgres · analytics.public) and `order_items` appear first under TABLES & COLLECTIONS, then `orders` from staging-mysql, then a Mongo field match, then matching recent queries and actions such as "Export orders to CSV…"
+
+#### Scenario: Empty query
+- **WHEN** the palette opens with nothing typed
+- **THEN** it lists the most recently indexed tables, the newest statements and saved files, and the actions, each section capped on the All scope
 
 #### Scenario: Nothing found
 - **WHEN** nothing matches

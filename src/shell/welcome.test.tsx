@@ -87,15 +87,16 @@ describe("Welcome screen", () => {
 
   it("renders platform-specific shortcut hints", () => {
     render(<App />);
-    expect(screen.getByText("⌘K")).toBeInTheDocument();
-    expect(screen.getByText("⌘↵")).toBeInTheDocument();
-    expect(screen.getByText("⌘,")).toBeInTheDocument();
+    const welcome = within(screen.getByTestId("welcome"));
+    expect(welcome.getByText("⌘K")).toBeInTheDocument();
+    expect(welcome.getByText("⌘↵")).toBeInTheDocument();
+    expect(welcome.getByText("⌘,")).toBeInTheDocument();
   });
 
   it("renders windows hints with Ctrl", () => {
     setPlatformForTests("windows");
     render(<App />);
-    expect(screen.getByText("Ctrl+K")).toBeInTheDocument();
+    expect(within(screen.getByTestId("welcome")).getByText("Ctrl+K")).toBeInTheDocument();
   });
 
   it("lists recent connections when there are some", () => {
