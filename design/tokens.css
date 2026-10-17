@@ -70,6 +70,20 @@
   --pending-bar-border: #4A3A22;
   --pending-bar-text: #C9B48F;
 
+  /* AI assistant */
+  --ai-surface: #2A2418; /* the toolbar toggle while the panel is open */
+  --ai-claude: #D97757;
+  --ai-openai: #6CC4A1;
+  --ai-github: #C9CED6;
+  --ai-custom: #9AA3AE;
+  --ai-local: #E8D27A;
+  --keep-bg: #13221C; /* Keep buttons, signed-in banner */
+  --keep-border: #23463A;
+  --diff-removed-bg: #2A1719;
+  --diff-removed-strike: #A0524C;
+  --diff-added-bg: #14261D;
+  --diff-added-word: #1F4A35;
+
   /* Driver badges (text on badge is --on-accent) */
   --drv-postgres: #6EA8FE;
   --drv-mysql: #F0A35E;

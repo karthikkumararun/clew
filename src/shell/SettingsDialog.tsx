@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Checkbox, Input, SegmentedControl } from "../components/Input";
 import { Dialog } from "../components/Dialog";
-import { Star } from "../components/icons";
+import { AiSettingsPage } from "../features/ai/AiSettingsPage";
 import { formatShortcut } from "../lib/platform";
 import { IDLE_MINUTES_RANGE, useSessionSettings } from "../stores/sessionSettings";
 import { FONT_SIZE_RANGE, PAGE_SIZES, useSettings } from "../stores/settingsStore";
@@ -259,22 +259,6 @@ function Keymap() {
   );
 }
 
-function AiAssistant() {
-  return (
-    <Section
-      title="AI assistant"
-      lede="Bring your own model. Providers, sign-in and privacy controls arrive with the AI assistant."
-    >
-      <div className={styles.card}>
-        <p className={styles.help}>
-          <Star size={12} style={{ verticalAlign: "-2px", color: "var(--accent)" }} /> Nothing to
-          configure yet. No AI provider is contacted by default.
-        </p>
-      </div>
-    </Section>
-  );
-}
-
 function Updates() {
   const { settings, set } = useSettings();
   return (
@@ -300,7 +284,7 @@ const PANELS: Record<(typeof SECTIONS)[number], () => ReactNode> = {
   "Data grid": DataGrid,
   Sessions,
   Keymap,
-  "AI assistant": AiAssistant,
+  "AI assistant": AiSettingsPage,
   Updates,
 };
 
