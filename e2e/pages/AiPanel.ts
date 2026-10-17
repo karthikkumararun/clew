@@ -9,6 +9,8 @@ export const AiPanel = {
   mode: (name: "Ask" | "Edit") => $(`.//*[@role="radio"][normalize-space()="${name}"]`),
   messages: () => $$('[data-testid="assistant-message"]'),
   card: () => $('[data-testid="edit-card"]'),
+  /** The newest Edited card: earlier ones keep their final state. */
+  lastCard: () => $('(//*[@data-testid="edit-card"])[last()]'),
   reviewBar: () => $('[data-testid="review-bar"]'),
   fixButton: () => $('.//button[contains(., "Fix with AI")]'),
   async open() {

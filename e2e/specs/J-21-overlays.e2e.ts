@@ -1,3 +1,4 @@
+import { Console } from "../pages/Console";
 import { $, browser } from "@wdio/globals";
 import { launchApp, waitForShell } from "../helpers/app";
 import { connectionFactory, seedConnections } from "../helpers/connections";
@@ -20,7 +21,7 @@ describe("J-21 overlays", () => {
     await launchApp(data);
     await Explorer.select("overlay-db");
     await browser.keys("Enter");
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+    await Console.waitForEditor(30_000);
   });
   after(async () => {
     await browser.setWindowSize(1440, 900);

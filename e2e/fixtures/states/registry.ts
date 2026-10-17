@@ -84,7 +84,7 @@ async function shopConnection(dir: string, name: string, env: Connection["enviro
 async function openConsole(name: string) {
   await Explorer.select(name);
   await browser.keys("Enter");
-  await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+  await Console.waitForEditor(30_000);
 }
 
 async function dialogTab(tab: "General" | "SSH tunnel" | "SSL / TLS" | "Advanced") {

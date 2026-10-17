@@ -157,7 +157,13 @@ export function inlineCompletion(config: InlineConfig): Extension {
       update(u: ViewUpdate) {
         // Typing (not a cursor move) restarts the pause; anything else just drops the request.
         const typed = u.transactions.some(
-          (t) => t.docChanged && !t.isUserEvent("input.complete") && !t.isUserEvent("undo"),
+          (t) =>
+            t.docChanged &&
+            !t.isUserEvent("input.complete") &&
+            !t.isUserEvent("undo") &&
+            !t.isUserEvent("input.ai") &&
+            !t.isUserEvent("accept") &&
+            !t.isUserEvent("revert"),
         );
         if (!u.docChanged && !u.selectionSet) return;
         this.cancel();

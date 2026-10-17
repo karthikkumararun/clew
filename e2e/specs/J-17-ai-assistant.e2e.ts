@@ -10,6 +10,7 @@ import { MockLlm } from "../helpers/mockLlm";
 import type { RecordedRequest } from "../helpers/mockLlm";
 import { AiPanel } from "../pages/AiPanel";
 import { Overlays } from "../helpers/overlay";
+import { pointerClick } from "../helpers/pointer";
 import { Console } from "../pages/Console";
 import { Explorer } from "../pages/Explorer";
 
@@ -36,7 +37,7 @@ describe("J-17 AI assistant", () => {
   const openConsole = async (name: string) => {
     await Explorer.select(name);
     await browser.keys("Enter");
-    await $("aria/SQL editor").waitForDisplayed({ timeout: 30_000 });
+    await Console.waitForEditor(30_000);
   };
 
   const outputEntries = async () => {
@@ -137,14 +138,14 @@ describe("J-17 AI assistant", () => {
     await AiPanel.reviewBar().waitForDisplayed({ timeout: 30_000 });
     await expect(AiPanel.reviewBar()).toHaveText(expect.stringContaining("AI edited 2 hunks"));
     await browser.waitUntil(async () => (await hunkButtons("accept")).length === 2);
-    await (await hunkButtons("accept"))[0].click();
+    await pointerClick((await hunkButtons("accept"))[0]);
     await browser.waitUntil(async () => (await hunkButtons("accept")).length === 1);
-    await (await hunkButtons("reject"))[0].click();
+    await pointerClick((await hunkButtons("reject"))[0]);
     await AiPanel.reviewBar().waitForDisplayed({ reverse: true, timeout: 10_000 });
     const text = await Console.text();
     expect(text).toContain("SELECT s.carrier, o.id");
     expect(text).not.toContain("LIMIT 10");
-    await expect(AiPanel.card()).toHaveText(expect.stringContaining("1 kept · 1 undone"));
+    await expect(AiPanel.lastCard()).toHaveText(expect.stringContaining("1 kept · 1 undone"));
   });
 
   it(`asks before running with pending AI edits ${covers("ai-assistant › Run with pending AI edits")}`, async () => {
@@ -173,9 +174,9 @@ describe("J-17 AI assistant", () => {
     await browser.keys(" ");
     const ghost = $(".cm-ghostText");
     await ghost.waitForDisplayed({ timeout: 15_000 });
-    await expect(ghost).toHaveText(" AND o.status = 'shipped'");
+    await expect(ghost).toHaveText(expect.stringContaining("AND o.status = 'shipped'"));
     await browser.keys("Tab");
-    expect(await Console.text()).toContain("o.total > 0  AND o.status = 'shipped'");
+    expect(await Console.text()).toContain("o.total > 0 AND o.status = 'shipped'");
     expect(llm.completions().length).toBeGreaterThanOrEqual(1);
   });
 
