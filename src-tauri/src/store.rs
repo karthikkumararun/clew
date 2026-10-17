@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 
 use crate::error::{AppError, AppResult};
 use crate::history::{entry_from_row, like_pattern, HistoryPage, NewEntry, Row, HISTORY_LIMIT};
+use crate::palette::{EntryKind, IndexEntry};
 
 pub const DB_FILE: &str = "clew.db";
 
@@ -155,6 +156,98 @@ impl Store {
             None => sqlx::query("DELETE FROM history").execute(&self.pool).await,
         };
         Ok(result.map_err(db_err)?.rows_affected())
+    }
+
+    /// Replace the persisted index of one (connection, database).
+    pub async fn palette_replace(
+        &self,
+        connection_id: &str,
+        database: &str,
+        entries: &[IndexEntry],
+    ) -> AppResult<()> {
+        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        sqlx::query("DELETE FROM palette_index WHERE connection_id = ? AND database = ?")
+            .bind(connection_id)
+            .bind(database)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        for e in entries {
+            let path = serde_json::to_string(&e.path).map_err(db_err)?;
+            sqlx::query(
+                "INSERT INTO palette_index (connection_id, database, kind, name, parent_label, path, updated_at) \
+                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(&e.connection_id)
+            .bind(&e.database)
+            .bind(e.kind.as_str())
+            .bind(&e.name)
+            .bind(&e.parent_label)
+            .bind(path)
+            .bind(e.updated_at)
+            .execute(&mut *tx)
+            .await
+            .map_err(db_err)?;
+        }
+        tx.commit().await.map_err(db_err)
+    }
+
+    pub async fn palette_remove_connection(&self, connection_id: &str) -> AppResult<()> {
+        sqlx::query("DELETE FROM palette_index WHERE connection_id = ?")
+            .bind(connection_id)
+            .execute(&self.pool)
+            .await
+            .map_err(db_err)?;
+        Ok(())
+    }
+
+    pub async fn palette_clear(&self) -> AppResult<()> {
+        sqlx::query("DELETE FROM palette_index")
+            .execute(&self.pool)
+            .await
+            .map_err(db_err)?;
+        Ok(())
+    }
+
+    /// Everything indexed so far, to warm the in-memory index at start-up.
+    pub async fn palette_load(&self) -> AppResult<Vec<IndexEntry>> {
+        let rows: Vec<(String, String, String, String, String, String, i64)> = sqlx::query_as(
+            "SELECT connection_id, database, kind, name, parent_label, path, updated_at FROM palette_index",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(
+                |(connection_id, database, kind, name, parent_label, path, updated_at)| {
+                    Some(IndexEntry {
+                        connection_id,
+                        database,
+                        kind: EntryKind::parse(&kind)?,
+                        name,
+                        parent_label,
+                        path: serde_json::from_str(&path).ok()?,
+                        updated_at,
+                    })
+                },
+            )
+            .collect())
+    }
+
+    /// The newest distinct statements across all connections, for the palette.
+    pub async fn history_recent(&self, limit: i64) -> AppResult<Vec<crate::history::HistoryEntry>> {
+        let rows: Vec<Row> = sqlx::query_as(
+            "SELECT id, connection_id, database, sql, started_at, duration_ms, rows, outcome \
+             FROM history WHERE id IN (SELECT max(id) FROM history WHERE outcome = 'ok' \
+               GROUP BY connection_id, sql) \
+             ORDER BY started_at DESC, id DESC LIMIT ?",
+        )
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(rows.into_iter().map(entry_from_row).collect())
     }
 
     pub async fn ui_state_all(&self) -> AppResult<HashMap<String, String>> {

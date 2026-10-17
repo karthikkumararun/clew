@@ -34,6 +34,10 @@ pub async fn connections_delete(
     connection_id: String,
 ) -> AppResult<Vec<String>> {
     state.sessions.disconnect(&connection_id).await;
+    state.palette.remove_connection(&connection_id);
+    if let Err(e) = state.store.palette_remove_connection(&connection_id).await {
+        crate::applog::log(&format!("couldn't drop the palette index: {e}"));
+    }
     state.connections.delete(&connection_id)
 }
 

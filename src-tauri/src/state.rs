@@ -29,4 +29,6 @@ pub struct AppState {
     pub exports: Mutex<HashMap<String, Arc<std::sync::atomic::AtomicBool>>>,
     /// Table structure behind result-editing resolution.
     pub editability: crate::editability::Cache,
+    /// Objects the command palette searches.
+    pub palette: Arc<crate::palette::Palette>,
 }

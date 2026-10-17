@@ -5,6 +5,7 @@ pub mod drivers;
 pub mod export;
 pub mod files;
 pub mod graph;
+pub mod palette;
 pub mod results;
 pub mod sessions;
 pub mod settings;

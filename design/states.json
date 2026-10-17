@@ -76,7 +76,12 @@
       "pending": "add-ai-assistant"
     },
     "CommandPalette": {
-      "pending": "add-command-palette"
+      "states": [
+        {
+          "id": "palette-search",
+          "description": "Palette searching \"ord\" across the objects of two connections and the actions"
+        }
+      ]
     },
     "GraphBrowser": {
       "pending": "needs the graph Docker stack: the design suite adds container-backed states on Linux"

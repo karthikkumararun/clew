@@ -411,10 +411,14 @@ pub async fn completion_snapshot(
     connection_id: String,
     database: String,
 ) -> AppResult<SchemaSnapshot> {
-    Ok(state
+    let snapshot = state
         .sessions
         .completion_snapshot(&connection_id, &database)
-        .await?)
+        .await?;
+    if let Ok(driver) = state.sessions.driver_id(&connection_id) {
+        super::palette::index_snapshot(&state, &connection_id, &driver, &database, &snapshot);
+    }
+    Ok(snapshot)
 }
 
 /// The user's answer to a `host_key_prompt` event.
