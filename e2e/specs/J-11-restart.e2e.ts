@@ -1,4 +1,4 @@
-import { $, browser, expect } from "@wdio/globals";
+import { browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections } from "../helpers/connections";
 import { covers } from "../helpers/covers";

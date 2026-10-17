@@ -1,5 +1,5 @@
 import { covers } from "../helpers/covers";
-import { $, browser, expect } from "@wdio/globals";
+import { browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections, seedPassword } from "../helpers/connections";
 import { withDataDir } from "../helpers/dataDir";

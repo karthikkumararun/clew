@@ -1,5 +1,4 @@
 import { Console } from "../pages/Console";
-import { $ } from "@wdio/globals";
 import { launchApp } from "./app";
 import { connectionFactory, seedConnections, seedPassword } from "./connections";
 import { SERVICES, createIsolatedDb } from "./db";
