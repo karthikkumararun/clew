@@ -8,6 +8,7 @@ import {
   computeCoverage,
   indexSpecs,
   scenarioKey,
+  needsRealRender,
   type Coverage,
   type Scenario,
   type SpecIndex,
@@ -59,6 +60,7 @@ export const FIXED_MANUAL_CHECKS: { title: string; steps: string[] }[] = [
   },
 ];
 
+/** Scenarios that are not covered by an end-to-end test (or are marked manual). */
 export function manualScenarios(index: SpecIndex, coverage: Coverage): Scenario[] {
   return index.scenarios.filter((s) => {
     if (s.status !== "finished") return false;
@@ -67,8 +69,20 @@ export function manualScenarios(index: SpecIndex, coverage: Coverage): Scenario[
   });
 }
 
+/**
+ * Whether a person has to look: the scenario is marked manual, has no test at all, or is about
+ * layout, visibility or colour and was only checked where nothing is drawn. The rest is covered
+ * by unit or integration tests and only needs a spot check if there is time.
+ */
+export function needsAPerson(s: Scenario, coverage: Coverage): boolean {
+  const levels = coverage.byScenario.get(scenarioKey(s));
+  return s.manual || !levels || needsRealRender(s, levels);
+}
+
 export function renderChecklist(index: SpecIndex, coverage: Coverage): string {
-  const manual = manualScenarios(index, coverage);
+  const all = manualScenarios(index, coverage);
+  const person = all.filter((s) => needsAPerson(s, coverage));
+  const below = all.filter((s) => !needsAPerson(s, coverage));
   const lines: string[] = [
     "# Manual QA checklist",
     "",
@@ -85,21 +99,42 @@ export function renderChecklist(index: SpecIndex, coverage: Coverage): string {
   for (const c of FIXED_MANUAL_CHECKS) {
     lines.push(`- [ ] **${c.title}**`, ...c.steps.map((s) => `  - ${s}`));
   }
-  lines.push("", `## Scenarios without an end-to-end test (${manual.length})`, "");
-  const caps = [...new Set(manual.map((s) => s.capability))].sort();
+  lines.push(
+    "",
+    `## Scenarios a person has to check (${person.length})`,
+    "",
+    "Marked manual, without any test, or about layout and colour with no real-render test.",
+    "",
+  );
+  const caps = [...new Set(person.map((s) => s.capability))].sort();
   for (const cap of caps) {
     lines.push(`### ${cap}`, "");
-    for (const s of manual.filter((x) => x.capability === cap)) {
+    for (const s of person.filter((x) => x.capability === cap)) {
       const levels = coverage.byScenario.get(scenarioKey(s));
       const note = s.manual
         ? " _(manual)_"
         : levels
-          ? ` _(automated: ${[...levels].join(", ")})_`
+          ? ` _(only ${[...levels].join(", ")}: check how it looks)_`
           : "";
       lines.push(
         `- [ ] **${s.name}**${note} — ${s.requirement}`,
         ...s.steps.map((t) => `  - ${t}`),
       );
+    }
+    lines.push("");
+  }
+  lines.push(
+    `## Covered by unit or integration tests only (${below.length})`,
+    "",
+    "No end-to-end test, but a test below the UI checks each one. Spot-check any you doubt; a",
+    "failure here is a defect like any other.",
+    "",
+  );
+  for (const cap of [...new Set(below.map((s) => s.capability))].sort()) {
+    lines.push(`### ${cap}`, "");
+    for (const s of below.filter((x) => x.capability === cap)) {
+      const levels = coverage.byScenario.get(scenarioKey(s));
+      lines.push(`- ${s.name} — ${s.requirement} _(${[...(levels ?? [])].join(", ")})_`);
     }
     lines.push("");
   }
@@ -114,8 +149,10 @@ function main(): number {
   mkdirSync(dirname(file), { recursive: true });
   mkdirSync(resolve(root, "docs", "qa", "runs"), { recursive: true });
   writeFileSync(file, renderChecklist(index, coverage));
+  const all = manualScenarios(index, coverage);
+  const person = all.filter((s) => needsAPerson(s, coverage)).length;
   console.log(
-    `${manualScenarios(index, coverage).length} scenarios on the checklist: docs/qa/checklist.md`,
+    `${person} scenarios for a person, ${all.length - person} covered below the UI: docs/qa/checklist.md`,
   );
   return 0;
 }
