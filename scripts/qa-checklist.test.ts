@@ -41,9 +41,31 @@ describe("manual checklist (spec: release-qa › Generate the checklist)", () =>
     expect(md).toContain("  - WHEN a user leaves");
   });
 
-  it("keeps a unit-covered scenario on the list and says so", () => {
+  it("moves a unit-covered scenario to the compact section, without a checkbox or steps", () => {
     const md = renderChecklist(index, cover('it("(spec: demo › Goodbye)")', "unit"));
-    expect(md).toContain("**Goodbye** _(automated: unit)_");
+    expect(md).not.toContain("- [ ] **Goodbye**");
+    expect(md).toContain("## Covered by unit or integration tests only (1)");
+    expect(md).toContain("- Goodbye — Greeting _(unit)_");
+    expect(md).not.toContain("  - WHEN a user leaves");
+    // The one with no test at all still needs a person.
+    expect(md).toContain("- [ ] **Printed** _(manual)_");
+  });
+
+  it("keeps a layout scenario that only a unit test saw on the person's list", () => {
+    const layout = parseSpec(
+      "### Requirement: Panel\nThe panel SHALL fit.\n\n#### Scenario: Narrow window\n- **WHEN** the window is narrowed\n- **THEN** the panel is fully visible and not clipped\n",
+      "ui",
+      "finished",
+    );
+    const idx: SpecIndex = {
+      scenarios: layout.scenarios,
+      requirements: new Map([["ui", new Set(layout.requirements)]]),
+    };
+    const md = renderChecklist(
+      idx,
+      computeCoverage(idx, parseDeclarations('it("(spec: ui › Narrow window)")', "t.ts", "unit")),
+    );
+    expect(md).toContain("- [ ] **Narrow window** _(only unit: check how it looks)_");
   });
 
   it("an e2e-covered scenario marked manual stays listed", () => {

@@ -19,11 +19,11 @@ The repository SHALL provide commands to run the whole quality pass on a develop
 - **THEN** only those services start, and `pnpm qa:e2e` skips journeys that need other profiles and lists them as skipped
 
 ### Requirement: Manual QA checklist
-The project SHALL generate `docs/qa/checklist.md` from the specs: every scenario that is not covered by an end-to-end test, or is explicitly marked manual, appears as a checkbox with its capability, steps and expected result. Manual-only checks SHALL include at least: visual fidelity against the canvas screens, native file and folder dialogs, Oracle Instant Client missing and found states, GitHub Copilot sign-in, macOS Gatekeeper and Windows SmartScreen behaviour of installers, and accessibility with a screen reader.
+The project SHALL generate `docs/qa/checklist.md` from the specs: every scenario that is explicitly marked manual, has no test at all, or is about layout or colour and was only checked where nothing is drawn, appears as a checkbox with its capability, steps and expected result; scenarios that have no end-to-end test but are covered by a unit or integration test appear as one-line references without checkboxes. Manual-only checks SHALL include at least: visual fidelity against the canvas screens, native file and folder dialogs, Oracle Instant Client missing and found states, GitHub Copilot sign-in, macOS Gatekeeper and Windows SmartScreen behaviour of installers, and accessibility with a screen reader.
 
 #### Scenario: Generate the checklist
 - **WHEN** the maintainer runs `pnpm qa:checklist`
-- **THEN** a Markdown checklist is written, grouped by capability, with no scenario that already has an end-to-end test
+- **THEN** a Markdown checklist is written, grouped by capability, with no scenario that already has an end-to-end test, and with the scenarios a person has to check apart from those a lower-level test covers
 
 #### Scenario: Record a manual pass
 - **WHEN** the maintainer completes a manual pass
