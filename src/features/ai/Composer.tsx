@@ -65,6 +65,12 @@ export function Composer({ connection }: { connection: Connection }) {
   const database = consoleContext(id)?.database ?? defaultDatabase(id);
   const model = currentModel();
   const busy = running !== null;
+  /** Close the open menu and give focus back to its button. */
+  const closeMenu = () => {
+    const which = menu;
+    setMenu(null);
+    (which === "model" ? modelBtn : contextBtn).current?.focus();
+  };
 
   useEffect(() => {
     const node = area.current;
@@ -249,7 +255,7 @@ export function Composer({ connection }: { connection: Connection }) {
               { id: "error", label: "Last error" },
               { id: "rows", label: "Result rows (up to 20)" },
             ]}
-            onClose={() => setMenu(null)}
+            onClose={closeMenu}
             onSelect={(k) => void attach(k as "selection" | "error" | "rows")}
           />
         </AnchoredMenu>
@@ -337,11 +343,11 @@ export function Composer({ connection }: { connection: Connection }) {
                 id: p.id,
                 label: p.model ? `${p.name} · ${shortModel(p.model)}` : p.name,
               }))}
-              onClose={() => setMenu(null)}
+              onClose={closeMenu}
               onSelect={(pid) => {
                 const p = providers.find((x) => x.id === pid);
                 if (p) setPick({ providerId: p.id, model: p.model });
-                setMenu(null);
+                closeMenu();
               }}
             />
           </AnchoredMenu>

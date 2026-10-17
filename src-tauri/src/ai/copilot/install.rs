@@ -310,7 +310,7 @@ mod tests {
         );
     }
 
-    /// (spec: ai-providers › Component download consent: verifies its checksum)
+    /// (spec: ai-providers › Component download consent)
     #[tokio::test]
     async fn a_download_that_doesnt_match_its_checksum_is_discarded() {
         let tgz = package(b"real");
