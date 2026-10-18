@@ -77,14 +77,45 @@ export function parseSession(raw: string | null): { tabs: Tab[]; activeTabId: st
   }
 }
 
+/**
+ * Where the open tabs are saved. Workspaces point this at the active workspace; the default is
+ * the Last session, which keeps the key a session had before workspaces existed.
+ */
+let target: () => string = () => SESSION_KEY;
+export function setSessionTarget(next: () => string): void {
+  target = next;
+}
+
+let suspended = 0;
+/** Pause saving (while a workspace switch replaces the tabs); the returned function resumes it. */
+export function suspendSessionPersistence(): () => void {
+  suspended += 1;
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    suspended -= 1;
+  };
+}
+
+type AfterPersist = (tabs: Tab[], activeTabId: string | null) => void;
+const afterPersist = new Set<AfterPersist>();
+/** Called after every save with the tabs that were saved (per-connection default workspaces). */
+export function onSessionPersisted(listener: AfterPersist): () => void {
+  afterPersist.add(listener);
+  return () => afterPersist.delete(listener);
+}
+
 export function persistSession() {
+  if (suspended > 0) return;
   const { tabs, activeTabId } = useWorkspace.getState();
-  setUiState(SESSION_KEY, serializeSession(tabs, activeTabId));
+  setUiState(target(), serializeSession(tabs, activeTabId));
+  afterPersist.forEach((l) => l(tabs, activeTabId));
 }
 
 /** Reopen the tabs from the last run (without connecting to anything). */
 export function restoreSession() {
-  const { tabs, activeTabId } = parseSession(getUiState(SESSION_KEY));
+  const { tabs, activeTabId } = parseSession(getUiState(target()));
   if (tabs.length > 0) useWorkspace.getState().restoreTabs(tabs, activeTabId);
 }
 

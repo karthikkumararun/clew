@@ -1,5 +1,8 @@
-## ADDED Requirements
+# workspaces Specification
 
+## Purpose
+TBD - created by archiving change add-workspaces. Update Purpose after archive.
+## Requirements
 ### Requirement: Workspace model
 A workspace SHALL be a named set of open tabs. For each tab it SHALL keep the kind, the bound connection, the console text, the saved-file link and saved text (so unsaved changes survive), the cursor position and the tab order, plus which tab is active. A workspace SHALL NOT store passwords, keys, query results or session state. Workspaces SHALL be stored locally in the app's data store.
 
@@ -48,6 +51,17 @@ The system SHALL provide a workspace switcher in the toolbar and a Switch worksp
 - **WHEN** a console linked to `report.sql` has unsaved changes and the user switches
 - **THEN** a Save / Discard / Cancel prompt appears, and Cancel aborts the switch
 
+### Requirement: Starting a workspace
+The switcher SHALL offer "New workspace…", which asks for a name, saves the current workspace, settles unsaved files and open transactions as for a switch, and opens an empty workspace with that name. The workspace being left SHALL keep its tabs exactly as they were. (Closing every tab instead changes the workspace the user is in, because the open workspace always saves what is open.)
+
+#### Scenario: Start a new workspace
+- **WHEN** the user is in "Staging checks" with two consoles and chooses New workspace… and names it "Prod checks"
+- **THEN** an empty workspace "Prod checks" is open, and "Staging checks" still holds its two consoles
+
+#### Scenario: Cancelled
+- **WHEN** a console has unsaved file changes and the user cancels at the prompt
+- **THEN** no workspace is created and the current tabs stay open
+
 ### Requirement: Safe restore
 Restoring a workspace SHALL NOT execute SQL, SHALL NOT open database connections until the user runs something in a console (or explicitly connects), and SHALL restore consoles bound to production connections in their read-only default mode. A tab whose connection no longer exists SHALL still open with its text and show that the connection is missing, with a way to bind it to another connection.
 
@@ -84,3 +98,4 @@ On first launch after the update, the previously saved tab list SHALL become the
 #### Scenario: Upgrade from a single tab list
 - **WHEN** a user with three saved console tabs updates and launches Clew
 - **THEN** the three consoles open as before and the Last session workspace holds them
+

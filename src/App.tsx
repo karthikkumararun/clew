@@ -7,6 +7,7 @@ import { registerConsoleCommands } from "./features/console/commands";
 import { installQuitGuard } from "./features/console/quit";
 import { registerPalette } from "./features/palette";
 import { registerAiFeature } from "./features/ai";
+import { registerWorkspaces } from "./features/workspaces";
 import { registerSessionsFeature } from "./features/sessions";
 import { registerCollectionCommands } from "./features/documents/CollectionTab";
 import { registerGraphCommands } from "./features/graph/GraphTab";
@@ -30,6 +31,7 @@ export default function App() {
     const offSessions = registerSessionsFeature();
     const offPalette = registerPalette();
     const offAi = registerAiFeature();
+    const offWorkspaces = registerWorkspaces();
     void useConnections.getState().load();
     return () => {
       offKeys();
@@ -45,6 +47,7 @@ export default function App() {
       offSessions();
       offPalette();
       offAi();
+      offWorkspaces();
     };
   }, []);
   return <Workspace />;

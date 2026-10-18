@@ -235,3 +235,26 @@ describe("Mod+T", () => {
     expect(tabs()).toHaveLength(0);
   });
 });
+
+describe("a console whose connection was deleted (spec: workspaces › Safe restore)", () => {
+  it("keeps its text and offers Bind to connection…", async () => {
+    const id = useWorkspace.getState().openTab<ConsoleState>({
+      kind: CONSOLE_KIND,
+      key: "k-gone",
+      state: { connectionId: "gone", text: "select 1", txMode: "auto" },
+    });
+    const tab = tabs().find((t) => t.id === id)!;
+    render(
+      <>
+        <ConnectionPickerHost />
+        {getTabKind(CONSOLE_KIND)!.render({ tab })}
+      </>,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(/Connection no longer exists/);
+    expect(screen.getByLabelText("Console text").textContent).toBe("select 1");
+    fireEvent.click(screen.getByRole("button", { name: "Bind to connection…" }));
+    fireEvent.click(await screen.findByRole("button", { name: /dev-postgres/ }));
+    await waitFor(() => expect(stateOf().connectionId).toBe("c2"));
+    expect(stateOf().text).toBe("select 1");
+  });
+});

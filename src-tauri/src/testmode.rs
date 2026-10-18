@@ -180,7 +180,11 @@ pub fn e2e_restart(app: tauri::AppHandle) {
 pub fn e2e_exit(app: tauri::AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(2500));
-        app.exit(0)
+        // Not `app.exit`: that goes through the quit guard, which asks about an open transaction
+        // (J-23 leaves one on purpose) and would wait for an answer nobody gives, holding the
+        // WebDriver port against the next journey.
+        app.cleanup_before_exit();
+        std::process::exit(0)
     });
 }
 
