@@ -6,9 +6,9 @@ macOS universal `.dmg` and the Windows x64 installers, checks that each installs
 
 ## Cut a release
 
-1. Set the same version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`
-   (and run `cargo update -p clew` so `Cargo.lock` follows). The workflow refuses a tag that does
-   not match all three.
+1. Bump the version everywhere with `pnpm release:bump 0.2.0` (it sets `package.json`,
+   `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and the `clew` entry of `Cargo.lock` together),
+   commit it through a pull request. The workflow refuses a tag that does not match all of them.
 2. Make sure `main` is green, including the nightly end-to-end run and the manual checklist
    (`docs/qa/README.md`, `pnpm qa:gate <commit>`).
 3. `git tag v0.2.0 && git push origin v0.2.0`.
