@@ -6,8 +6,8 @@
 //     --check verifies the allow-list and writes nothing; --npm-only skips the Rust crates (CI
 //     checks those with `cargo deny check licenses`, which is quicker).
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { build } from "vite";
 import { disallowed, packageOfModule, renderLicensesHtml } from "./licenses-lib";
 import type { Entry } from "./licenses-lib";
@@ -24,6 +24,8 @@ interface AboutJson {
 
 function rustEntries(): Entry[] {
   const out = resolve(root, "src-tauri", "target", "licenses-rust.json");
+  // A fresh checkout has no target/ yet, and cargo-about does not create the folder.
+  mkdirSync(dirname(out), { recursive: true });
   execFileSync("cargo", ["about", "generate", "--format", "json", "-c", "about.toml", "-o", out], {
     cwd: join(root, "src-tauri"),
     stdio: ["ignore", "inherit", "inherit"],
