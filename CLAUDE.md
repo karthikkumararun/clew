@@ -30,6 +30,9 @@ Implement one change at a time, in this order (each depends on the earlier ones)
 16. `add-ai-assistant`  (resolve the Copilot open question in its design.md before task group 3)
 17. `add-release-packaging`
 18. `add-homebrew-packaging`  (brew install via the karthikkumararun tap; cask clears quarantine for the unsigned app; depends on release packaging)
+19. `add-workspaces`  (named workspaces of consoles, per-connection defaults, grouped by environment; builds on the console and tab restore)
+
+Defect with a spec change: `fix-editor-selection` (text selection by mouse and keyboard does not work in the console; follow the defect workflow below, branch `fix/<issue>-editor-selection`).
 
 ## Workflow per change
 
