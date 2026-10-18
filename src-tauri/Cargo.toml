@@ -1,6 +1,6 @@
 [package]
 name = "clew"
-version = "0.1.0"
+version = "0.2.0"
 description = "Clew — an open-source database IDE"
 authors = ["ADK"]
 edition = "2021"
