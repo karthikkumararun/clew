@@ -22,9 +22,9 @@
 
 ## 4. Tap repository
 
-- [ ] 4.1 Create a fine-grained token for `karthikkumararun/homebrew-tap` (contents read and write) and store it as `HOMEBREW_TAP_TOKEN` in the Clew repository (manual, maintainer)
+- [x] 4.1 Create a fine-grained token for `karthikkumararun/homebrew-tap` (contents read and write) and store it as `HOMEBREW_TAP_TOKEN` in the Clew repository (manual, maintainer)
 - [ ] 4.2 Update the tap README to list `mergeiq` and `clew` with install commands and the quarantine explanation (pull request in the tap repository, maintainer)
-- [ ] 4.3 First release: confirm the commit appears in the tap and `brew install --cask karthikkumararun/tap/clew` works on a clean Mac
+- [x] 4.3 First release: confirm the commit appears in the tap and `brew install --cask karthikkumararun/tap/clew` works on a clean Mac (v0.1.0: tap commit `clew 0.1.0`, install verified on the maintainer's Mac)
 
 ## 5. Homebrew-aware updates
 
@@ -40,7 +40,7 @@
 
 ## 7. Verification (manual, on a Mac without developer tools)
 
-- [ ] 7.1 Fresh Mac or user account: tap, install, open from Launchpad and Spotlight without a Gatekeeper dialog, check `xattr`, run `clew --version` (spec: homebrew-packaging › Quarantine cleared for unsigned builds)
+- [x] 7.1 Fresh Mac or user account: tap, install, open from Launchpad and Spotlight without a Gatekeeper dialog, check `xattr`, run `clew --version` (spec: homebrew-packaging › Quarantine cleared for unsigned builds) (maintainer's Mac, v0.1.0)
 - [ ] 7.2 `brew upgrade --cask clew` after a second release: still opens without a warning
 - [ ] 7.3 `brew uninstall --cask clew` and `brew uninstall --zap --cask clew`: only the listed files go; `~/Documents/Clew/Scripts` and the keychain items remain (spec: homebrew-packaging › Uninstall and zap)
 - [ ] 7.4 Intel Mac (or Rosetta) launch of the universal build

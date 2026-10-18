@@ -9,7 +9,7 @@
 - [x] 2.1 `.github/workflows/release.yml` on `v*` tags with tauri-action matrix (universal macOS, Windows x64), draft release, SHA256SUMS
 - [x] 2.2 macOS signing + notarization when secrets exist; unsigned fallback labelled in the release (spec: release-packaging › Signing and notarization)
 - [x] 2.3 Windows Authenticode signing (Azure Trusted Signing or PFX) when secrets exist
-- [ ] 2.4 Test: dry-run the workflow (Actions › Release › Run workflow, which builds and checks everything and publishes nothing) in a fork without secrets; possible only once the workflow is on the default branch
+- [x] 2.4 Test: dry-run the workflow (Actions › Release › Run workflow, which builds and checks everything and publishes nothing; run on the repository itself, with secrets, three times until green)  possible only once the workflow is on the default branch
 
 ## 3. Updates
 
