@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
+import { Button } from "../../components/Button";
 import { clamp } from "../../lib/clamp";
 import { useConnections } from "../../connections/connectionsStore";
 import type { Tab } from "../../shell/registry/tabKinds";
 import { useSettings } from "../../stores/settingsStore";
 import { useWorkspace } from "../../stores/workspaceStore";
 import { rerunActive } from "./commands";
+import { pickConnection } from "./ConnectionPicker";
 import { ReviewBar } from "../ai/ReviewBar";
 import { inlineExtensionFor } from "../ai/inlineSource";
 import { reviewSlot } from "../ai/review";
@@ -96,9 +98,30 @@ export function ConsoleView({ tab }: { tab: Tab<ConsoleState> }) {
   };
 
   if (!connection) {
+    // The text is kept (a restored workspace may hold work worth saving); the console can be
+    // bound to another connection (spec: workspaces › Safe restore).
     return (
-      <div className={styles.missing} role="alert">
-        The connection for this console no longer exists.
+      <div className={styles.missing}>
+        <p role="alert" className={styles.missingNotice}>
+          Connection no longer exists. The console&apos;s text is kept below.
+        </p>
+        <Button
+          variant="default"
+          onClick={() =>
+            void pickConnection().then((id) => {
+              if (id) {
+                useWorkspace
+                  .getState()
+                  .updateTabState<Partial<ConsoleState>>(tab.id, { connectionId: id });
+              }
+            })
+          }
+        >
+          Bind to connection…
+        </Button>
+        <pre className={styles.missingText} aria-label="Console text">
+          {tab.state.text}
+        </pre>
       </div>
     );
   }

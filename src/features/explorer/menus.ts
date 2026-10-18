@@ -15,6 +15,7 @@ export function connectionMenu(c: Connection, groups: Group[], connected: boolea
       ? { id: "connection.disconnect", label: "Disconnect" }
       : { id: "connection.open", label: "Connect" },
     { id: "console.new", label: "New console" },
+    { id: "workspace.open", label: "Open workspace" },
     { id: "connection.edit", label: "Edit…" },
     { id: "connection.duplicate", label: "Duplicate" },
     { id: "connection.rename", label: "Rename…" },

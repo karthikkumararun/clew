@@ -33,5 +33,18 @@ A one-time migration reads the existing saved tab list and writes it as the `las
 
 ## Open Questions
 
-- Shortcut for the switcher (suggest Mod+Shift+W, check against the registry for conflicts).
+- ~~Shortcut for the switcher~~ Decided: Mod+Alt+W (Cmd+Shift+W is "close window" on macOS).
 - Should named workspaces be exportable/importable as files (for sharing a checklist)? Out of scope for this change.
+
+## Implementation notes
+
+Differences from the plan above, decided while building:
+
+- **No Rust table.** Workspaces are stored in the existing `ui_state` key/value store (`workspaces.index` and one `workspace.<id>` blob each), reusing `serializeSession` / `parseSession`: the per-kind serializers, the 5 MB cap and the lazy restore are exactly what restart restore already does. No backend change, so no new commands to test or secure.
+- **Migration is a no-op by design.** The Last session blob keeps the old key (`session.tabs`), so a session saved before workspaces existed already is the Last session. There is nothing to copy and nothing to roll back.
+- **`session.ts` gained three small hooks** (a settable save target, a pause during switches, an after-save listener) so it stays independent of the workspace store; with the defaults it behaves as before and its tests are unchanged.
+- **Closing tabs edits the open workspace**, because the open workspace always saves what is open. Starting a different set of tabs therefore needs "New workspace…" (added to the spec as *Starting a workspace*); Save workspace as… copies the current tabs into a new workspace and leaves the old one as saved.
+- **Connection defaults appear in the switcher** as workspaces named after the connection, next to the named ones, so a connection with consoles shows up under its environment. The list can show the same consoles under three names (Last session, a named workspace, the connection); that is accepted for now.
+- **Deleted connection:** the console now shows "Connection no longer exists", keeps its text visible and offers Bind to connection… (before, it showed only an error and hid the text).
+- **Design-states suite (task 4.4):** there is no canvas for the switcher yet, so it is not added to the design-states suite; the menu was checked against a screenshot of the real app instead. Add it when a canvas exists.
+- **Not done:** the switcher does not yet show per-workspace tab titles; production read-only on restore is the existing connection safeguard (the restored production console shows its READ-ONLY badge in the journey) rather than workspace logic.

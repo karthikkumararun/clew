@@ -15,8 +15,26 @@
 }
 
 .missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
   padding: 24px;
+}
+
+.missingNotice {
+  margin: 0;
   color: var(--danger);
+}
+
+.missingText {
+  margin: 0;
+  max-width: 100%;
+  overflow: auto;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-code);
+  white-space: pre-wrap;
 }
 
 .pickerBody {

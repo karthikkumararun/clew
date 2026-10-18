@@ -1,0 +1,86 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--h-button);
+  max-width: 220px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--text);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.button:hover {
+  background: var(--bg-hover);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heading {
+  color: var(--text-dim);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  color: var(--text-muted);
+}
+
+.manage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 460px;
+}
+
+.manageRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+}
+
+.manageRow:hover {
+  background: var(--bg-hover);
+}
+
+.manageName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+.error {
+  margin: 6px 0 0;
+  color: var(--danger);
+  font-size: var(--fs-small);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

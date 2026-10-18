@@ -16,6 +16,7 @@ import { rehydrateLayout } from "./stores/layoutStore";
 import { startSessionsSync } from "./stores/sessionsStore";
 import { useSessionSettings } from "./stores/sessionSettings";
 import { applySettingsToDocument, useSettings } from "./stores/settingsStore";
+import { startWorkspaces } from "./features/workspaces/store";
 import { restoreSession, startSessionPersistence } from "./shell/session";
 
 /**
@@ -50,6 +51,7 @@ export async function boot(): Promise<void> {
   registerCollectionTab();
   registerKeysTab();
   registerGraphTab();
+  startWorkspaces();
   restoreSession();
   startSessionPersistence();
 }
