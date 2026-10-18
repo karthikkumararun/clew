@@ -93,10 +93,6 @@
       "reason": "baseline"
     },
     {
-      "key": "app-shell›Persisted workspace state›Window off-screen",
-      "reason": "baseline"
-    },
-    {
       "key": "connection-management›Connection dialog›Oracle form",
       "reason": "baseline"
     },
@@ -973,6 +969,10 @@
     },
     {
       "key": "table-editor›Structure, indexes, relations and DDL views›6 listed items, 1 scenarios",
+      "reason": "baseline"
+    },
+    {
+      "key": "workspaces›Environment grouping›5 listed items, 2 scenarios",
       "reason": "baseline"
     }
   ]
