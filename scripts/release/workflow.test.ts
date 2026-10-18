@@ -38,6 +38,14 @@ describe("homebrew workflow", () => {
     expect(script).toContain("HOMEBREW_TAP_TOKEN is not configured");
   });
 
+  it("runs the download and the signed-flag read as two commands, not one folded line", () => {
+    const step = home.steps.find((s) => s.name?.startsWith("Download"));
+    const lines = (step?.run ?? "").trim().split("\n");
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/^gh release download/);
+    expect(lines[1]).toMatch(/^echo "SIGNED_MACOS=/);
+  });
+
   it("gates the cask before pushing", () => {
     const order = ["brew style", "brew audit --cask --online --strict", "brew install --cask"].map(
       (c) => script.indexOf(c),
