@@ -1,0 +1,32 @@
+cask "clew" do
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  url "https://github.com/karthikkumararun/clew/releases/download/v#{version}/Clew_#{version}_universal.dmg"
+  name "Clew"
+  desc "Open-source database IDE for SQL and NoSQL databases"
+  homepage "https://github.com/karthikkumararun/clew"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  depends_on macos: :monterey
+
+  app "Clew.app"
+  binary "#{appdir}/Clew.app/Contents/MacOS/clew"
+@POSTFLIGHT@
+
+  zap trash: [
+    "~/Library/Application Support/Clew",
+    "~/Library/Application Support/dev.adk.clew",
+    "~/Library/Caches/dev.adk.clew",
+    "~/Library/HTTPStorages/dev.adk.clew",
+    "~/Library/Logs/Clew",
+    "~/Library/Preferences/dev.adk.clew.plist",
+    "~/Library/Saved Application State/dev.adk.clew.savedState",
+    "~/Library/WebKit/dev.adk.clew",
+  ]
+@CAVEATS@
+end

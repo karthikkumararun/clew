@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Cask in the maintainer's tap
-The tap `karthikkumararun/homebrew-tap` SHALL provide `Casks/clew.rb` so that `brew install --cask karthikkumararun/tap/clew` (or `brew tap karthikkumararun/tap` then `brew install --cask clew`) installs Clew. The cask SHALL declare: the version; the SHA-256 of the macOS installer; the URL `https://github.com/karthikkumararun/clew/releases/download/v<version>/Clew_<version>_universal.dmg`; name "Clew"; the description; the homepage; a `livecheck` on the latest GitHub release; `depends_on macos: ">= :monterey"`; the app `Clew.app`; a `binary` link to `Clew.app/Contents/MacOS/clew`; and a `zap` list (see Uninstall). The cask SHALL be the only file the release workflow writes to the tap.
+The tap `karthikkumararun/homebrew-tap` SHALL provide `Casks/clew.rb` so that `brew install --cask karthikkumararun/tap/clew` (or `brew tap karthikkumararun/tap` then `brew install --cask clew`) installs Clew. The cask SHALL declare: the version; the SHA-256 of the macOS installer; the URL `https://github.com/karthikkumararun/clew/releases/download/v<version>/Clew_<version>_universal.dmg`; name "Clew"; the description; the homepage; a `livecheck` on the latest GitHub release; `depends_on macos: :monterey` (Homebrew's style check requires this form for "macOS 12 or later"); the app `Clew.app`; a `binary` link to `Clew.app/Contents/MacOS/clew`; and a `zap` list (see Uninstall). The cask SHALL be the only file the release workflow writes to the tap.
 
 #### Scenario: Install from the tap
 - **WHEN** a user runs `brew install --cask karthikkumararun/tap/clew` on a Mac running macOS 12 or later
@@ -73,7 +73,7 @@ The cask's SHA-256 SHALL be the digest of the installer listed in the `SHA256SUM
 - **THEN** it still contains the literal `{{appdir}}` for Homebrew and no unreplaced template placeholder
 
 ### Requirement: Release automation for the tap
-The release workflow SHALL have a `homebrew` job, separate from the build and publish jobs, that runs only after a stable release has been published. It SHALL: skip itself with a notice when the `HOMEBREW_TAP_TOKEN` secret is not configured; download `SHA256SUMS.txt` from the release; render the cask; gate the cask (see next requirement); and push exactly one commit named `clew <version>` that changes only `Casks/clew.rb` to the tap's default branch. Re-running with an unchanged cask SHALL push nothing. Pre-releases SHALL never update the tap. A failure of this job SHALL NOT change or unpublish the release, and "Re-run failed jobs" SHALL repeat only this job.
+A `homebrew` job, in a workflow of its own that runs when a release is published (not when its draft is created), SHALL run only for stable releases. It SHALL: skip itself with a notice when the `HOMEBREW_TAP_TOKEN` secret is not configured; download `SHA256SUMS.txt` and `BUILD_SIGNED_MACOS.txt` from the release; render the cask; gate the cask (see next requirement); and push exactly one commit named `clew <version>` that changes only `Casks/clew.rb` to the tap's default branch. Re-running with an unchanged cask SHALL push nothing. Pre-releases SHALL never update the tap. A failure of this job SHALL NOT change or unpublish the release, and "Re-run failed jobs" SHALL repeat only this job.
 
 #### Scenario: Stable release
 - **WHEN** release `v0.1.0` is published

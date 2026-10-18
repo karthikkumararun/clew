@@ -1,5 +1,6 @@
 import { isTauri, tauriUiStateBackend } from "./lib/ipc";
 import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
+import { detectHomebrew } from "./features/updates/homebrew";
 import { checkForUpdates } from "./features/updates/updater";
 import { startCopilotSync } from "./features/ai/copilotStore";
 import { useAiSettings } from "./features/ai/settingsStore";
@@ -39,6 +40,7 @@ export async function boot(): Promise<void> {
   void useAiSettings.getState().load();
   startCopilotSync();
   applySettingsToDocument(useSettings.getState().settings);
+  void detectHomebrew();
   // Opt-in: only when the user turned automatic checks on does the app contact the update server.
   if (useSettings.getState().settings.checkForUpdates) void checkForUpdates({ silent: true });
   useSettings.subscribe((s) => applySettingsToDocument(s.settings));

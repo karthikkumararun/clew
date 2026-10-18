@@ -26,6 +26,7 @@
     "qa:e2e": "tsx scripts/qa-e2e.ts",
     "qa:checklist": "tsx scripts/qa-checklist.ts",
     "qa:gate": "tsx scripts/release-gate.ts",
+    "release:bump": "tsx scripts/release/bump-version.ts",
     "qa:flake": "tsx scripts/e2e-flake.ts",
     "qa:parity": "tsx scripts/seed-parity.ts",
     "check:no-test-mode": "tsx scripts/check-no-test-mode.ts",
@@ -104,6 +105,7 @@
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.4",
     "vitest": "^5.0.3",
-    "webdriverio": "^9.32.0"
+    "webdriverio": "^9.32.0",
+    "yaml": "^2.9.1"
   }
 }

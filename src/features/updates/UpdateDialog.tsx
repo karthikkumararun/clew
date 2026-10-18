@@ -1,5 +1,6 @@
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
+import { BREW_UPGRADE } from "./homebrew";
 import { installAndRestart } from "./updater";
 import { useUpdates } from "./updateStore";
 import styles from "./Updates.module.css";
@@ -9,6 +10,7 @@ export function UpdateDialog() {
   const open = useUpdates((s) => s.dialogOpen);
   const status = useUpdates((s) => s.status);
   const close = useUpdates((s) => s.closeDialog);
+  const homebrew = useUpdates((s) => s.homebrew);
   if (!open || (status.kind !== "available" && status.kind !== "installing")) return null;
   const installing = status.kind === "installing";
   return (
@@ -23,9 +25,22 @@ export function UpdateDialog() {
           <Button variant="default" disabled={installing} onClick={close}>
             Later
           </Button>
-          <Button variant="primary" disabled={installing} onClick={() => void installAndRestart()}>
-            {installing ? "Installing…" : "Install and restart"}
-          </Button>
+          {homebrew ? (
+            <Button
+              variant="primary"
+              onClick={() => void navigator.clipboard.writeText(BREW_UPGRADE)}
+            >
+              Copy command
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              disabled={installing}
+              onClick={() => void installAndRestart()}
+            >
+              {installing ? "Installing…" : "Install and restart"}
+            </Button>
+          )}
         </>
       }
     >
@@ -40,10 +55,16 @@ export function UpdateDialog() {
             ) : (
               <p className={styles.muted}>No release notes.</p>
             )}
-            <p className={styles.muted}>
-              Clew restarts to finish the update. Unsaved work and open transactions are checked
-              first.
-            </p>
+            {homebrew ? (
+              <p className={styles.muted}>
+                Installed with Homebrew. Update with: <code>{BREW_UPGRADE}</code>
+              </p>
+            ) : (
+              <p className={styles.muted}>
+                Clew restarts to finish the update. Unsaved work and open transactions are checked
+                first.
+              </p>
+            )}
           </>
         ) : (
           <p role="status">

@@ -1,0 +1,154 @@
+name: Homebrew tap
+
+# Updates the cask in karthikkumararun/homebrew-tap after a release is PUBLISHED (not when the draft
+# is created), so the cask never points at a download that is not public yet. Stable releases only.
+# "Run workflow" with a tag repeats the update (spec: homebrew-packaging › Release automation).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to put in the tap (for example v0.1.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  homebrew:
+    name: Update Homebrew tap
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      TAP_REPO: ${{ github.repository_owner }}/homebrew-tap
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Stable releases only; the version is the tag without its "v".
+      - name: Read the release
+        id: release
+        run: |
+          prerelease="$(gh release view "$TAG" --repo "${{ github.repository }}" --json isPrerelease,isDraft --jq '.isPrerelease or .isDraft')"
+          version="${TAG#v}"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          if [ "$prerelease" = "true" ]; then
+            echo "::notice title=Homebrew tap not updated::$TAG is a pre-release or a draft; only published stable releases reach the tap."
+          fi
+
+      # Secrets cannot gate a job, so the later steps check this output instead.
+      - name: Check the tap token
+        id: token
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ "${{ steps.release.outputs.prerelease }}" = "true" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          elif [ -n "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Homebrew tap not updated::HOMEBREW_TAP_TOKEN is not configured; skipping the tap update. The release stays published."
+          fi
+
+      - name: Download SHA256SUMS.txt
+        if: steps.token.outputs.enabled == 'true'
+        run:
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern SHA256SUMS.txt --pattern BUILD_SIGNED_MACOS.txt --dir .
+          echo "SIGNED_MACOS=$(cat BUILD_SIGNED_MACOS.txt)" >> "$GITHUB_ENV"
+
+      - name: Render the cask
+        if: steps.token.outputs.enabled == 'true'
+        run: |
+          args=(--version "$VERSION" --checksums SHA256SUMS.txt --out out/Casks/clew.rb)
+          [ "$SIGNED_MACOS" = "true" ] && args+=(--signed)
+          pnpm exec tsx scripts/release/render-cask.ts "${args[@]}"
+          cat out/Casks/clew.rb
+
+      # The cask must pass Homebrew's own checks and really install before it reaches the tap.
+      - name: Gate the cask (style, audit, install, launch, uninstall)
+        if: steps.token.outputs.enabled == 'true'
+        run: |
+          brew tap-new --no-git local/clew-test
+          tap="$(brew --repository local/clew-test)"
+          mkdir -p "$tap/Casks"
+          cp out/Casks/clew.rb "$tap/Casks/clew.rb"
+          brew style --cask local/clew-test/clew
+          brew audit --cask --online --strict local/clew-test/clew
+          brew install --cask local/clew-test/clew
+          # The cask's postflight clears quarantine for an unsigned app: no manual step needed.
+          if [ "$SIGNED_MACOS" != "true" ] && xattr -p com.apple.quarantine /Applications/Clew.app 2>/dev/null; then
+            echo "::error::the app is still quarantined after install"
+            exit 1
+          fi
+          {
+            echo "### Clew.app code signature"
+            echo '```'
+            codesign -dv /Applications/Clew.app 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          bin="$(brew --prefix)/bin/clew"
+          test -L "$bin"
+          reported="$("$bin" --version)"
+          echo "clew --version: $reported"
+          [ "$reported" = "clew $VERSION" ] || { echo "::error::expected 'clew $VERSION', got '$reported'"; exit 1; }
+          # The app starts on this (Apple Silicon) runner: no window needed, it must stay up.
+          /Applications/Clew.app/Contents/MacOS/clew &
+          pid=$!
+          sleep 8
+          kill -0 "$pid" || { echo "::error::the app exited or was killed on launch"; exit 1; }
+          kill "$pid" || true
+          brew uninstall --cask local/clew-test/clew
+          if [ -e "$bin" ] || [ -e /Applications/Clew.app ]; then
+            echo "::error::uninstall left the app or the clew link behind"
+            exit 1
+          fi
+          brew untap local/clew-test
+
+      # One commit, `clew <version>`, touching only Casks/clew.rb. An empty tap (no commits yet)
+      # gets its first commit on `main`; re-running with an unchanged cask pushes nothing.
+      - name: Push the cask to the tap
+        if: steps.token.outputs.enabled == 'true'
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$HOMEBREW_TAP_TOKEN" | base64)"
+          echo "::add-mask::$auth"
+          git -c "http.extraheader=AUTHORIZATION: basic $auth" clone "https://github.com/$TAP_REPO.git" tap
+          cd tap
+          if git rev-parse --verify --quiet HEAD > /dev/null; then
+            branch="$(git symbolic-ref --short HEAD)"
+          else
+            branch=main
+            git checkout -q -b "$branch"
+          fi
+          mkdir -p Casks
+          cp ../out/Casks/clew.rb Casks/clew.rb
+          git add Casks/clew.rb
+          changed="$(git diff --cached --name-only)"
+          if [ -z "$changed" ]; then
+            echo "::notice::The tap already has the cask for $VERSION; nothing to push."
+            exit 0
+          fi
+          if [ "$changed" != "Casks/clew.rb" ]; then
+            echo "::error::unexpected changes staged: $changed"
+            exit 1
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "clew $VERSION"
+          git -c "http.extraheader=AUTHORIZATION: basic $auth" push origin "HEAD:$branch"
+          echo "Pushed clew $VERSION to $TAP_REPO ($branch)"
