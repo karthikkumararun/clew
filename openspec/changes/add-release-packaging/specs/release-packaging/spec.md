@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Installers for macOS and Windows
-A tagged release SHALL produce: a macOS universal `.dmg` (arm64 + x86_64, macOS 12+) with the app named "Clew", and Windows x64 installers (NSIS `.exe` per-user install, and `.msi`) that install or bootstrap the WebView2 runtime. Artifacts SHALL be named `Clew_<version>_<platform>.<ext>` and published with SHA-256 checksums.
+A tagged release SHALL produce: a macOS universal `.dmg` (arm64 + x86_64, macOS 12+) with the app named "Clew", and Windows x64 installers (NSIS `.exe` per-user install, and `.msi`) that install or bootstrap the WebView2 runtime. Artifacts SHALL be named `Clew_<version>_<platform>.<ext>` (`universal` for macOS, `x64` for Windows) and published with SHA-256 checksums.
 
 #### Scenario: Tag a release
 - **WHEN** a maintainer pushes tag `v0.1.0`
@@ -48,5 +48,5 @@ An About dialog (app menu › About Clew on macOS, Help › About on Windows) SH
 The repository SHALL include LICENSE (MIT, copyright ADK), README (what Clew is, screenshots, install, build from source, supported databases, AI providers and privacy), CONTRIBUTING (setup, OpenSpec workflow, tests), CODE_OF_CONDUCT, SECURITY.md (how to report vulnerabilities privately), and GitHub issue/PR templates. A third-party license bundle for Rust and npm dependencies SHALL be generated at build time and shipped in the app.
 
 #### Scenario: Incompatible license
-- **WHEN** a dependency with a license outside the allow-list (MIT, Apache-2.0, BSD-2/3, ISC, MPL-2.0, Zlib, Unicode-DFS, CC0) is added
+- **WHEN** a dependency with a license outside the allow-list (MIT, Apache-2.0, BSD-2/3, ISC, MPL-2.0, Zlib, Unicode-DFS, CC0, and the permissive BSL-1.0, 0BSD, CDLA-Permissive-2.0 and OFL-1.1) is added
 - **THEN** the CI license check fails and names the dependency

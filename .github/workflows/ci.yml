@@ -39,6 +39,13 @@ jobs:
           pnpm check:design-states
           pnpm check:coverage
           pnpm check:spec-completeness
+      - name: License allow-list (npm packages that ship, then Rust crates)
+        run: pnpm check:licenses
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - run: cargo deny check licenses
+        working-directory: src-tauri
       - run: cargo fmt --check
         working-directory: src-tauri
       - run: cargo clippy -- -D warnings

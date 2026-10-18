@@ -62,6 +62,8 @@ nucleo-matcher = "0.3.1"
 flate2 = "1.1.10"
 tar = { version = "0.4.46", default-features = false }
 open = "5.4.4"
+tauri-plugin-updater = "2.14.0"
+tauri-plugin-process = "2.4.0"
 
 [profile.release]
 codegen-units = 1

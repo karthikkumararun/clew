@@ -1,5 +1,6 @@
 import { isTauri, tauriUiStateBackend } from "./lib/ipc";
 import { hydrateUiState, setUiStateBackend } from "./lib/uiState";
+import { checkForUpdates } from "./features/updates/updater";
 import { startCopilotSync } from "./features/ai/copilotStore";
 import { useAiSettings } from "./features/ai/settingsStore";
 import { startSnapshotSync } from "./features/console/completionTarget";
@@ -38,6 +39,8 @@ export async function boot(): Promise<void> {
   void useAiSettings.getState().load();
   startCopilotSync();
   applySettingsToDocument(useSettings.getState().settings);
+  // Opt-in: only when the user turned automatic checks on does the app contact the update server.
+  if (useSettings.getState().settings.checkForUpdates) void checkForUpdates({ silent: true });
   useSettings.subscribe((s) => applySettingsToDocument(s.settings));
   // Editor kinds must exist before the last session is reopened.
   registerConsoleTab();

@@ -111,6 +111,8 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let data_dir = resolve_data_dir(app)?;
             applog::init(&data_dir);
@@ -225,6 +227,7 @@ pub fn run() {
             #[cfg(feature = "e2e")]
             testmode::e2e_keychain_delete,
             diagnostics::about_info,
+            diagnostics::licenses_html,
             diagnostics::diagnostics_bundle,
             commands::app::app_paths,
             commands::app::app_quit_confirmed,

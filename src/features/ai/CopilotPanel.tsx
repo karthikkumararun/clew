@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../components/Button";
 import { Check } from "../../components/icons";
-import { openExternal } from "./external";
+import { openExternal } from "../../lib/external";
 import {
   copilotAcceptConsent,
   copilotBegin,
