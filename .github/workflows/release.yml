@@ -34,11 +34,15 @@ jobs:
       - name: The tag must match the version of every file
         id: meta
         run: |
+          # Not piped to tee: a failing check must fail the step.
           if [ "${{ github.event_name }}" = "push" ]; then
-            pnpm exec tsx scripts/release/cli.ts meta "${{ github.ref_name }}" | tee -a "$GITHUB_OUTPUT"
+            pnpm exec tsx scripts/release/cli.ts meta "${{ github.ref_name }}" > meta.txt
           else
-            pnpm exec tsx scripts/release/cli.ts meta --from-files | tee -a "$GITHUB_OUTPUT"
+            pnpm exec tsx scripts/release/cli.ts meta --from-files > meta.txt
           fi
+          cat meta.txt
+          cat meta.txt >> "$GITHUB_OUTPUT"
+          test -n "$(grep '^version=.' meta.txt)"
 
   build:
     needs: meta
@@ -149,7 +153,8 @@ jobs:
       - name: Check the macOS package
         if: matrix.name == 'macos'
         run: |
-          hdiutil attach "release-files/Clew_${VERSION}_universal.dmg" -mountpoint /tmp/clew-dmg -nobrowse
+          # The image carries the MIT license text; hdiutil asks to agree to it, so answer yes.
+          yes | hdiutil attach "release-files/Clew_${VERSION}_universal.dmg" -mountpoint /tmp/clew-dmg -nobrowse
           cp -R /tmp/clew-dmg/Clew.app /Applications/Clew.app
           hdiutil detach /tmp/clew-dmg
           lipo -archs /Applications/Clew.app/Contents/MacOS/clew | tee /dev/stderr | grep -q arm64

@@ -1,5 +1,5 @@
 // Command line of the release pipeline, called by .github/workflows/release.yml.
-//   tsx scripts/release/cli.ts meta <tag>|--from-files             version/tag/prerelease as KEY=value lines
+//   tsx scripts/release/cli.ts meta <tag>|--from-files|--from-files             version/tag/prerelease as KEY=value lines
 //   tsx scripts/release/cli.ts collect <version> <out-dir>         copy the bundler output under its release names
 //   tsx scripts/release/cli.ts unsigned-note <macos-signed> <windows-signed>
 //   tsx scripts/release/cli.ts finish <dir> <repo> <tag> <version> write SHA256SUMS.txt and latest.json for the files in <dir>
@@ -47,13 +47,16 @@ function main(argv: string[]): number {
   const [cmd, ...args] = argv;
   try {
     if (cmd === "meta") {
-      const meta = checkTag(args[0] ?? "", {
+      const versions = {
         "package.json": (JSON.parse(read("package.json")) as { version: string }).version,
         "src-tauri/tauri.conf.json": (
           JSON.parse(read("src-tauri/tauri.conf.json")) as { version: string }
         ).version,
         "src-tauri/Cargo.toml": cargoVersion(read("src-tauri/Cargo.toml")),
-      });
+      };
+      // A dry run has no tag: build what the files say.
+      const tag = args[0] === "--from-files" ? `v${versions["package.json"]}` : (args[0] ?? "");
+      const meta = checkTag(tag, versions);
       console.log(`version=${meta.version}\ntag=${meta.tag}\nprerelease=${meta.prerelease}`);
       return 0;
     }
