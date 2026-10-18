@@ -29,6 +29,10 @@ export const baseTheme = EditorView.theme(
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text)", borderLeftWidth: "2px" },
     "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
       { backgroundColor: "color-mix(in srgb, var(--accent) 24%, transparent)" },
+    // CodeMirror draws the selection in a layer behind the text and sets its z-index inline, so
+    // the opaque current-statement tint on a line would hide it. Draw it over the lines instead;
+    // it is translucent, so the text stays readable.
+    ".cm-selectionLayer": { zIndex: "1 !important" },
     ".cm-activeLine": { backgroundColor: "transparent" },
     ".cm-matchingBracket": {
       backgroundColor: "color-mix(in srgb, var(--accent) 22%, transparent)",
