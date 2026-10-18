@@ -149,3 +149,18 @@ describe("describeError", () => {
     );
   });
 });
+
+describe("update dialog for Homebrew installs (spec: homebrew-packaging › Homebrew-managed updates)", () => {
+  it("offers the brew command, not Install and restart", () => {
+    useUpdates.setState({
+      status: { kind: "available", version: "0.2.0", notes: "n" },
+      dialogOpen: true,
+      homebrew: true,
+    });
+    render(<UpdateDialog />);
+    expect(screen.getByText("brew upgrade --cask clew")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Install and restart" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Copy command" })).toBeTruthy();
+    useUpdates.setState({ homebrew: false });
+  });
+});

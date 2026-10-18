@@ -155,6 +155,11 @@ jobs:
           lipo -archs /Applications/Clew.app/Contents/MacOS/clew | tee /dev/stderr | grep -q arm64
           lipo -archs /Applications/Clew.app/Contents/MacOS/clew | grep -q x86_64
           test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' /Applications/Clew.app/Contents/Info.plist)" = "12.0"
+          # Even an unsigned build carries an ad-hoc seal, which Apple Silicon needs to run it
+          # (spec: homebrew-packaging › Unsigned Apple Silicon builds launch).
+          codesign --verify --deep --strict --verbose=2 /Applications/Clew.app
+          codesign -dv /Applications/Clew.app 2>&1 | grep -E "Signature|flags" || true
+          test "$(/Applications/Clew.app/Contents/MacOS/clew --version)" = "clew ${VERSION}"
           if [ "${{ steps.sign.outputs.signed }}" = "true" ]; then
             codesign --verify --deep --strict --verbose=2 /Applications/Clew.app
             spctl --assess --type execute --verbose /Applications/Clew.app
@@ -212,7 +217,8 @@ jobs:
         run: |
           echo "macos=$(cat release-files/signed-macos.txt)" >> "$GITHUB_OUTPUT"
           echo "windows=$(cat release-files/signed-windows.txt)" >> "$GITHUB_OUTPUT"
-          rm release-files/signed-*.txt
+          mv release-files/signed-macos.txt release-files/BUILD_SIGNED_MACOS.txt
+          rm release-files/signed-windows.txt
       - name: Checksums and the update manifest
         env:
           RELEASE_NOTES: Clew ${{ needs.meta.outputs.version }}. See https://github.com/${{ github.repository }}/releases/tag/${{ needs.meta.outputs.tag }}
@@ -233,7 +239,15 @@ jobs:
           MACOS_SIGNED: ${{ steps.signed.outputs.macos }}
           WINDOWS_SIGNED: ${{ steps.signed.outputs.windows }}
         run: |
-          pnpm exec tsx scripts/release/cli.ts unsigned-note "$MACOS_SIGNED" "$WINDOWS_SIGNED" > unsigned-note.md
+          {
+            echo "## Install"
+            echo
+            echo "- **macOS, Homebrew:** \`brew install --cask karthikkumararun/tap/clew\`"
+            echo "- **macOS, manual:** download \`Clew_${VERSION}_universal.dmg\` and drag Clew to Applications"
+            echo "- **Windows:** run \`Clew_${VERSION}_x64.exe\` (or the \`.msi\`)"
+            echo
+            pnpm exec tsx scripts/release/cli.ts unsigned-note "$MACOS_SIGNED" "$WINDOWS_SIGNED"
+          } > unsigned-note.md
           flags=(--draft --title "Clew $VERSION" --generate-notes --notes-file unsigned-note.md)
           if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
           gh release create "$TAG" release-files/* "${flags[@]}"

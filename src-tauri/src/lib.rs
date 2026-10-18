@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod applog;
 pub mod changes;
+pub mod cli;
 pub mod commands;
 pub mod connections;
 pub mod diagnostics;
@@ -228,6 +229,7 @@ pub fn run() {
             testmode::e2e_keychain_delete,
             diagnostics::about_info,
             diagnostics::licenses_html,
+            cli::installed_with_homebrew,
             diagnostics::diagnostics_bundle,
             commands::app::app_paths,
             commands::app::app_quit_confirmed,

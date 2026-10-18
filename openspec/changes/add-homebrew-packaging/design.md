@@ -34,7 +34,7 @@ cask "clew" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "Clew.app"
   binary "#{appdir}/Clew.app/Contents/MacOS/clew"
@@ -75,3 +75,12 @@ Detection is two path checks (`/opt/homebrew/Caskroom/clew`, `/usr/local/Caskroo
 
 - Should the cask also link a `Clew` shell completion or a `clew <file.sql>` open command? Out of scope until the app accepts file arguments.
 - Once notarized, do we propose the cask to `homebrew/cask`? Decide then, after checking the current policy.
+
+## Implementation notes
+
+- **Tap job is its own workflow, triggered by `release: published`.** `add-release-packaging` creates a *draft* release, so a job that merely `needs` the publish job would update the tap (and `brew audit --online` would fetch) before the release is public, leaving a cask whose download 404s. `.github/workflows/homebrew.yml` runs when the draft is published and skips pre-releases and drafts; "Run workflow" with a tag repeats it. The spec's "`homebrew` job in the release workflow" is satisfied in spirit; the requirement text was updated. Because there is no job output to pass, the publish job uploads `BUILD_SIGNED_MACOS.txt` (`true`/`false`) with the release and the tap workflow reads it.
+- **Ad-hoc signature (task 1.3).** Finding: an unsigned bundle from Tauri only carries the linker's ad-hoc signature on the executable ("Sealed Resources=none"), and `codesign --verify --deep --strict` on the bundle fails. Setting `bundle.macOS.signingIdentity` to `"-"` seals the whole bundle ad hoc (verified: `flags=adhoc,runtime`, sealed resources, verify passes, `clew --version` runs). A real `APPLE_SIGNING_IDENTITY` overrides it. The release workflow now runs `codesign --verify --deep --strict` on the installed app for every build.
+- **`depends_on macos: :monterey`.** `brew style` (RuboCop `Homebrew/OSDependsOn`) rejects `">= :monterey"`; the bare symbol already means "12 or later". Found by running the style check on the rendered cask locally.
+- **Caveat also carries the uninstall note and the manual `xattr` command**, so the keychain remark in the spec ships with the cask.
+- **Updates.** `installed_with_homebrew` (two Caskroom paths) feeds the update store; Settings › Updates and the update dialog show `brew upgrade --cask clew` with Copy and no install button. Update checks still work.
+- **Not verifiable locally:** the gate steps that need a published release (audit `--online`, real install from GitHub), and the Apple Silicon launch on a runner.

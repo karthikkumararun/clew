@@ -22,6 +22,17 @@
 
 ## Install
 
+### macOS with Homebrew
+
+```sh
+brew install --cask karthikkumararun/tap/clew
+brew upgrade --cask clew   # later, to update
+```
+
+Clew's macOS build is not signed or notarized yet. The cask clears macOS's quarantine attribute after installing (and after every upgrade) so the app opens without a Gatekeeper warning. That means installing it this way **trusts this repository's releases and the tap**: the cask verifies the download against a pinned SHA-256 taken from the release's `SHA256SUMS.txt`, and you can read exactly what it will do first with `brew cat --cask karthikkumararun/tap/clew`.
+
+### Download
+
 Download the installer for your system from the [latest release](https://github.com/karthikkumararun/clew/releases/latest):
 
 | System | File |
@@ -45,7 +56,7 @@ Clew installs per user on Windows and needs no administrator rights.
 
 ### Updates
 
-Clew makes **no network requests on its own**. Turn on *Settings › Updates › Check for updates automatically* (or press *Check now*) and it looks for a newer release on GitHub. Update packages are signed and verified before they are installed, and Clew asks before restarting and never discards unsaved work.
+Clew makes **no network requests on its own**. (A Homebrew install is updated with `brew upgrade --cask clew`; Clew shows that command instead of installing updates itself.) Turn on *Settings › Updates › Check for updates automatically* (or press *Check now*) and it looks for a newer release on GitHub. Update packages are signed and verified before they are installed, and Clew asks before restarting and never discards unsaved work.
 
 ## Build from source
 
@@ -57,7 +68,7 @@ pnpm tauri dev      # run the app
 pnpm tauri build    # build an installer for this platform (unsigned)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, the OpenSpec workflow and pull requests, and [docs/releasing.md](docs/releasing.md) for how releases are made.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for tests, the OpenSpec workflow and pull requests, and [docs/releasing.md](docs/releasing.md) for how releases are made and [docs/homebrew.md](docs/homebrew.md) for how they reach the Homebrew tap.
 
 ## Databases
 

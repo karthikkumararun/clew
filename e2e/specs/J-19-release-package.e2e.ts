@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
 import { launchApp } from "../helpers/app";
 import { connectionFactory, seedConnections } from "../helpers/connections";
@@ -62,5 +64,12 @@ describe("J-19 release package", () => {
     await toggle.waitForDisplayed({ timeout: 10_000 });
     expect(await toggle.isSelected()).toBe(false);
     await expect($("button=Check now")).toBeDisplayed();
+  });
+
+  it(`the binary answers --version without opening a window ${covers("homebrew-packaging › Command-line version flag")}`, () => {
+    const exe = process.platform === "win32" ? "clew.exe" : "clew";
+    const binary = process.env.CLEW_E2E_BINARY ?? resolve("src-tauri", "target", "debug", exe);
+    const out = execFileSync(binary, ["--version"], { timeout: 15_000 }).toString().trim();
+    expect(out).toMatch(/^clew \d+\.\d+\.\d+/);
   });
 });

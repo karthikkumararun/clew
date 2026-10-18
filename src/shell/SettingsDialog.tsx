@@ -8,6 +8,7 @@ import { APP_VERSION } from "../lib/appInfo";
 import { formatShortcut } from "../lib/platform";
 import { checkForUpdates } from "../features/updates/updater";
 import { useUpdates } from "../features/updates/updateStore";
+import { BREW_UPGRADE } from "../features/updates/homebrew";
 import updateStyles from "../features/updates/Updates.module.css";
 import { IDLE_MINUTES_RANGE, useSessionSettings } from "../stores/sessionSettings";
 import { FONT_SIZE_RANGE, PAGE_SIZES, useSettings } from "../stores/settingsStore";
@@ -267,6 +268,7 @@ function Keymap() {
 function Updates() {
   const { settings, set } = useSettings();
   const status = useUpdates((s) => s.status);
+  const homebrew = useUpdates((s) => s.homebrew);
   const checking = status.kind === "checking" || status.kind === "installing";
   return (
     <Section
@@ -290,19 +292,38 @@ function Updates() {
             ) : status.kind === "error" ? (
               status.message
             ) : status.kind === "available" ? (
-              <>
-                Version {status.version} is available.{" "}
-                <button
-                  type="button"
-                  className={updateStyles.link}
-                  onClick={() => useUpdates.getState().openDialog()}
-                >
-                  See what&apos;s new
-                </button>
-              </>
+              homebrew ? (
+                <>
+                  Version {status.version} is available. Update with: <code>{BREW_UPGRADE}</code>
+                </>
+              ) : (
+                <>
+                  Version {status.version} is available.{" "}
+                  <button
+                    type="button"
+                    className={updateStyles.link}
+                    onClick={() => useUpdates.getState().openDialog()}
+                  >
+                    See what&apos;s new
+                  </button>
+                </>
+              )
             ) : null}
           </span>
         </div>
+        {homebrew ? (
+          <div className={updateStyles.row}>
+            <span className={styles.help}>
+              Installed with Homebrew. Update with: <code>{BREW_UPGRADE}</code>
+            </span>
+            <Button
+              variant="default"
+              onClick={() => void navigator.clipboard.writeText(BREW_UPGRADE)}
+            >
+              Copy
+            </Button>
+          </div>
+        ) : null}
       </div>
     </Section>
   );
