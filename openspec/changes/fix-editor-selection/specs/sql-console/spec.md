@@ -22,3 +22,7 @@ In every text editor of the app (SQL console, Cypher and command consoles, value
 #### Scenario: Selection runs
 - **WHEN** text is selected by any of these means and the user presses Mod+Enter
 - **THEN** exactly the selected text runs
+
+#### Scenario: Selection is visible on the current statement
+- **WHEN** text inside the statement under the cursor is selected, so the statement tint is drawn behind it
+- **THEN** the selection highlight is drawn over the tint and nothing opaque covers it
