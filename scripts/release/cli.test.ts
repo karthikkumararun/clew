@@ -1,10 +1,14 @@
 // @vitest-environment node
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const run = (...args: string[]) =>
-  spawnSync("pnpm", ["exec", "tsx", "scripts/release/cli.ts", ...args], { encoding: "utf8" });
+  // pnpm is pnpm.cmd on Windows, which only runs through a shell.
+  spawnSync("pnpm", ["exec", "tsx", "scripts/release/cli.ts", ...args], {
+    encoding: "utf8",
+    shell: process.platform === "win32",
+  });
 
 describe("release cli › meta", () => {
   const version = (JSON.parse(readFileSync("package.json", "utf8")) as { version: string }).version;
@@ -21,11 +25,7 @@ describe("release cli › meta", () => {
     expect(run("meta", "v99.0.0").status).not.toBe(0);
   });
 
-  it("is not a no-op: the workflow's check relies on the exit status", () => {
-    expect(() =>
-      execFileSync("pnpm", ["exec", "tsx", "scripts/release/cli.ts", "meta", "nonsense"], {
-        stdio: "ignore",
-      }),
-    ).toThrow();
+  it("a non-tag argument fails, since the workflow relies on the exit status", () => {
+    expect(run("meta", "nonsense").status).toBe(1);
   });
 });
