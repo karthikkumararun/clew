@@ -12,3 +12,11 @@
 ## Risks
 
 - The defect may only reproduce in the packaged WebKit build (the reporter used the Homebrew install); the first task therefore confirms it against the release build as well as the E2E build.
+
+## Finding
+
+None of the candidates above. Selection formed correctly: in the E2E build the page reported the selected text for Cmd+Shift+Left/Right, Shift+Home/End and Select all. It was **not visible**. CodeMirror draws the selection in a layer behind the text (its z-index is set inline to a negative value), and the current-statement tint is an opaque `background-color` (`--bg-current-statement`) on the `.cm-line` of the statement under the cursor. The cursor is always inside its own statement, so any selection touching it was painted over, and the user saw nothing. The user's report ("nothing is selected") is what an invisible selection looks like.
+
+The fix draws the selection layer over the lines (`.cm-selectionLayer { z-index: 1 !important }`, needed because CodeMirror sets the z-index inline). The highlight is translucent, so the text stays readable. Making the tint translucent instead would have left the selection faint, and drawing the tint as its own layer under the selection is more code for the same result.
+
+Guard: `selectionVisibility()` in `e2e/helpers/selection.ts` finds the highlight, hit-tests the stack at its centre and fails when an opaque element is painted above it; J-25 runs it for each way of selecting, in the smoke suite. Mouse drags cannot be produced by the embedded WebDriver but draw through the same layer.

@@ -43,3 +43,32 @@ export async function pressMod(
     opts.selector ?? null,
   );
 }
+
+/**
+ * Press a key with explicit modifiers (keydown/keyup on the focused element), for chords where
+ * the platform differs: Cmd+Shift+Left on macOS is Shift+Home on Windows.
+ */
+export async function pressKey(
+  key: string,
+  mods: { meta?: boolean; ctrl?: boolean; shift?: boolean; alt?: boolean } = {},
+): Promise<void> {
+  await browser.execute(
+    (k: string, m: { meta?: boolean; ctrl?: boolean; shift?: boolean; alt?: boolean }) => {
+      const target = document.activeElement ?? document.body;
+      const init: KeyboardEventInit = {
+        key: k,
+        metaKey: !!m.meta,
+        ctrlKey: !!m.ctrl,
+        shiftKey: !!m.shift,
+        altKey: !!m.alt,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      };
+      target.dispatchEvent(new KeyboardEvent("keydown", init));
+      target.dispatchEvent(new KeyboardEvent("keyup", init));
+    },
+    key,
+    mods,
+  );
+}
