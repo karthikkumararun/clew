@@ -67,7 +67,7 @@ jobs:
 
       - name: Download SHA256SUMS.txt
         if: steps.token.outputs.enabled == 'true'
-        run:
+        run: |
           gh release download "$TAG" --repo "${{ github.repository }}" --pattern SHA256SUMS.txt --pattern BUILD_SIGNED_MACOS.txt --dir .
           echo "SIGNED_MACOS=$(cat BUILD_SIGNED_MACOS.txt)" >> "$GITHUB_ENV"
 
