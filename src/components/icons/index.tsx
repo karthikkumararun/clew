@@ -40,6 +40,12 @@ export const Key = makeIcon(
   { strokeWidth: 1.4 },
 );
 export const Link = makeIcon(<path d="M3 8h8M8 5l3 3-3 3" />, { strokeWidth: 1.4 });
+export const Plug = makeIcon(
+  <>
+    <path d="M5.5 2v3M10.5 2v3M4 5h8v2.5a4 4 0 0 1-8 0zM8 11.5V14" />
+  </>,
+  { strokeWidth: 1.4 },
+);
 export const Play = makeIcon(<path d="M4 2.5l9 5.5-9 5.5z" fill="currentColor" stroke="none" />);
 export const Filter = makeIcon(<path d="M2 3h12l-4.5 5.5V13l-3-1.5v-3z" />, { strokeWidth: 1.4 });
 export const Download = makeIcon(<path d="M8 2v8M4.5 7L8 10.5 11.5 7M3 13h10" />);

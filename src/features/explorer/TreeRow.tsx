@@ -9,6 +9,7 @@ import {
   Folder,
   Key,
   Link,
+  Plug,
   Table,
 } from "../../components/icons";
 import { BADGE_ENV, badgeDriver, shortAddress } from "../../connections/display";
@@ -196,7 +197,15 @@ export function TreeRow(p: TreeRowProps) {
           <Highlight text={row.conn.name} match={row.match} />
         </span>
         <EnvDot env={BADGE_ENV[row.conn.environment]} />
-        {row.connected ? <span className={styles.live} role="img" aria-label="Connected" /> : null}
+        {row.connected ? (
+          <Plug
+            size={12}
+            className={styles.live}
+            role="img"
+            aria-label="Connected"
+            aria-hidden={false}
+          />
+        ) : null}
       </>
     );
     detail = hostHint(row);
