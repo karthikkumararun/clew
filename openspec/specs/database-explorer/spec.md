@@ -4,7 +4,7 @@
 TBD - created by archiving change add-database-explorer. Update Purpose after archive.
 ## Requirements
 ### Requirement: Explorer tree
-The sidebar SHALL show an EXPLORER panel with every saved connection grouped by connection group (default groups follow environment: PRODUCTION, STAGING, LOCAL…). Each connection row SHALL show a driver badge, the name, an environment-colored dot and, on the right, the host or "disconnected".
+The sidebar SHALL show an EXPLORER panel with every saved connection grouped by connection group (default groups follow environment: PRODUCTION, STAGING, LOCAL…). Each connection row SHALL show a driver badge, the name, an environment-colored dot and, on the right, the host or "disconnected". A connected connection SHALL also show a plug icon, so the connected state cannot be mistaken for the environment dot.
 
 #### Scenario: No connections
 - **WHEN** there are no saved connections
@@ -20,6 +20,10 @@ Expanding a node SHALL load its children on demand and show a loading indicator 
 #### Scenario: Expand a disconnected connection
 - **WHEN** the user expands a connection that is not connected
 - **THEN** the system connects first (prompting for a password if needed), then shows its databases
+
+#### Scenario: Connected indicator is distinct from the environment dot
+- **WHEN** a connection is connected
+- **THEN** its row shows a plug icon in addition to the round environment-colored dot, and a disconnected row shows no plug icon
 
 #### Scenario: Load error
 - **WHEN** loading a node's children fails

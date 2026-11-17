@@ -103,6 +103,13 @@ describe("rendering", () => {
     expect(
       within(row(/prod-postgres/)).getByRole("img", { name: "Connected" }),
     ).toBeInTheDocument();
+    // database-explorer › Connected indicator is distinct from the environment dot
+    expect(
+      within(row(/prod-postgres/))
+        .getByRole("img", { name: "Connected" })
+        .tagName.toLowerCase(),
+    ).toBe("svg");
+    expect(within(row(/dev-mongo/)).queryByRole("img", { name: "Connected" })).toBeNull();
     expect(row(/dev-mongo/)).toHaveTextContent("disconnected");
   });
 
