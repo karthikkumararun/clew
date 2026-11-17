@@ -103,7 +103,7 @@ describe("rendering", () => {
     expect(
       within(row(/prod-postgres/)).getByRole("img", { name: "Connected" }),
     ).toBeInTheDocument();
-    // Connected state is a plug glyph, distinct from the round environment dot.
+    // database-explorer › Connected indicator is distinct from the environment dot
     expect(
       within(row(/prod-postgres/))
         .getByRole("img", { name: "Connected" })
