@@ -68,7 +68,7 @@ pub enum CopilotState {
 /// Starts the language server. Tests substitute an in-memory one.
 #[async_trait]
 pub trait Launcher: Send + Sync {
-    async fn launch(&self, binary: &Path) -> std::io::Result<Launched>;
+    async fn launch(&self, binary: &Path, proxy: Option<&str>) -> std::io::Result<Launched>;
 }
 
 pub struct Launched {
@@ -82,8 +82,14 @@ pub struct ProcessLauncher;
 
 #[async_trait]
 impl Launcher for ProcessLauncher {
-    async fn launch(&self, binary: &Path) -> std::io::Result<Launched> {
-        let mut child = tokio::process::Command::new(binary)
+    async fn launch(&self, binary: &Path, proxy: Option<&str>) -> std::io::Result<Launched> {
+        let mut command = tokio::process::Command::new(binary);
+        if let Some(p) = proxy {
+            for var in ["HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"] {
+                command.env(var, p);
+            }
+        }
+        let mut child = command
             .arg("--stdio")
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -143,7 +149,8 @@ pub struct CopilotService {
     version: String,
     platform: Option<&'static str>,
     registry: String,
-    http: reqwest::Client,
+    /// Proxy from settings; empty when none.
+    proxy: Mutex<Option<String>>,
     launcher: Arc<dyn Launcher>,
     emit: Emit,
     state: Mutex<CopilotState>,
@@ -200,10 +207,7 @@ impl CopilotService {
             version,
             platform,
             registry,
-            http: reqwest::Client::builder()
-                .connect_timeout(Duration::from_secs(10))
-                .build()
-                .unwrap_or_default(),
+            proxy: Mutex::new(None),
             launcher,
             emit,
             state: Mutex::new(CopilotState::Out),
@@ -212,6 +216,29 @@ impl CopilotService {
             install_cancel: Mutex::new(None),
             docs: Mutex::new(HashMap::new()),
         })
+    }
+
+    /// Set the proxy from settings (empty or blank clears it). Takes effect on the next
+    /// download and the next server start.
+    pub fn set_proxy(&self, proxy: &str) {
+        let proxy = proxy.trim();
+        let next = (!proxy.is_empty()).then(|| proxy.to_string());
+        let mut cur = self.proxy.lock().unwrap();
+        if *cur != next {
+            *cur = next;
+        }
+    }
+
+    fn proxy(&self) -> Option<String> {
+        self.proxy.lock().unwrap().clone()
+    }
+
+    fn http(&self) -> reqwest::Client {
+        let mut b = reqwest::Client::builder().connect_timeout(Duration::from_secs(10));
+        if let Some(p) = self.proxy().and_then(|p| reqwest::Proxy::all(p).ok()) {
+            b = b.proxy(p);
+        }
+        b.build().unwrap_or_default()
     }
 
     pub fn state(&self) -> CopilotState {
@@ -254,7 +281,7 @@ impl CopilotService {
             .ok_or_else(|| "The Copilot component isn't installed".to_string())?;
         let launched = self
             .launcher
-            .launch(&binary)
+            .launch(&binary, self.proxy().as_deref())
             .await
             .map_err(|e| format!("Couldn't start the Copilot component: {e}"))?;
         let client = RpcClient::new(launched.reader, launched.writer, Arc::new(ServerHandler));
@@ -390,7 +417,7 @@ impl CopilotService {
             self.start_sign_in().await;
             return;
         }
-        match install::lookup(&self.http, &self.registry, platform, &self.version).await {
+        match install::lookup(&self.http(), &self.registry, platform, &self.version).await {
             Ok(release) => self.set(CopilotState::Consent {
                 version: self.version.clone(),
                 download_bytes: release.download_bytes,
@@ -414,11 +441,11 @@ impl CopilotService {
         *self.install_cancel.lock().unwrap() = Some(cancel.clone());
         let result = async {
             let release =
-                install::lookup(&self.http, &self.registry, platform, &self.version).await?;
+                install::lookup(&self.http(), &self.registry, platform, &self.version).await?;
             let me = self.clone();
             let last = Mutex::new(0u8);
             install::install(
-                &self.http,
+                &self.http(),
                 &release,
                 &install::install_dir(&self.data_dir, &self.version),
                 &move |done, total| {

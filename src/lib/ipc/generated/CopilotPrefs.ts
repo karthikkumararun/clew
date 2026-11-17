@@ -8,4 +8,10 @@ inline: boolean,
 /**
  * Use Copilot for chat as well.
  */
-chat: boolean, };
+chat: boolean, 
+/**
+ * Proxy for the component download and the Copilot server, e.g. `http://proxy.corp:8080`.
+ * Empty means none (the usual `HTTPS_PROXY` variables still apply). Never carries
+ * credentials: they would land in `ai.json`.
+ */
+proxy: string, };

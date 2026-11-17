@@ -232,6 +232,9 @@ export function AiSettingsPage() {
 
 function CopilotDetail() {
   const { settings, patch } = useAiSettings();
+  const uid = useId();
+  const [proxy, setProxy] = useState(settings.copilot.proxy);
+  useEffect(() => setProxy(settings.copilot.proxy), [settings.copilot.proxy]);
   return (
     <>
       <div className={styles.head}>
@@ -257,6 +260,26 @@ function CopilotDetail() {
         disabled
         onChange={() => {}}
       />
+      <div className={styles.fld}>
+        <label htmlFor={`${uid}-proxy`}>Proxy</label>
+        <Input
+          id={`${uid}-proxy`}
+          dialog
+          placeholder="http://proxy.example.com:8080"
+          value={proxy}
+          onChange={(e) => setProxy(e.target.value)}
+          onBlur={() => {
+            if (proxy.trim() !== settings.copilot.proxy) {
+              void patch({ copilot: { ...settings.copilot, proxy: proxy.trim() } });
+            }
+          }}
+        />
+        <div className={styles.hint}>
+          For networks that need a proxy to reach GitHub. Used to download the Copilot component and
+          by Copilot itself. Leave empty to connect directly. Don't put a user name or password in
+          it.
+        </div>
+      </div>
     </>
   );
 }

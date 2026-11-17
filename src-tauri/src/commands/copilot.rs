@@ -8,6 +8,12 @@ use crate::connections::model::Environment;
 use crate::error::{AppError, AppResult};
 use crate::state::AppState;
 
+/// The Copilot service with the proxy from settings applied.
+fn synced(state: &AppState) -> std::sync::Arc<crate::ai::copilot::service::CopilotService> {
+    state.copilot.set_proxy(&state.ai.settings().copilot.proxy);
+    state.copilot.clone()
+}
+
 /// The sign-in state as it is now.
 #[tauri::command]
 pub fn copilot_state(state: State<'_, AppState>) -> CopilotState {
@@ -17,20 +23,20 @@ pub fn copilot_state(state: State<'_, AppState>) -> CopilotState {
 /// Read the sign-in state from the component when it is installed (start-up, opening settings).
 #[tauri::command]
 pub fn copilot_refresh(state: State<'_, AppState>) {
-    let svc = state.copilot.clone();
+    let svc = synced(&state);
     tauri::async_runtime::spawn(async move { svc.refresh().await });
 }
 
 /// "Sign in with GitHub": asks for consent first when the component isn't installed.
 #[tauri::command]
 pub fn copilot_begin(state: State<'_, AppState>) {
-    let svc = state.copilot.clone();
+    let svc = synced(&state);
     tauri::async_runtime::spawn(async move { svc.begin().await });
 }
 
 #[tauri::command]
 pub fn copilot_accept_consent(state: State<'_, AppState>) {
-    let svc = state.copilot.clone();
+    let svc = synced(&state);
     tauri::async_runtime::spawn(async move { svc.accept_consent().await });
 }
 
@@ -42,7 +48,7 @@ pub fn copilot_decline_consent(state: State<'_, AppState>) {
 
 #[tauri::command]
 pub fn copilot_check_now(state: State<'_, AppState>) {
-    let svc = state.copilot.clone();
+    let svc = synced(&state);
     tauri::async_runtime::spawn(async move { svc.check_now().await });
 }
 
@@ -91,8 +97,7 @@ pub async fn copilot_complete(
         return Ok(Vec::new());
     }
     let token = state.ai.start(&input.request_id);
-    let result = state
-        .copilot
+    let result = synced(&state)
         .complete(&input.document_id, &input.prefix, &input.suffix, token)
         .await;
     state.ai.finish(&input.request_id);

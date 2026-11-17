@@ -266,3 +266,21 @@ describe("data-sharing policy (spec: ai-providers › Data-sharing policy)", () 
     expect((api.set.mock.calls[1][0] as AiSettings).privacy.production).toBe("disabled");
   });
 });
+
+describe("Copilot proxy (spec: ai-providers › Corporate proxy)", () => {
+  it("saves the proxy address when the field loses focus", async () => {
+    render(<AiSettingsPage />);
+    const field = await screen.findByLabelText("Proxy");
+    fireEvent.change(field, { target: { value: " http://proxy.corp:8080 " } });
+    fireEvent.blur(field);
+    await waitFor(() => expect(api.set).toHaveBeenCalled());
+    expect(api.set.mock.calls[0][0].copilot.proxy).toBe("http://proxy.corp:8080");
+  });
+
+  it("does not save when nothing changed", async () => {
+    render(<AiSettingsPage />);
+    const field = await screen.findByLabelText("Proxy");
+    fireEvent.blur(field);
+    expect(api.set).not.toHaveBeenCalled();
+  });
+});
