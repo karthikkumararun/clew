@@ -110,7 +110,7 @@ describe("completionEnabled", () => {
     expect(completionEnabled("t1")).toBe(true);
     settings({
       routing: { ...EMPTY_AI_SETTINGS.routing, inline: "copilot" },
-      copilot: { inline: false, chat: false },
+      copilot: { inline: false, chat: false, proxy: "" },
     });
     expect(completionEnabled("t1")).toBe(false);
   });

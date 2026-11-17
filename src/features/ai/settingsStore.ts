@@ -10,7 +10,7 @@ export const EMPTY_AI_SETTINGS: AiSettings = {
   providers: [],
   routing: { inline: null, chat: null, fix: null, nlSql: null },
   privacy: { schema: true, sql: true, rows: false, production: "schema_only" },
-  copilot: { inline: true, chat: false },
+  copilot: { inline: true, chat: false, proxy: "" },
 };
 
 interface AiSettingsState {

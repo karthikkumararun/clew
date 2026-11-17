@@ -116,7 +116,7 @@ pub struct FakeLauncher(pub Arc<Script>);
 
 #[async_trait]
 impl Launcher for FakeLauncher {
-    async fn launch(&self, _binary: &Path) -> std::io::Result<Launched> {
+    async fn launch(&self, _binary: &Path, _proxy: Option<&str>) -> std::io::Result<Launched> {
         let script = self.0.clone();
         script.launches.fetch_add(1, Ordering::SeqCst);
         let (client_end, server_end) = duplex(256 * 1024);

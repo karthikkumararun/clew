@@ -422,3 +422,25 @@ mod completions {
         assert!(items_to_insertions(&json!({}), "x").is_empty());
     }
 }
+
+/// (spec: ai-providers › Corporate proxy) The component lookup goes through the proxy.
+#[tokio::test]
+async fn the_component_lookup_goes_through_the_configured_proxy() {
+    let proxy = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = proxy.local_addr().unwrap();
+    let seen = tokio::spawn(async move {
+        use tokio::io::AsyncReadExt;
+        let (mut conn, _) = proxy.accept().await.unwrap();
+        let mut buf = vec![0u8; 1024];
+        let n = conn.read(&mut buf).await.unwrap();
+        String::from_utf8_lossy(&buf[..n]).to_string()
+    });
+    let r = rig_with("http://registry.invalid", false, Some("test-1"));
+    r.svc.set_proxy(&format!("http://{addr}"));
+    r.svc.begin().await;
+    let request = tokio::time::timeout(Duration::from_secs(5), seen)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(request.contains("registry.invalid"), "got: {request}");
+}

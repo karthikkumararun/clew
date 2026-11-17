@@ -110,6 +110,7 @@ impl AiService {
     /// Save settings; the secrets of providers that were removed are deleted from the keychain.
     pub fn set_settings(&self, next: AiSettings) -> AppResult<AiSettings> {
         let next = next.sanitized();
+        config::validate_proxy(&next.copilot.proxy)?;
         config::save(&self.data_dir, &next)?;
         let removed: Vec<String> = {
             let mut cur = self.settings.lock().unwrap();

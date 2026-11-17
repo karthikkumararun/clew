@@ -29,6 +29,14 @@ The system SHALL sign in to GitHub Copilot with GitHub's device flow: show the o
 - **WHEN** the user signs in to Copilot for the first time
 - **THEN** Clew explains that it needs to download GitHub's Copilot component (with its size), downloads it only after the user agrees, verifies its checksum and stores it in the app-data directory
 
+#### Scenario: Corporate proxy
+- **WHEN** the user enters a proxy address (`http://` or `https://`, no user name or password) in the GitHub Copilot detail panel
+- **THEN** the component download and the Copilot server both reach GitHub through that proxy, and an address that is malformed or carries credentials is rejected with a message instead of saved
+
+#### Scenario: Component download fails
+- **WHEN** the component cannot be downloaded
+- **THEN** the panel shows the failure and the Proxy field is available on the same panel so the user can fix the network path and retry
+
 ### Requirement: API-key providers
 Anthropic Claude and OpenAI SHALL be configured with an API key (masked input, Paste button, "Where do I get a key?" link), a chat model chosen from the provider's model list, and an optional base URL (defaults `https://api.anthropic.com` and `https://api.openai.com/v1`). Keys SHALL be stored only in the OS keychain.
 

@@ -157,6 +157,10 @@ pub struct CopilotPrefs {
     pub inline: bool,
     /// Use Copilot for chat as well.
     pub chat: bool,
+    /// Proxy for the component download and the Copilot server, e.g. `http://proxy.corp:8080`.
+    /// Empty means none (the usual `HTTPS_PROXY` variables still apply). Never carries
+    /// credentials: they would land in `ai.json`.
+    pub proxy: String,
 }
 
 impl Default for CopilotPrefs {
@@ -164,6 +168,7 @@ impl Default for CopilotPrefs {
         Self {
             inline: true,
             chat: false,
+            proxy: String::new(),
         }
     }
 }
@@ -204,6 +209,7 @@ impl AiSettings {
     /// points at providers that exist.
     pub fn sanitized(mut self) -> Self {
         self.version = AI_VERSION;
+        self.copilot.proxy = self.copilot.proxy.trim().to_string();
         let mut seen = std::collections::HashSet::new();
         self.providers
             .retain(|p| !p.id.trim().is_empty() && seen.insert(p.id.clone()));
@@ -292,6 +298,28 @@ fn recover(dir: &Path, path: &Path) -> LoadOutcome {
 }
 
 /// Write atomically (temp file + rename).
+/// A proxy address Clew can use: an `http(s)://host[:port]` URL without credentials.
+pub fn validate_proxy(proxy: &str) -> AppResult<()> {
+    let proxy = proxy.trim();
+    if proxy.is_empty() {
+        return Ok(());
+    }
+    let invalid = |m: &str| AppError::new("invalid_proxy", m);
+    let Some((scheme, rest)) = proxy.split_once("://") else {
+        return Err(invalid("The proxy must look like http://host:port"));
+    };
+    if !matches!(scheme, "http" | "https") {
+        return Err(invalid("The proxy must start with http:// or https://"));
+    }
+    if rest.split('/').next().unwrap_or("").contains('@') {
+        return Err(invalid(
+            "Leave the user name and password out of the proxy address",
+        ));
+    }
+    reqwest::Proxy::all(proxy).map_err(|_| invalid("That isn't a valid proxy address"))?;
+    Ok(())
+}
+
 pub fn save(dir: &Path, settings: &AiSettings) -> AppResult<()> {
     let io = |e: std::io::Error| {
         AppError::new("ai_settings_io", "Could not save the AI settings").with_detail(e.to_string())
@@ -395,5 +423,17 @@ mod tests {
         assert!(!is_plain_http_remote("http://localhost:11434"));
         assert!(!is_plain_http_remote("http://127.0.0.1:1234/v1"));
         assert!(!is_plain_http_remote("not a url"));
+    }
+
+    /// (spec: ai-providers › Corporate proxy)
+    #[test]
+    fn proxy_addresses_are_checked() {
+        assert!(validate_proxy("").is_ok());
+        assert!(validate_proxy("  ").is_ok());
+        assert!(validate_proxy("http://proxy.corp:8080").is_ok());
+        assert!(validate_proxy("https://proxy.corp").is_ok());
+        assert!(validate_proxy("proxy.corp:8080").is_err());
+        assert!(validate_proxy("ftp://proxy.corp").is_err());
+        assert!(validate_proxy("http://user:secret@proxy.corp:8080").is_err());
     }
 }
